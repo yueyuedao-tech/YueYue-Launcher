@@ -37,8 +37,7 @@ function tick() {
 }
 
 function cancel() {
-  clearInterval(timer)
-  store.launch.open = false
+  close()
 }
 
 function close() {

@@ -24,7 +24,7 @@ import { settings } from '../store'
         </div>
         <div class="set-row">
           <div>
-            <div class="label">在下载页显示快照版本</div>
+            <div class="label">在版本列表显示快照版</div>
             <div class="hint">关闭后版本列表隐藏快照版</div>
           </div>
           <div class="ctrl">

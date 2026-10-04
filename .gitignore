@@ -9,3 +9,5 @@ scripts/**/probe.json
 scripts/**/report.txt
 scripts/**/steps.log
 assets/candidates/
+scripts/smoke-render.json
+

@@ -34,7 +34,6 @@ function label(id: string) {
   const s = state[id]
   if (s.timer) return '下载中…'
   if (s.progress >= 100) return '重新下载'
-  if (s.progress > 0) return '继续'
   return '下载'
 }
 

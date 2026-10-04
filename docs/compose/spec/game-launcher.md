@@ -21,7 +21,7 @@ commits: # empty while in progress
 - **桌面壳**：Electron（主进程 Node.js/TypeScript），创建窗口、加载渲染产物，负责 app 生命周期。V1 主进程不包含启动游戏等业务 IPC——模拟启动完全在渲染进程内用定时器完成。
 - **界面**：Vue 3 + TypeScript + Vite；`vite-plugin-singlefile` 将 JS/CSS 全部内联，构建产物为**自包含的单文件 `dist/index.html`**（无任何外部 script/link/网络依赖），移动端自适应（≤768px 侧边栏切换为底部导航）。该文件既被 Electron 加载，也可直接用浏览器/手机模拟器打开预览。
 - **打包**：electron-builder 配置声明 Windows（NSIS）与 Linux（AppImage）目标；本机只验证 Windows 目录构建，Linux 构建留待 Linux 环境。
-- **图像资源**：二次元主视觉背景图等素材用图像生成工具产出，存于 `assets/`，构建时内联或随包引用本地文件，不引用远程 URL。
+- **图像资源**：二次元主视觉背景素材——原计划用图像生成工具产出，实际因生成服务返回 403（会员未开通）、经用户确认改为从免授权站点下载（Pixabay Content License，免费商用无需署名；来源 URL 与许可记录见 `assets/CREDITS.txt`），存于 `src/assets/`（Vite 引用需要），构建时内联进单文件，不引用远程 URL。应用图标与界面图形为 SVG 自绘。
 
 ### 页面结构（PCL2 式布局）
 
@@ -58,5 +58,5 @@ commits: # empty while in progress
 - [ ] T5: 版本列表页与下载页（mock 卡片列表、名称过滤、模拟下载进度） — acceptance: 过滤即时生效；点击下载出现进度并完成 (covers: S2; depends: T3)
 - [ ] T6: 设置页（分组控件可交互，选择持久化到 localStorage） — acceptance: 刷新/重启后设置值保持 (covers: S2; depends: T3)
 - [ ] T7: 模拟启动浮层（进度条 + 分阶段日志滚动 + 成功态 + 取消） — acceptance: 点击启动完整走完模拟流程，日志逐行出现，可中途取消 (covers: S2; depends: T4)
-- [ ] T8: 二次元视觉打磨（生成主视觉背景图等素材，统一配色/图标/圆角卡片风格） — acceptance: 各页面视觉统一，背景图为本地生成素材，无水印乱码 (covers: S2; depends: T4)
+- [ ] T8: 二次元视觉打磨（接入主视觉背景素材，统一配色/图标/圆角卡片风格） — acceptance: 各页面视觉统一，背景图为本地免授权素材（来源与许可见 assets/CREDITS.txt），无水印乱码 (covers: S2; depends: T4)
 - [ ] T9: electron-builder 配置（win: nsis / linux: AppImage） — acceptance: 配置文件含两平台目标，Windows 上 `--dir` 目录构建成功 (covers: S2; depends: T2)
