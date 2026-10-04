@@ -34,6 +34,22 @@ export async function loadInstances(): Promise<void> {
   }
 }
 
+// ---------- 扫描结果缓存（每次进页面重扫会造成明显卡顿） ----------
+export const jarScan = ref<string[]>([])
+export const javaScan = ref<string[]>(['java'])
+let scanDone = false
+
+export async function ensureScanned(force = false): Promise<void> {
+  if (scanDone && !force) return
+  scanDone = true
+  try {
+    jarScan.value = (await invoke('scan_jars')) as string[]
+    javaScan.value = (await invoke('scan_javas')) as string[]
+  } catch (e) {
+    console.error('scan failed', e)
+  }
+}
+
 export function currentInstance(): InstanceInfo | undefined {
   return instances.value.find((i) => i.id === selectedInstanceId.value)
 }

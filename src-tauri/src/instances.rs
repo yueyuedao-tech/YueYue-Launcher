@@ -155,7 +155,7 @@ pub struct InstanceList {
 }
 
 #[tauri::command]
-pub fn list_instances() -> InstanceList {
+pub async fn list_instances() -> InstanceList {
     let root = instances_root();
     let mut out = Vec::new();
     let mut skipped = 0usize;
@@ -186,7 +186,7 @@ pub fn list_instances() -> InstanceList {
 
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
-pub fn create_instance(
+pub async fn create_instance(
     name: String,
     jar_path: String,
     java_path: String,
@@ -250,7 +250,7 @@ pub fn create_instance(
 /// 全字段更新（前端编辑表单始终提交完整对象，避免 Option 缺键歧义）
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
-pub fn update_instance(
+pub async fn update_instance(
     id: String,
     jar_path: String,
     java_path: String,
@@ -304,7 +304,7 @@ pub fn update_instance(
 }
 
 #[tauri::command]
-pub fn delete_instance(id: String) -> Result<(), String> {
+pub async fn delete_instance(id: String) -> Result<(), String> {
     let id = validate_id(&id)?;
     let dir = instances_root().join(&id);
     if !dir.is_dir() {
@@ -319,7 +319,7 @@ pub fn data_dir_abs(info: &InstanceInfo) -> PathBuf {
 
 /// 自动扫描本机 Mindustry jar：各盘 steam 目录 + Desktop 4 层内 Mindustry.jar
 #[tauri::command]
-pub fn scan_jars() -> Vec<String> {
+pub async fn scan_jars() -> Vec<String> {
     let mut found: Vec<String> = Vec::new();
     let mut push = |p: PathBuf| {
         if p.is_file() {
@@ -357,22 +357,30 @@ fn scan_dir_depth(dir: &Path, depth: usize, max: usize, out: &mut impl FnMut(Pat
     if depth > max {
         return;
     }
+    // 跳过重量级目录，避免大型工程树把扫描拖到秒级
+    const SKIP: [&str; 6] = ["node_modules", ".git", ".gradle", "target", "dist", ".cache"];
     let Ok(rd) = fs::read_dir(dir) else { return };
     for entry in rd.flatten() {
-        let p = entry.path();
-        if p.is_file() {
-            if p.file_name().map(|n| n == "Mindustry.jar").unwrap_or(false) {
-                out(p);
+        // file_type 来自 readdir 结果，不额外 stat，大幅降低 IO
+        let Ok(ft) = entry.file_type() else { continue };
+        if ft.is_file() {
+            if entry.file_name() == "Mindustry.jar" {
+                out(entry.path());
             }
-        } else if p.is_dir() {
-            scan_dir_depth(&p, depth + 1, max, out);
+        } else if ft.is_dir() {
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            if SKIP.contains(&name.as_ref()) {
+                continue;
+            }
+            scan_dir_depth(&entry.path(), depth + 1, max, out);
         }
     }
 }
 
 /// 扫描本机可用 Java：PATH 中的 java + Program Files\Java 下各 JDK/JRE
 #[tauri::command]
-pub fn scan_javas() -> Vec<String> {
+pub async fn scan_javas() -> Vec<String> {
     let mut out: Vec<String> = vec!["java".into()];
     if let Ok(jh) = std::env::var("JAVA_HOME") {
         let p = PathBuf::from(&jh).join("bin").join(if cfg!(windows) { "java.exe" } else { "java" });

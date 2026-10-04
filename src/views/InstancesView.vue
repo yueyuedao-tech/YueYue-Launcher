@@ -2,7 +2,10 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import {
+  ensureScanned,
   instances,
+  jarScan,
+  javaScan,
   loadInstances,
   resetLaunch,
   selectedInstanceId,
@@ -12,13 +15,14 @@ import {
 } from '../store'
 import type { InstanceInfo } from '../types'
 
-const JAVA_OPTIONS = ref<string[]>(['java'])
+const scannedJars = computed(() => jarScan.value)
+const JAVA_OPTIONS = computed(() => javaScan.value)
 
-const scannedJars = ref<string[]>([])
 const showForm = ref(false)
 const editingId = ref<string | null>(null)
 const busy = ref(false)
 const startingId = ref<string | null>(null)
+const rescanning = ref(false)
 const formError = ref('')
 
 const form = reactive({
@@ -58,13 +62,12 @@ function resetForm(info?: InstanceInfo) {
   showForm.value = true
 }
 
-async function scan() {
+async function rescan() {
+  rescanning.value = true
   try {
-    scannedJars.value = (await invoke('scan_jars')) as string[]
-    JAVA_OPTIONS.value = (await invoke('scan_javas')) as string[]
-    if (!editingId.value && !form.jarPath) form.jarPath = scannedJars.value[0] ?? ''
-  } catch (e) {
-    console.error('scan failed', e)
+    await ensureScanned(true)
+  } finally {
+    rescanning.value = false
   }
 }
 
@@ -151,8 +154,9 @@ function baseName(p: string) {
 }
 
 onMounted(async () => {
-  await loadInstances()
-  await scan()
+  // scan 有结果缓存：仅首次进入实例页执行，后续切换页面不再重扫
+  await Promise.all([loadInstances(), ensureScanned()])
+  if (!editingId.value && !form.jarPath) form.jarPath = jarScan.value[0] ?? ''
 })
 </script>
 
@@ -165,9 +169,14 @@ onMounted(async () => {
           每个实例独立文件夹（instance.json + launch.config.json + data/），存档设置互相隔离
         </p>
       </div>
-      <button class="btn-grad" style="font-size: 14px; padding: 10px 26px" @click="resetForm()">
-        + 新建实例
-      </button>
+      <div style="display: flex; gap: 10px; align-items: center">
+        <button class="btn-ghost" :disabled="rescanning" @click="rescan">
+          {{ rescanning ? '扫描中…' : '重新扫描 jar' }}
+        </button>
+        <button class="btn-grad" style="font-size: 14px; padding: 10px 26px" @click="resetForm()">
+          + 新建实例
+        </button>
+      </div>
     </div>
 
     <p v-if="skippedCount > 0" class="page-sub">⚠ 已跳过 {{ skippedCount }} 个损坏的实例条目</p>

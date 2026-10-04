@@ -32,7 +32,7 @@ pub fn running_ids() -> Vec<String> {
 }
 
 #[tauri::command]
-pub fn launch_instance(app: AppHandle, id: String) -> Result<(), String> {
+pub async fn launch_instance(app: AppHandle, id: String) -> Result<(), String> {
     let info = instances::read_instance(&id)?; // 内含 validate_id
 
     let jar = std::path::PathBuf::from(&info.jar_path);
@@ -148,7 +148,7 @@ pub fn launch_instance(app: AppHandle, id: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn stop_instance(id: String) -> Result<(), String> {
+pub async fn stop_instance(id: String) -> Result<(), String> {
     let id = instances::validate_id(&id)?;
     let Some(handle) = running().lock().unwrap().remove(&id) else {
         return Err("该实例未在运行".into());
