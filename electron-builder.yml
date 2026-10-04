@@ -6,6 +6,10 @@ files:
   - dist/**/*
   - electron/**/*
   - package.json
+# 打包只带用得到的语言（恢复：往列表里加语言代码即可，如 ja、ko）
+electronLanguages:
+  - zh-CN
+  - en-US
 win:
   target:
     - nsis

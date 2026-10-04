@@ -31,7 +31,7 @@ commits: 4b825dc..e8957a1
 
 - **桌面壳**：Electron（主进程 Node.js/TypeScript），创建窗口、加载渲染产物，负责 app 生命周期。V1 主进程不包含启动游戏等业务 IPC——模拟启动完全在渲染进程内用定时器完成。
 - **界面**：Vue 3 + TypeScript + Vite；`vite-plugin-singlefile` 将 JS/CSS 全部内联，构建产物为**自包含的单文件 `dist/index.html`**（无任何外部 script/link/网络依赖），移动端自适应（≤768px 侧边栏切换为底部导航）。该文件既被 Electron 加载，也可直接用浏览器/手机模拟器打开预览。
-- **打包**：electron-builder 配置声明 Windows（NSIS）与 Linux（AppImage）目标；本机只验证 Windows 目录构建，Linux 构建留待 Linux 环境。
+- **打包**：electron-builder 配置声明 Windows（NSIS）与 Linux（AppImage）目标；本机只验证 Windows 目录构建，Linux 构建留待 Linux 环境。**体积裁剪（2026-10-04 应用户要求）**：`electronLanguages` 只带 zh-CN/en-US（约省 39MB，恢复=往配置列表加语言码）；`scripts/trim-unpacked.cjs` 把 ANGLE Vulkan 回退三件套（vk_swiftshader.dll/vulkan-1.dll/vk_swiftshader_icd.json，6.1MB）移入 `release/trimmed-backup/`（恢复=`node scripts/trim-unpacked.cjs restore` 或 `SKIP_TRIM=1` 重建）。目录包 268.4MB → 222.9MB，裁剪后已实测窗口渲染正常。主程序 exe（~180MB，Electron/Chromium 静态链接）与许可证文件不裁。
 - **图像资源**：二次元主视觉背景与 logo 素材于 2026-10-04 由用户在会话中提供本地文件并指定用途（背景 `ca87bd71…png`→`src/assets/hero.jpg`，logo `326978360.png`→`src/assets/logo.png` + `build/icon.png`），替换掉初版的 Pixabay 下载素材（原委：图像生成服务 403 会员未开通，经用户确认先改用免授权下载，后又经用户改为自有素材）；处理与来源记录见 `assets/CREDITS.txt`。存于 `src/assets/`（Vite 引用需要），构建时内联进单文件，不引用远程 URL。界面图形（导航/启动浮层）为 SVG 自绘。
 
 ### 页面结构（PCL2 式布局）
