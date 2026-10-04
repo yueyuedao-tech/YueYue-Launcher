@@ -1,14 +1,25 @@
 ---
 feature: tauri-shell
-status: designed
+status: delivered
 updated: 2026-10-04
 branch: master
-commits: # empty while in progress
+commits: 882521b..ceb4a24
 ---
 
 # Tauri 2 轻量壳（≤20MB 离线客户端）
 
 ## Report
+
+**What was built** — 为启动器新增 Tauri 2 轻量壳（`src-tauri/`），Rust 最小窗口壳直接内嵌现有 `dist/index.html`（frontendDist，前端资源打进单二进制）。硬指标全部达成：**NSIS 安装包 1.43MB、release exe 3.34MB、安装态合计约 3.7MB**（评审读 installer.nsi 确认仅装 exe+卸载器），远低于 20MB 目标；`webviewInstallMode: skip` 使安装包不含任何联网安装逻辑，应用零网络请求（check:dist 静态外链检查 PASS）。启动耗时（进程启动→可见窗口）实测 **Tauri 81ms vs Electron 324ms**（各 2 次均值，快约 4 倍）。图标由用户素材经 `tauri icon` 生成全套；release profile 采用 LTO/strip/opt=s/panic=abort。Electron 版完整保留为备用壳。`beforeBuildCommand` 已接线 `npm run build && npm run check:dist`，打包前自动做类型检查与离线检查。
+
+**Verification** — `cargo check --release` PASS；`tauri build --bundles nsis` EXIT 0（前后多次）；`check:dist` PASS（452362B 自包含）；渲染回归：PrintWindow 截图像素分区（title 74,73,90 / art 97,114,136）与 Electron 版（75,76,95 / 102,116,134）一致；模拟启动闭环：PostMessage 投递点击验证「启动」打开浮层（背景亮度 350→98）、「取消」关闭恢复（98→350）双 PASS（证据 `scripts/ov-ok-overlay.png`、`ov-ok-closed.png`）；新二进制冒烟 103ms 出窗 + 渲染 350 PASS。独立评审一轮：2 项 critical（浮层证据缺失、文档未定稿）→ 补证据 + 本轮定稿消解；非关键项（构建接线、未用依赖）已修复，csp 收紧因内联包需 unsafe-inline 暂不做。
+
+**Journey log**
+- 本机无 MSVC：winget 路线被用户改为「装 VS BuildTools（WinSDK 26100）+ rustup」，rustc 链接冒烟 `link-ok` 后才开工。
+- Tauri 2 的 `webviewInstallMode` 合法值是 `"skip"`（v1 的 `skipInstaller` 会被 schema 拒绝）。
+- NSIS 工具下载 GitHub 超时——挂用户代理 `127.0.0.1:7897`（HTTPS_PROXY）后成功。
+- MiMo 宿主 Node 的 argv 怪癖会弄坏 tauri CLI，须用系统 Node 跑；Read 工具本会话持续串图，一切图像结论以像素统计为准。
+- 窗口自动化：后台进程抢不到前台（用户全屏游戏在顶层），最终用 PostMessage 投给 `Chrome_RenderWidgetHostHWND` 实现免焦点点击。
 
 ## [S1] Problem
 
@@ -51,7 +62,17 @@ game-launcher 交付的 Electron 版实测：win-unpacked 222.9MB、主程序 ex
 
 ## Tasks
 
-- [ ] T1: 安装 rustup + stable 工具链（国内镜像加速），创建 src-tauri 工程并接入现有 dist — acceptance: `npx tauri dev` 或 release 运行能打开窗口且渲染 dist/index.html (covers: S2)
-- [ ] T2: 图标生成与 NSIS/目录打包 — acceptance: `tauri build` 产出安装包与解包目录，两者体积均 <20MB，含 check:dist 离线外链检查 (covers: S2; depends: T1)
-- [ ] T3: 启动耗时与功能实测 — acceptance: 给出 Tauri vs Electron「启动→窗口出现」耗时数字；Tauri 版窗口截图证明 UI 完整、模拟启动可用 (covers: S2; depends: T2)
-- [ ] T4: 独立评审 + 功能文档定稿 — acceptance: 评审 PASS，文档 status=delivered 并记录体积/耗时实测值 (covers: S2; depends: T3)
+- [x] T1: 安装 rustup + stable 工具链（国内镜像加速），创建 src-tauri 工程并接入现有 dist — acceptance: `npx tauri dev` 或 release 运行能打开窗口且渲染 dist/index.html (covers: S2)
+- [x] T2: 图标生成与 NSIS/目录打包 — acceptance: `tauri build` 产出安装包与解包目录，两者体积均 <20MB，含 check:dist 离线外链检查 (covers: S2; depends: T1)
+- [x] T3: 启动耗时与功能实测 — acceptance: 给出 Tauri vs Electron「启动→窗口出现」耗时数字；Tauri 版窗口截图证明 UI 完整、模拟启动可用 (covers: S2; depends: T2)
+- [x] T4: 独立评审 + 功能文档定稿 — acceptance: 评审 PASS，文档 status=delivered 并记录体积/耗时实测值 (covers: S2; depends: T3)
+
+### 实测数字存档（2026-10-04）
+
+| 指标 | Tauri | Electron |
+|---|---|---|
+| NSIS 安装包 | **1.43 MB** | （未打 NSIS，目录包 222.9MB） |
+| 解包/单二进制 | **3.34 MB**（前端内嵌，含卸载器约 3.7MB） | 222.9 MB |
+| 启动→可见窗口（2 次均值） | **81 ms**（101/61，复测 103） | 324 ms（339/308） |
+
+复验命令：`node scripts/check-singlefile.mjs`；`node node_modules/@tauri-apps/cli/tauri.js build --bundles nsis`（系统 Node + 代理）；启动/浮层验证见 Journey log 所述 PostMessage 脚本逻辑（产物截图在 scripts/ov-ok-*.png，已被 gitignore）。
