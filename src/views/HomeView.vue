@@ -5,12 +5,14 @@ import { news } from '../data/mock'
 import {
   currentInstance,
   instances,
+  loadInstances,
   resetLaunch,
   selectedInstanceId,
   store,
 } from '../store'
 
 const inst = computed(() => currentInstance())
+let starting = false
 
 async function launch() {
   const target = inst.value
@@ -23,6 +25,8 @@ async function launch() {
     resetLaunch(target.id)
     return
   }
+  if (starting) return
+  starting = true
   resetLaunch(target.id)
   await nextTick() // 等浮层挂载并注册事件监听
   try {
@@ -30,6 +34,9 @@ async function launch() {
   } catch (e) {
     store.launch.logs.push({ text: `[错误] ${e}`, cls: 'warn' })
     store.launch.status = 'failed'
+  } finally {
+    starting = false
+    loadInstances()
   }
 }
 </script>

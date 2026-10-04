@@ -1,6 +1,39 @@
-﻿use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
+
+/// 实例 id 即目录名：拒绝空、.、.. 及路径分隔符，防止越出 instances 根
+pub fn validate_id(id: &str) -> Result<String, String> {
+    if id.is_empty() {
+        return Err("实例 id 不能为空".into());
+    }
+    if id == "." || id == ".." {
+        return Err("非法实例 id".into());
+    }
+    if id.contains('/') || id.contains('\\') {
+        return Err("实例 id 不能包含路径分隔符".into());
+    }
+    if id.chars().any(|c| matches!(c, ':' | '*' | '?' | '"' | '<' | '>' | '|')) {
+        return Err("实例 id 包含非法字符".into());
+    }
+    Ok(id.to_string())
+}
+
+/// java 可执行校验：带分隔符按文件存在判断，否则尝试 -version 探测
+fn validate_java(java: &str) -> Result<(), String> {
+    if java.contains('\\') || java.contains('/') {
+        if !Path::new(java).is_file() {
+            return Err(format!("java 不存在: {java}"));
+        }
+    } else {
+        let probe = Command::new(java).arg("-version").output();
+        if probe.is_err() {
+            return Err(format!("java 不可用: {java}"));
+        }
+    }
+    Ok(())
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -100,7 +133,8 @@ fn load_instance_dir(dir: &Path) -> Option<InstanceInfo> {
 }
 
 pub fn read_instance(id: &str) -> Result<InstanceInfo, String> {
-    let dir = instances_root().join(id);
+    let id = validate_id(id)?;
+    let dir = instances_root().join(&id);
     load_instance_dir(&dir).ok_or_else(|| format!("实例不存在: {id}"))
 }
 
@@ -151,19 +185,23 @@ pub fn list_instances() -> InstanceList {
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn create_instance(
     name: String,
     jar_path: String,
     java_path: String,
     jvm_args: Vec<String>,
+    memory_mb: u32,
+    isolate: bool,
 ) -> Result<InstanceInfo, String> {
     let name = sanitize_name(&name)?;
     let jar = PathBuf::from(&jar_path);
     if !jar.is_file() {
         return Err(format!("jar 不存在: {jar_path}"));
     }
-    if java_path.trim().is_empty() {
-        return Err("java 路径不能为空".into());
+    validate_java(&java_path)?;
+    if !(512..=65536).contains(&memory_mb) {
+        return Err("内存需在 512-65536 MB 之间".into());
     }
     let root = instances_root();
     let dir = root.join(&name);
@@ -172,32 +210,39 @@ pub fn create_instance(
     }
     fs::create_dir_all(dir.join("data")).map_err(|e| e.to_string())?;
 
+    // 任一步失败则回滚整个目录，避免留下半成品条目
     let created = chrono_lite_now();
     let id = name.clone();
-    let manifest = Manifest {
-        id: id.clone(),
-        name: name.clone(),
-        created_at: created,
-        jar_path: abs_jar_path(&jar),
-        java_path,
-        data_dir: "data".into(),
-    };
-    let config = LaunchConfig {
-        isolate: true,
-        memory_mb: 4096,
-        jvm_args,
-        game_args: vec![],
-    };
-    fs::write(
-        dir.join("instance.json"),
-        serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())?,
-    )
-    .map_err(|e| e.to_string())?;
-    fs::write(
-        dir.join("launch.config.json"),
-        serde_json::to_string_pretty(&config).map_err(|e| e.to_string())?,
-    )
-    .map_err(|e| e.to_string())?;
+    let write_result: Result<(), String> = (|| {
+        let manifest = Manifest {
+            id: id.clone(),
+            name: name.clone(),
+            created_at: created,
+            jar_path: abs_jar_path(&jar),
+            java_path: java_path.clone(),
+            data_dir: "data".into(),
+        };
+        let config = LaunchConfig {
+            isolate,
+            memory_mb,
+            jvm_args,
+            game_args: vec![],
+        };
+        fs::write(
+            dir.join("instance.json"),
+            serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| e.to_string())?;
+        fs::write(
+            dir.join("launch.config.json"),
+            serde_json::to_string_pretty(&config).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| e.to_string())
+    })();
+    if let Err(e) = write_result {
+        let _ = fs::remove_dir_all(&dir);
+        return Err(e);
+    }
 
     read_instance(&id)
 }
@@ -214,6 +259,7 @@ pub fn update_instance(
     isolate: bool,
     memory_mb: u32,
 ) -> Result<InstanceInfo, String> {
+    let id = validate_id(&id)?;
     let dir = instances_root().join(&id);
     if !dir.is_dir() {
         return Err(format!("实例不存在: {id}"));
@@ -226,9 +272,7 @@ pub fn update_instance(
     }
     info.jar_path = abs_jar_path(&p);
 
-    if java_path.trim().is_empty() {
-        return Err("java 路径不能为空".into());
-    }
+    validate_java(&java_path)?;
     info.java_path = java_path;
     if memory_mb < 512 || memory_mb > 65536 {
         return Err("内存需在 512-65536 MB 之间".into());
@@ -261,6 +305,7 @@ pub fn update_instance(
 
 #[tauri::command]
 pub fn delete_instance(id: String) -> Result<(), String> {
+    let id = validate_id(&id)?;
     let dir = instances_root().join(&id);
     if !dir.is_dir() {
         return Err(format!("实例不存在: {id}"));
@@ -325,27 +370,32 @@ fn scan_dir_depth(dir: &Path, depth: usize, max: usize, out: &mut impl FnMut(Pat
     }
 }
 
+/// 扫描本机可用 Java：PATH 中的 java + Program Files\Java 下各 JDK/JRE
+#[tauri::command]
+pub fn scan_javas() -> Vec<String> {
+    let mut out: Vec<String> = vec!["java".into()];
+    if let Ok(jh) = std::env::var("JAVA_HOME") {
+        let p = PathBuf::from(&jh).join("bin").join(if cfg!(windows) { "java.exe" } else { "java" });
+        if p.is_file() {
+            out.push(p.to_string_lossy().into_owned());
+        }
+    }
+    #[cfg(windows)]
+    if let Ok(rd) = fs::read_dir(r"C:\Program Files\Java") {
+        for e in rd.flatten() {
+            let p = e.path().join("bin").join("java.exe");
+            if p.is_file() {
+                out.push(p.to_string_lossy().into_owned());
+            }
+        }
+    }
+    out.dedup();
+    out
+}
+
 fn chrono_lite_now() -> String {
-    // 免依赖的 UTC 时间格式化：YYYY-MM-DD HH:MM:SS（Howard Hinnant civil_from_days 算法）
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let secs = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs() as i64)
-        .unwrap_or(0);
-    let days = secs.div_euclid(86400);
-    let tod = secs.rem_euclid(86400);
-    let (h, m, s) = (tod / 3600, (tod % 3600) / 60, tod % 60);
-    let z = days + 719468;
-    let era = z.div_euclid(146097);
-    let doe = z.rem_euclid(146097);
-    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
-    let y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let mo = if mp < 10 { mp + 3 } else { mp - 9 };
-    let y = if mo <= 2 { y + 1 } else { y };
-    format!("{y:04}-{mo:02}-{d:02} {h:02}:{m:02}:{s:02}")
+    // 本地时间（修复 UTC 显示偏差）
+    chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
 }
 
 #[cfg(test)]

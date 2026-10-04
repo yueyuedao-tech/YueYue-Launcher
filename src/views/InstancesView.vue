@@ -12,17 +12,13 @@ import {
 } from '../store'
 import type { InstanceInfo } from '../types'
 
-const JAVA_OPTIONS = [
-  'java',
-  'C:\\Program Files\\Java\\jdk-21.0.12.1\\bin\\java.exe',
-  'C:\\Program Files\\Java\\jdk-25.0.4.1\\bin\\java.exe',
-  'C:\\Program Files\\Java\\jdk-27\\bin\\java.exe',
-]
+const JAVA_OPTIONS = ref<string[]>(['java'])
 
 const scannedJars = ref<string[]>([])
 const showForm = ref(false)
 const editingId = ref<string | null>(null)
 const busy = ref(false)
+const startingId = ref<string | null>(null)
 const formError = ref('')
 
 const form = reactive({
@@ -65,9 +61,10 @@ function resetForm(info?: InstanceInfo) {
 async function scan() {
   try {
     scannedJars.value = (await invoke('scan_jars')) as string[]
+    JAVA_OPTIONS.value = (await invoke('scan_javas')) as string[]
     if (!editingId.value && !form.jarPath) form.jarPath = scannedJars.value[0] ?? ''
   } catch (e) {
-    console.error('scan_jars failed', e)
+    console.error('scan failed', e)
   }
 }
 
@@ -90,7 +87,12 @@ async function submit() {
         memoryMb: form.memoryMb,
       })
     } else {
-      await invoke('create_instance', { name: form.name, ...args })
+      await invoke('create_instance', {
+        name: form.name,
+        ...args,
+        memoryMb: form.memoryMb,
+        isolate: form.isolate,
+      })
     }
     showForm.value = false
     await loadInstances()
@@ -115,6 +117,8 @@ async function remove(info: InstanceInfo) {
 }
 
 async function start(info: InstanceInfo) {
+  if (startingId.value) return // 防重入
+  startingId.value = info.id
   selectedInstanceId.value = info.id
   resetLaunch(info.id)
   await sleep(60) // 等浮层挂载并注册日志监听
@@ -123,6 +127,8 @@ async function start(info: InstanceInfo) {
   } catch (e) {
     store.launch.logs.push({ text: `[错误] ${e}`, cls: 'warn' })
     store.launch.status = 'failed'
+  } finally {
+    startingId.value = null
   }
   await loadInstances()
 }
@@ -245,7 +251,7 @@ onMounted(async () => {
           </div>
         </div>
         <div class="row-side">
-          <button v-if="!i.running" class="btn-grad" style="font-size: 13px; padding: 8px 20px" @click.stop="start(i)">启动</button>
+          <button v-if="!i.running" class="btn-grad" style="font-size: 13px; padding: 8px 20px" :disabled="startingId !== null" @click.stop="start(i)">启动</button>
           <button v-else class="btn-ghost" style="color: #ff7db0" @click.stop="stop(i)">停止</button>
           <button class="btn-ghost" @click.stop="resetForm(i)">编辑</button>
           <button class="btn-ghost" style="color: #ff8f8f" @click.stop="remove(i)">删除</button>

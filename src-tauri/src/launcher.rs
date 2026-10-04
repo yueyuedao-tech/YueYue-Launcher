@@ -33,11 +33,7 @@ pub fn running_ids() -> Vec<String> {
 
 #[tauri::command]
 pub fn launch_instance(app: AppHandle, id: String) -> Result<(), String> {
-    let info = instances::read_instance(&id)?;
-
-    if running().lock().unwrap().contains_key(&id) {
-        return Err("该实例已在运行".into());
-    }
+    let info = instances::read_instance(&id)?; // 内含 validate_id
 
     let jar = std::path::PathBuf::from(&info.jar_path);
     if !jar.is_file() {
@@ -65,6 +61,12 @@ pub fn launch_instance(app: AppHandle, id: String) -> Result<(), String> {
     cmd.stdin(Stdio::null());
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::piped());
+    #[cfg(unix)]
+    {
+        // 新建进程组：stop 时可整组终止（游戏可能再派生子进程）
+        use std::os::unix::process::CommandExt;
+        cmd.process_group(0);
+    }
 
     // 数据隔离：Arc/游戏经 AppData(Windows) 或 XDG_DATA_HOME(Linux) 决定数据目录
     if info.isolate {
@@ -75,6 +77,11 @@ pub fn launch_instance(app: AppHandle, id: String) -> Result<(), String> {
         }
     }
 
+    // 检查-启动-登记为一个临界区，防止双击重复拉起
+    let mut table = running().lock().unwrap();
+    if table.contains_key(&id) {
+        return Err("该实例已在运行".into());
+    }
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("启动失败（javaPath={}）: {e}", info.java_path))?;
@@ -104,7 +111,8 @@ pub fn launch_instance(app: AppHandle, id: String) -> Result<(), String> {
     });
 
     let handle = Arc::new(Mutex::new(child));
-    running().lock().unwrap().insert(id.clone(), handle.clone());
+    table.insert(id.clone(), handle.clone());
+    drop(table);
 
     // waiter：自然退出 → 表中仍是同一 Arc 则移除并发 launch-exit；已被 stop 移除则静默退出
     let app_w = app.clone();
@@ -141,6 +149,7 @@ pub fn launch_instance(app: AppHandle, id: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn stop_instance(id: String) -> Result<(), String> {
+    let id = instances::validate_id(&id)?;
     let Some(handle) = running().lock().unwrap().remove(&id) else {
         return Err("该实例未在运行".into());
     };
@@ -158,6 +167,12 @@ pub fn stop_instance(id: String) -> Result<(), String> {
     }
     #[cfg(not(windows))]
     {
+        // 进程组终止（spawn 时 process_group(0)，pgid == 子进程 pid）
+        let _ = Command::new("kill")
+            .args(["-KILL", &format!("-{pid}")])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
         let mut guard = handle.lock().unwrap();
         let _ = guard.kill();
         let _ = guard.wait();

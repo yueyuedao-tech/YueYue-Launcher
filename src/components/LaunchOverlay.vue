@@ -3,7 +3,7 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import type { LaunchExitPayload, LaunchLogPayload } from '../types'
-import { closeLaunch, instances, store } from '../store'
+import { closeLaunch, instances, loadInstances, store } from '../store'
 
 const unlisteners: UnlistenFn[] = []
 const logBox = ref<HTMLElement | null>(null)
@@ -59,6 +59,7 @@ async function cancelOrClose() {
       closeLaunch()
       store.launch.status = 'running'
       store.launch.logs = []
+      await loadInstances() // 刷新运行中徽标
     }
   } else {
     closeLaunch()

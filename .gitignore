@@ -22,3 +22,4 @@ scripts/final-smoke*
 scripts/cdp-eval*
 scripts/inst-overlay*
 
+scripts/*.jar

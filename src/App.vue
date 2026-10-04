@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onBeforeUnmount } from 'vue'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { store, type ViewId, loadInstances } from './store'
+import type { LaunchExitPayload } from './types'
 import HomeView from './views/HomeView.vue'
 import InstancesView from './views/InstancesView.vue'
 import SettingsView from './views/SettingsView.vue'
@@ -19,9 +21,18 @@ const nav: { id: ViewId; label: string; path: string }[] = [
 ]
 
 const current = computed(() => views[store.view])
+let unexit: UnlistenFn | null = null
 
-onMounted(() => {
+onMounted(async () => {
   loadInstances()
+  // 进程自然退出后刷新实例列表（运行徽标不残留）
+  unexit = await listen<LaunchExitPayload>('launch-exit', () => {
+    loadInstances()
+  })
+})
+
+onBeforeUnmount(() => {
+  unexit?.()
 })
 </script>
 

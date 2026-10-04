@@ -11,6 +11,7 @@ fn main() {
             instances::update_instance,
             instances::delete_instance,
             instances::scan_jars,
+            instances::scan_javas,
             launcher::launch_instance,
             launcher::stop_instance,
         ])
