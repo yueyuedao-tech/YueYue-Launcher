@@ -294,6 +294,14 @@ input, select { font: inherit; color: var(--ink); }
 
 .launch-bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.1); overflow: hidden; }
 .launch-bar i { display: block; height: 100%; background: var(--grad); border-radius: 4px; transition: width .25s; }
+.launch-bar.pulse i {
+  width: 40% !important;
+  animation: bar-pulse 1.4s ease-in-out infinite;
+}
+@keyframes bar-pulse {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(280%); }
+}
 .launch-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-dim); margin-top: 8px; }
 
 .launch-log {

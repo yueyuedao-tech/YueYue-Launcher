@@ -1,44 +1,66 @@
-import { reactive, watch } from 'vue'
-import { versions } from './data/mock'
+import { reactive, ref, watch } from 'vue'
+import { invoke } from '@tauri-apps/api/core'
+import type { InstanceInfo, InstanceList } from './types'
 
-export type ViewId = 'home' | 'versions' | 'downloads' | 'settings'
-export type LaunchStatus = 'running' | 'done'
+export type ViewId = 'home' | 'instances' | 'settings'
+export type LaunchStatus = 'running' | 'done' | 'failed'
 
 export const store = reactive({
   view: 'home' as ViewId,
-  selectedVersionId: versions[0].id,
   launch: {
     open: false,
-    progress: 0,
     status: 'running' as LaunchStatus,
+    instanceId: '',
+    code: null as number | null,
     logs: [] as { text: string; cls: string }[],
   },
 })
 
-export function selectedVersionName(): string {
-  return versions.find((v) => v.id === store.selectedVersionId)?.name ?? versions[0].name
+// ---------- 实例 ----------
+export const instances = ref<InstanceInfo[]>([])
+export const skippedCount = ref(0)
+export const selectedInstanceId = ref('')
+
+export async function loadInstances(): Promise<void> {
+  try {
+    const r = (await invoke('list_instances')) as InstanceList
+    instances.value = r.items
+    skippedCount.value = r.skipped
+    if (!instances.value.some((i) => i.id === selectedInstanceId.value)) {
+      selectedInstanceId.value = instances.value[0]?.id ?? ''
+    }
+  } catch (e) {
+    console.error('loadInstances failed', e)
+  }
 }
 
+export function currentInstance(): InstanceInfo | undefined {
+  return instances.value.find((i) => i.id === selectedInstanceId.value)
+}
+
+export function resetLaunch(instanceId: string): void {
+  store.launch.open = true
+  store.launch.status = 'running'
+  store.launch.instanceId = instanceId
+  store.launch.code = null
+  store.launch.logs = []
+}
+
+export function closeLaunch(): void {
+  store.launch.open = false
+}
+
+// ---------- 设置（localStorage 持久化） ----------
 const SETTINGS_KEY = 'starlight-launcher-settings'
 
 export interface Settings {
   theme: '暗色' | '跟随系统'
   memory: number
-  javaPath: string
-  width: number
-  height: number
-  keepOpen: boolean
-  showSnapshots: boolean
 }
 
 const defaults: Settings = {
   theme: '暗色',
   memory: 4096,
-  javaPath: '自动检测',
-  width: 1280,
-  height: 800,
-  keepOpen: true,
-  showSnapshots: true,
 }
 
 function loadSettings(): Settings {

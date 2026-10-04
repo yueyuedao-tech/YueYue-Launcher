@@ -19,3 +19,6 @@ scripts/tauri-pw*
 scripts/ov-*.png
 scripts/final-smoke*
 
+scripts/cdp-eval*
+scripts/inst-overlay*
+

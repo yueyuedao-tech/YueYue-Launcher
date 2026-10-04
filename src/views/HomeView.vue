@@ -1,12 +1,36 @@
 <script setup lang="ts">
-import { news, versions } from '../data/mock'
-import { selectedVersionName, store } from '../store'
+import { computed, nextTick } from 'vue'
+import { invoke } from '@tauri-apps/api/core'
+import { news } from '../data/mock'
+import {
+  currentInstance,
+  instances,
+  resetLaunch,
+  selectedInstanceId,
+  store,
+} from '../store'
 
-function launch() {
-  store.launch.open = true
-  store.launch.progress = 0
-  store.launch.status = 'running'
-  store.launch.logs = []
+const inst = computed(() => currentInstance())
+
+async function launch() {
+  const target = inst.value
+  if (!target) {
+    store.view = 'instances'
+    return
+  }
+  if (target.running) {
+    // 已在运行：直接打开浮层看日志（不重复拉起）
+    resetLaunch(target.id)
+    return
+  }
+  resetLaunch(target.id)
+  await nextTick() // 等浮层挂载并注册事件监听
+  try {
+    await invoke('launch_instance', { id: target.id })
+  } catch (e) {
+    store.launch.logs.push({ text: `[错误] ${e}`, cls: 'warn' })
+    store.launch.status = 'failed'
+  }
 }
 </script>
 
@@ -16,21 +40,25 @@ function launch() {
 
     <header>
       <div class="brand">星<em>启</em>启动器</div>
-      <div class="brand-sub">STARLIGHT LAUNCHER · Windows / Linux · 模拟启动演示版</div>
+      <div class="brand-sub">STARLIGHT LAUNCHER · Windows / Linux · Mindustry 实例启动</div>
 
       <div class="launch-zone">
         <div class="version-pick">
-          <label for="ver">当前版本</label>
-          <select id="ver" v-model="store.selectedVersionId">
-            <option v-for="v in versions" :key="v.id" :value="v.id">
-              {{ v.name }}（{{ v.type }}）
+          <label for="inst">当前实例</label>
+          <select id="inst" v-model="selectedInstanceId">
+            <option v-for="i in instances" :key="i.id" :value="i.id">
+              {{ i.name }}{{ i.running ? '（运行中）' : '' }}
             </option>
+            <option v-if="!instances.length" value="" disabled>（无实例，请先创建）</option>
           </select>
         </div>
 
         <button class="btn-grad" @click="launch">启 动</button>
         <div style="color: var(--ink-dim); font-size: 12px">
-          已选：{{ selectedVersionName() }} · 点击启动将运行模拟流程
+          <template v-if="inst">
+            {{ inst.jarPath }} · 数据隔离 {{ inst.isolate ? '开' : '关' }} · Java {{ inst.javaPath }}
+          </template>
+          <template v-else>尚无实例——点击后前往实例管理创建</template>
         </div>
       </div>
     </header>
