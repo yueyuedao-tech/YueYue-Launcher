@@ -1,14 +1,25 @@
 ---
 feature: game-launcher
-status: designed
-updated: 2026-10-03
+status: delivered
+updated: 2026-10-04
 branch: master
-commits: # empty while in progress
+commits: 4b825dc..e8957a1
 ---
 
 # PCL 风格二次元游戏启动器
 
 ## Report
+
+**What was built** — 「星启启动器」V1：Electron + Vue 3 + TS 的跨平台（Windows/Linux）游戏启动器界面。左侧图标导航 + 四个页面（主页/版本列表/下载中心/设置）：主页含 Pixabay 免授权星空主视觉、版本下拉与渐变启动按钮、公告卡片；版本/下载页为 mock 数据卡片列表，支持名称过滤与模拟下载进度；设置页分组控件持久化到 localStorage。点击启动弹出模拟启动浮层（进度条 + 分阶段日志滚动 + 取消/完成，约 6.5 秒）。渲染产物为自包含单文件 `dist/index.html`（321KB，含内联背景图），≤768px 自动切换底部导航。electron-builder 配置声明 NSIS 与 AppImage 双目标，Windows `--dir` 目录包构建成功且打包 exe 实跑验证通过。
+
+**Verification** — `npm run typecheck` PASS；`npm run build` PASS；`npm run check:dist` PASS（自包含无外链）；Electron 渲染冒烟 PASS（appChildren=1）；四页面 + 启动浮层 + 400px 移动端截图人工核对 PASS（背景图生效，经像素采样确认）；设置持久化 PASS（memory=8192 刷新保持）；electron-builder Windows `--dir` BUILD_OK 并产出可运行的 `Starlight Launcher.exe`。独立评审两轮：首轮指出 1 项 critical（spec 素材条款未追认用户批准的来源变更）+ 3 项非关键 bug，修复并回写 spec 后复核 **PASS**。
+
+**Journey log**
+- MiMo 宿主把 `node` 指向 Electron-as-Node：注入 `ELECTRON_RUN_AS_NODE=1`、yargs 切片错位、Electron 的 asar fs 补丁破坏 electron-builder 写 asar——打包改走系统 Node + 程序化 API（`scripts/build-win.cjs`）。
+- Electron 官方 zip 用 extract-zip 解压会静默丢文件（缺 ffmpeg.dll 等导致 0xC0000135/秒退），用 PowerShell ZipFile 全量解压修复；`path.txt` 缺失需手写。
+- 图像生成服务 403（会员）→ 用户批准改搜免授权素材；并行 Read 图片会串图/缓存，核对素材与截图必须单张读 + 像素统计佐证。
+- `signAndEditExecutable: false`：本机无符号链接权限导致 winCodeSign 解压失败，V1 无证书故跳过签名。
+- 传 `.cjs` 文件给 electron 会退化为纯 Node 模式，验证脚本必须做成独立 app 目录（`scripts/*-app/`）。
 
 ## [S1] Problem
 
@@ -51,12 +62,12 @@ commits: # empty while in progress
 
 ## Tasks
 
-- [ ] T1: 搭建 Vite + Vue3 + TS 工程并接入 vite-plugin-singlefile — acceptance: `npm run build` 产出自包含 `dist/index.html`，通过外链资源脚本检查 (covers: S2)
-- [ ] T2: Electron 主进程加载构建产物 — acceptance: Windows 上 `npm start` 打开 1280×800 窗口并正确渲染界面 (covers: S2; depends: T1)
-- [ ] T3: 主布局与导航（侧边栏图标导航、四个页面路由骨架、≤768px 底部导航） — acceptance: 四个页面可点击互相切换，窄屏下布局不破 (covers: S2; depends: T1)
-- [ ] T4: 主页（主视觉背景、版本选择器、启动按钮、公告卡片，mock 数据） — acceptance: 版本下拉可展开选择，公告卡片渲染 mock 数据 (covers: S2; depends: T3)
-- [ ] T5: 版本列表页与下载页（mock 卡片列表、名称过滤、模拟下载进度） — acceptance: 过滤即时生效；点击下载出现进度并完成 (covers: S2; depends: T3)
-- [ ] T6: 设置页（分组控件可交互，选择持久化到 localStorage） — acceptance: 刷新/重启后设置值保持 (covers: S2; depends: T3)
-- [ ] T7: 模拟启动浮层（进度条 + 分阶段日志滚动 + 成功态 + 取消） — acceptance: 点击启动完整走完模拟流程，日志逐行出现，可中途取消 (covers: S2; depends: T4)
-- [ ] T8: 二次元视觉打磨（接入主视觉背景素材，统一配色/图标/圆角卡片风格） — acceptance: 各页面视觉统一，背景图为本地免授权素材（来源与许可见 assets/CREDITS.txt），无水印乱码 (covers: S2; depends: T4)
-- [ ] T9: electron-builder 配置（win: nsis / linux: AppImage） — acceptance: 配置文件含两平台目标，Windows 上 `--dir` 目录构建成功 (covers: S2; depends: T2)
+- [x] T1: 搭建 Vite + Vue3 + TS 工程并接入 vite-plugin-singlefile — acceptance: `npm run build` 产出自包含 `dist/index.html`，通过外链资源脚本检查 (covers: S2)
+- [x] T2: Electron 主进程加载构建产物 — acceptance: Windows 上 `npm start` 打开 1280×800 窗口并正确渲染界面 (covers: S2; depends: T1)
+- [x] T3: 主布局与导航（侧边栏图标导航、四个页面路由骨架、≤768px 底部导航） — acceptance: 四个页面可点击互相切换，窄屏下布局不破 (covers: S2; depends: T1)
+- [x] T4: 主页（主视觉背景、版本选择器、启动按钮、公告卡片，mock 数据） — acceptance: 版本下拉可展开选择，公告卡片渲染 mock 数据 (covers: S2; depends: T3)
+- [x] T5: 版本列表页与下载页（mock 卡片列表、名称过滤、模拟下载进度） — acceptance: 过滤即时生效；点击下载出现进度并完成 (covers: S2; depends: T3)
+- [x] T6: 设置页（分组控件可交互，选择持久化到 localStorage） — acceptance: 刷新/重启后设置值保持 (covers: S2; depends: T3)
+- [x] T7: 模拟启动浮层（进度条 + 分阶段日志滚动 + 成功态 + 取消） — acceptance: 点击启动完整走完模拟流程，日志逐行出现，可中途取消 (covers: S2; depends: T4)
+- [x] T8: 二次元视觉打磨（接入主视觉背景素材，统一配色/图标/圆角卡片风格） — acceptance: 各页面视觉统一，背景图为本地免授权素材（来源与许可见 assets/CREDITS.txt），无水印乱码 (covers: S2; depends: T4)
+- [x] T9: electron-builder 配置（win: nsis / linux: AppImage） — acceptance: 配置文件含两平台目标，Windows 上 `--dir` 目录构建成功 (covers: S2; depends: T2)
