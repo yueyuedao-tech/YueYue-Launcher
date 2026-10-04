@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Starlight Launcher",
+  "version": "0.1.0",
+  "identifier": "com.starlight.launcher",
+  "build": {
+    "frontendDist": "../dist",
+    "beforeDevCommand": "",
+    "beforeBuildCommand": ""
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "title": "星启 · 启动器",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 375,
+        "minHeight": 560,
+        "backgroundColor": "#12121c"
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "appimage", "deb"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/icon.ico",
+      "icons/icon.png"
+    ],
+    "category": "Game",
+    "shortDescription": "PCL 风格二次元游戏启动器",
+    "windows": {
+      "webviewInstallMode": {
+        "type": "skip"
+      },
+      "nsis": {
+        "languages": ["SimpChinese"]
+      }
+    }
+  }
+}

@@ -11,3 +11,8 @@ scripts/**/steps.log
 assets/candidates/
 scripts/smoke-render.json
 
+src-tauri/target/
+src-tauri/gen/
+scripts/tauri-shot*
+scripts/tauri-pw*
+
