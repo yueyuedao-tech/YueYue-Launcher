@@ -1,14 +1,25 @@
 ---
 feature: mindustry-instances
-status: designed
+status: delivered
 updated: 2026-10-04
 branch: master
-commits: # empty while in progress
+commits: 767b2a0..b9476f3
 ---
 
 # Mindustry 实例管理与真实启动（数据/Java 隔离）
 
 ## Report
+
+**What was built** — 启动目标从模拟切换为真实 Mindustry 客户端。Rust 侧（`src-tauri/src/instances.rs`、`launcher.rs`）实现实例 CRUD + 双文件读写（`instance.json` 清单 / `launch.config.json` 启动配置）、Desktop jar 与本机 JRE 自动扫描、`launch_instance`/`stop_instance`（检查-启动-登记单临界区防双击重入；spawn 注入 `AppData`/`XDG_DATA_HOME` 指向实例 `data/` 实现零侵入数据隔离；每实例可绑不同 `javaPath`；Windows `taskkill /T`、Unix `process_group(0)`+整组 kill；stdout/stderr 逐行以 `launch-log` 事件推送，自然退出发 `launch-exit` 带退出码）。前端改造为「主页/实例/设置」三导航：实例页（新建/编辑/删除/二次确认/损坏条目跳过标注/启动停止徽标）、主页真实实例选择器、启动浮层接真实日志流 + 脉冲进度 + 停止/完成 + 退出码展示；全局 `launch-exit` 监听自动刷新运行徽标。id 做分隔符与 `..` 越权校验，java 路径做存在性/`-version` 探测，创建失败回滚目录，`createdAt` 本地时间。
+
+**Verification** — `cargo test` 3/3 PASS（名称校验/json 驼峰往返/默认配置）；`cargo check` PASS；`npm run build` PASS；`tauri build` EXIT 0 且 beforeBuildCommand 自动执行 `check:dist` PASS；体积 setup **1.47MB** / exe **3.44MB**（<20MB 不回归），启动 45ms。**实机 CDP 全链路**：create t-A/t-B（双 json 落盘实读、memoryMb/isolate 传参生效）→ 真实启动收到 8 行游戏日志（SDL/OpenGL/JAVA 27）→ 游戏数据完整写入 `instances/t-A/data/Mindustry/`（settings.bin/cache/mods，原 `%APPDATA%\Mindustry` 未动）→ 双实例各自独立 data 目录（t-A 56 文件独立）→ stop 双向生效无残留；**退出码分支**：Exit0.jar → 浮层「启动成功/code=0」，bogus.jar → 「启动失败/进程退出码 1」+ stderr `[err] Invalid or corrupt jarfile`；**损坏条目**：t-CORRUPT 被跳过（skipped=1）且页面显示「⚠ 已跳过 1 个损坏的实例条目」；删除实例/运行徽标自动刷新（退出后按钮恢复「启动」）均实测。独立评审一轮 4 critical → 全部修复+补证 → 复核 PASS（见文末复核结论）。
+
+**Journey log**
+- Tauri v2 命令参数在 JS 侧是 camelCase（`jarPath` 而非 `jar_path`）；`canonicalize()` 会加 `\\?\` 前缀需剥除。
+- 实测用 WebView2 远程调试口 + 自写零依赖 CDP 客户端（`scripts/cdp-eval.mjs`）驱动；注意 `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` 只对**新起的 WebView2 浏览器进程**生效，残留 msedgewebview2 会让端口静默失效。
+- 新 jar 首次运行被 Defender 扫描可拖慢数秒——退出码断言要轮询等待而非固定短 sleep。
+- `AppData`/`XDG_DATA_HOME` 环境变量注入即游戏数据隔离的全部秘密（Arc `OS.getAppDataDirectoryString`），游戏无感知。
+- 进程自然退出不刷新运行徽标是真 bug，需在 App 层全局监听 `launch-exit`。
 
 ## [S1] Problem
 
@@ -79,8 +90,13 @@ instances/<实例名>/
 
 ## Tasks
 
-- [ ] T1: Rust 实例层——目录结构/双文件读写/创建/列表/更新/删除 + jar 扫描 — acceptance: cargo check 通过；单测或临时命令验证 create/list/roundtrip json 正确 (covers: S2)
-- [ ] T2: Rust 启动层——launch/stop/log事件/env隔离注入/cwd — acceptance: cargo check 通过；本机实测启动测试实例产生 launch-log 事件、data/Mindustry 被创建、stop 后进程退出 (covers: S2; depends: T1)
-- [ ] T3: 前端实例页与导航改造（列表/新建/编辑/删除/扫描选 jar） — acceptance: 构建通过；界面截图核对四要素齐全，损坏实例条目被跳过标注 (covers: S2; depends: T1)
-- [ ] T4: 主页实例选择器 + 启动浮层接真实日志/停止/退出状态 — acceptance: 真实启动走通：浮层滚动日志、停止可用、exit code 展示；像素/截图证据 (covers: S2; depends: T2; T3)
-- [ ] T5: 双实例数据隔离实测 + 体积回归 + 独立评审 + 文档定稿 — acceptance: 两个实例各自 data/Mindustry 独立生成互不串；setup≤20MB；评审 PASS；status=delivered (covers: S2; depends: T4)
+- [x] T1: Rust 实例层——目录结构/双文件读写/创建/列表/更新/删除 + jar 扫描 — acceptance: cargo check 通过；单测或临时命令验证 create/list/roundtrip json 正确 (covers: S2)
+- [x] T2: Rust 启动层——launch/stop/log事件/env隔离注入/cwd — acceptance: cargo check 通过；本机实测启动测试实例产生 launch-log 事件、data/Mindustry 被创建、stop 后进程退出 (covers: S2; depends: T1)
+- [x] T3: 前端实例页与导航改造（列表/新建/编辑/删除/扫描选 jar） — acceptance: 构建通过；界面截图核对四要素齐全，损坏实例条目被跳过标注 (covers: S2; depends: T1)
+- [x] T4: 主页实例选择器 + 启动浮层接真实日志/停止/退出状态 — acceptance: 真实启动走通：浮层滚动日志、停止可用、exit code 展示；像素/截图证据 (covers: S2; depends: T2; T3)
+- [x] T5: 双实例数据隔离实测 + 体积回归 + 独立评审 + 文档定稿 — acceptance: 两个实例各自 data/Mindustry 独立生成互不串；setup≤20MB；评审 PASS；status=delivered (covers: S2; depends: T4)
+
+### 评审修复补记（2026-10-04，提交 342b5d0 → b9476f3）
+
+- 评审 4 critical 处置：①文档定稿＝本文；②退出码实测＝Exit0/bogus 双分支 DOM 证据；③损坏条目实测＝t-CORRUPT skipped+页面标注证据；④Linux 进程组＝`process_group(0)` + `kill -KILL -<pgid>` 已实现（`cfg(unix)`，Windows 上无法运行验证，随 Linux 构建一并实测）。
+- 非关键同批修复：create 接收 `memoryMb/isolate`（原死控件）、id 越权校验、启动临界区原子化、前端启动按钮防重入、java 可执行探测、`createdAt` 本地时间、扫描本机 JRE 替代硬编码、`launch-exit` 全局监听刷新徽标。
