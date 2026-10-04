@@ -16,3 +16,6 @@ src-tauri/gen/
 scripts/tauri-shot*
 scripts/tauri-pw*
 
+scripts/ov-*.png
+scripts/final-smoke*
+

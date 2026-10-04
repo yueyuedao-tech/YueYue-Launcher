@@ -5,8 +5,8 @@
   "identifier": "com.starlight.launcher",
   "build": {
     "frontendDist": "../dist",
-    "beforeDevCommand": "",
-    "beforeBuildCommand": ""
+    "beforeDevCommand": "npm run build",
+    "beforeBuildCommand": "npm run build && npm run check:dist"
   },
   "app": {
     "withGlobalTauri": false,
