@@ -1,7 +1,17 @@
-主视觉素材（src/assets/hero.jpg）
-- 来源: Pixabay — https://cdn.pixabay.com/photo/2024/09/21/10/53/anime-9063542_1280.png
-- 许可: Pixabay Content License（免费商用，无需署名）
-- 处理: 由原始 PNG 转为 JPG（quality 88），像素内容未修改
-- 选用日期: 2026-10-04
+素材记录
+=========
 
-应用图标与界面图形均为本项目 SVG 自绘。
+以下素材由用户于 2026-10-04 提供（本地文件，用户自担版权责任）：
+
+1. 背景图（src/assets/hero.jpg）
+   - 源文件: C:\Users\43551\Desktop\月月\ca87bd71af18dc838c2d7ceb1e958f39.png（1408×800 RGBA，2.39MB）
+   - 处理: 转为 JPG（quality 88），像素内容未修改 → 226KB
+
+2. Logo（src/assets/logo.png；打包图标 build/icon.png）
+   - 源文件: C:\Users\43551\Desktop\月月\326978360.png（400×400 RGBA，135KB）
+   - 处理: UI 用缩放至 160×160 PNG（39KB）；打包图标保留原尺寸（130KB）
+
+历史素材（已弃用）：Pixabay — wind-7571237 / anime-9063542（Pixabay Content License，
+免费商用无需署名），曾用于 V1 初版背景，已被上述用户素材替换。
+
+应用图标星形徽章与界面图形（导航图标、启动浮层 sparkle）为本项目 SVG 自绘。

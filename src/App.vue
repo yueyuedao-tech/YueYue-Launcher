@@ -27,19 +27,7 @@ const current = computed(() => views[store.view])
 <template>
   <div class="shell">
     <nav class="rail" aria-label="主导航">
-      <svg class="logo" viewBox="0 0 48 48" aria-label="星启">
-        <rect x="2" y="2" width="44" height="44" rx="12" fill="#1c1d2e" stroke="rgba(255,255,255,.12)" />
-        <path
-          d="M24 9l4.2 9.6 10.4 1-7.8 6.9 2.3 10.2L24 30.5l-9.1 5.2 2.3-10.2-7.8-6.9 10.4-1z"
-          fill="url(#g)"
-        />
-        <defs>
-          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#ff7db0" />
-            <stop offset="1" stop-color="#6ee7f9" />
-          </linearGradient>
-        </defs>
-      </svg>
+      <img class="logo" src="./assets/logo.png" alt="星启启动器 logo" />
       <button
         v-for="item in nav"
         :key="item.id"

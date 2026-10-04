@@ -9,12 +9,15 @@ files:
 win:
   target:
     - nsis
+  icon: build/icon.png
   # V1 无代码签名证书；跳过签名与 exe 资源改写（winCodeSign 工具在无符号链接权限的机器上无法解压）
+  # 注意：signAndEditExecutable=false 时自定义图标不会写入 exe 元数据，图标以 UI 内 logo 为准
   signAndEditExecutable: false
 linux:
   target:
     - AppImage
   category: Game
+  icon: build/icon.png
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true

@@ -10,7 +10,7 @@ commits: 4b825dc..e8957a1
 
 ## Report
 
-**What was built** — 「星启启动器」V1：Electron + Vue 3 + TS 的跨平台（Windows/Linux）游戏启动器界面。左侧图标导航 + 四个页面（主页/版本列表/下载中心/设置）：主页含 Pixabay 免授权星空主视觉、版本下拉与渐变启动按钮、公告卡片；版本/下载页为 mock 数据卡片列表，支持名称过滤与模拟下载进度；设置页分组控件持久化到 localStorage。点击启动弹出模拟启动浮层（进度条 + 分阶段日志滚动 + 取消/完成，约 6.5 秒）。渲染产物为自包含单文件 `dist/index.html`（321KB，含内联背景图），≤768px 自动切换底部导航。electron-builder 配置声明 NSIS 与 AppImage 双目标，Windows `--dir` 目录包构建成功且打包 exe 实跑验证通过。
+**What was built** — 「星启启动器」V1：Electron + Vue 3 + TS 的跨平台（Windows/Linux）游戏启动器界面。左侧图标导航 + 四个页面（主页/版本列表/下载中心/设置）：主页含用户提供的二次元主视觉背景与角色 logo、版本下拉与渐变启动按钮、公告卡片；版本/下载页为 mock 数据卡片列表，支持名称过滤与模拟下载进度；设置页分组控件持久化到 localStorage。点击启动弹出模拟启动浮层（进度条 + 分阶段日志滚动 + 取消/完成，约 6.5 秒）。渲染产物为自包含单文件 `dist/index.html`（约 450KB，含内联背景图与 logo），≤768px 自动切换底部导航。electron-builder 配置声明 NSIS 与 AppImage 双目标，Windows `--dir` 目录包构建成功且打包 exe 实跑验证通过。
 
 **Verification** — `npm run typecheck` PASS；`npm run build` PASS；`npm run check:dist` PASS（自包含无外链）；Electron 渲染冒烟 PASS（appChildren=1）；四页面 + 启动浮层 + 400px 移动端截图人工核对 PASS（背景图生效，经像素采样确认）；设置持久化 PASS（memory=8192 刷新保持）；electron-builder Windows `--dir` BUILD_OK 并产出可运行的 `Starlight Launcher.exe`。独立评审两轮：首轮指出 1 项 critical（spec 素材条款未追认用户批准的来源变更）+ 3 项非关键 bug，修复并回写 spec 后复核 **PASS**。
 
@@ -32,7 +32,7 @@ commits: 4b825dc..e8957a1
 - **桌面壳**：Electron（主进程 Node.js/TypeScript），创建窗口、加载渲染产物，负责 app 生命周期。V1 主进程不包含启动游戏等业务 IPC——模拟启动完全在渲染进程内用定时器完成。
 - **界面**：Vue 3 + TypeScript + Vite；`vite-plugin-singlefile` 将 JS/CSS 全部内联，构建产物为**自包含的单文件 `dist/index.html`**（无任何外部 script/link/网络依赖），移动端自适应（≤768px 侧边栏切换为底部导航）。该文件既被 Electron 加载，也可直接用浏览器/手机模拟器打开预览。
 - **打包**：electron-builder 配置声明 Windows（NSIS）与 Linux（AppImage）目标；本机只验证 Windows 目录构建，Linux 构建留待 Linux 环境。
-- **图像资源**：二次元主视觉背景素材——原计划用图像生成工具产出，实际因生成服务返回 403（会员未开通）、经用户确认改为从免授权站点下载（Pixabay Content License，免费商用无需署名；来源 URL 与许可记录见 `assets/CREDITS.txt`），存于 `src/assets/`（Vite 引用需要），构建时内联进单文件，不引用远程 URL。应用图标与界面图形为 SVG 自绘。
+- **图像资源**：二次元主视觉背景与 logo 素材于 2026-10-04 由用户在会话中提供本地文件并指定用途（背景 `ca87bd71…png`→`src/assets/hero.jpg`，logo `326978360.png`→`src/assets/logo.png` + `build/icon.png`），替换掉初版的 Pixabay 下载素材（原委：图像生成服务 403 会员未开通，经用户确认先改用免授权下载，后又经用户改为自有素材）；处理与来源记录见 `assets/CREDITS.txt`。存于 `src/assets/`（Vite 引用需要），构建时内联进单文件，不引用远程 URL。界面图形（导航/启动浮层）为 SVG 自绘。
 
 ### 页面结构（PCL2 式布局）
 
