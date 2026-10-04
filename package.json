@@ -1,0 +1,29 @@
+{
+  "name": "anime-launcher",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PCL 风格二次元游戏启动器（Windows / Linux）",
+  "author": "Starlight Launcher",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "vue-tsc --noEmit",
+    "build": "vue-tsc --noEmit && vite build",
+    "check:dist": "node scripts/check-singlefile.mjs",
+    "start": "npm run build && electron .",
+    "dist:win": "node scripts/build-win.cjs",
+    "dist:linux": "node scripts/build-linux.cjs"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "vite-plugin-singlefile": "^2.1.0",
+    "vue": "^3.5.13",
+    "vue-tsc": "^2.2.0"
+  }
+}

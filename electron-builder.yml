@@ -1,0 +1,20 @@
+appId: com.starlight.launcher
+productName: Starlight Launcher
+directories:
+  output: release
+files:
+  - dist/**/*
+  - electron/**/*
+  - package.json
+win:
+  target:
+    - nsis
+  # V1 无代码签名证书；跳过签名与 exe 资源改写（winCodeSign 工具在无符号链接权限的机器上无法解压）
+  signAndEditExecutable: false
+linux:
+  target:
+    - AppImage
+  category: Game
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

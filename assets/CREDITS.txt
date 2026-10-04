@@ -1,0 +1,7 @@
+主视觉素材（src/assets/hero.jpg）
+- 来源: Pixabay — https://cdn.pixabay.com/photo/2024/09/21/10/53/anime-9063542_1280.png
+- 许可: Pixabay Content License（免费商用，无需署名）
+- 处理: 由原始 PNG 转为 JPG（quality 88），像素内容未修改
+- 选用日期: 2026-10-04
+
+应用图标与界面图形均为本项目 SVG 自绘。

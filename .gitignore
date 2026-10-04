@@ -1,0 +1,11 @@
+node_modules/
+dist/
+release/
+*.log
+scripts/**/shots/
+scripts/**/out/
+scripts/**/result.json
+scripts/**/probe.json
+scripts/**/report.txt
+scripts/**/steps.log
+assets/candidates/

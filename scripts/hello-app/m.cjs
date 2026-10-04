@@ -1,0 +1,10 @@
+const fs = require('fs')
+const path = require('path')
+fs.writeFileSync(path.join(__dirname, 'ran.txt'), 'started ' + new Date().toISOString())
+console.log('HELLO_FROM_ELECTRON_APP')
+const { app } = require('electron')
+fs.writeFileSync(path.join(__dirname, 'ran.txt'), 'js-ran typeof app=' + typeof app)
+app.whenReady().then(() => {
+  fs.writeFileSync(path.join(__dirname, 'ran.txt'), 'READY')
+  app.exit(0)
+})
