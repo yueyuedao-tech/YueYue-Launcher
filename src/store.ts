@@ -133,6 +133,7 @@ export interface Settings {
   updateCheck: boolean
   lastSeenTag: string
   navPosition: 'left' | 'top'
+  workshopMirror: string
 }
 
 const defaults: Settings = {
@@ -148,6 +149,7 @@ const defaults: Settings = {
   updateCheck: true,
   lastSeenTag: '',
   navPosition: 'left',
+  workshopMirror: '',
 }
 
 function loadSettings(): Settings {

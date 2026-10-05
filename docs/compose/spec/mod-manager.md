@@ -16,6 +16,14 @@ commits: # empty while in progress
 
 ## [S2] Design
 
+### 范围修订（2026-10-05，用户决策）
+
+实测确认：Mindustry 工坊 depot 对匿名用户返回 **Missing decryption key**（需拥有者登录；文章与日志双证）。用户决策：**取消 steamcmd 下载功能，保留已做的改动**——本功能实际交付范围调整为：
+
+- ✅ 保留：工坊搜索（浏览/跳转页面）、实例 Mod 本地管理（列表/打开目录/删除）、统一镜像设置组（代理/GitHub 前缀/工坊镜像）、全部导航布局改动
+- ❌ 移除：steamcmd 引导与下载管线（ensure/download/stop、steamcmd 包镜像设置项、相关事件与前端下载状态机）；Mod 页结果卡仅保留「页面」按钮，页面注明下载功能暂缓待登录方案
+- ⏸ 延后：Steam 拥有者交互登录（用户将另行配置后再开放下载）
+
 ### 环境事实（已侦察）
 
 - 本机无 steamcmd → 启动器负责引导安装
@@ -86,7 +94,16 @@ commits: # empty while in progress
 
 ## Tasks
 
-- [ ] T1: Rust——统一镜像设置接线、steamcmd 引导（下载/解压/探测）、search_workshop 解析 + 单测 — acceptance: cargo test 通过；实机 ensure_steamcmd 成功且 search 返回条目 (covers: S2)
-- [ ] T2: Rust——download_mod 流水线（spawn/日志事件/复制到实例/停止）+ list_mods/mods_dir/delete_mod + 单测 — acceptance: cargo test/check 通过；实机下载真实工坊物品到测试实例 (covers: S2; depends: T1)
-- [ ] T3: 前端——设置页「镜像与网络」分组重组、Mod 页（搜索/结果/下载进度/当前实例 mod 列表/打开目录/删除） — acceptance: 构建通过；DOM 冒烟三态齐全 (covers: S2; depends: T2)
-- [ ] T4: 实机全链路 + 体积 + 独立评审 + 文档定稿 — acceptance: 引导→搜索→下载→列表→删除全链实测；setup≤20MB；评审 PASS；status=delivered (covers: S2; depends: T3)
+- [x] T1: 工坊搜索（HTML 解析新版 Steam 结构 + urlencode + 单测） — acceptance: cargo test 通过；实机真实搜索返回 15 条 (covers: S2)
+- [x] T2: steamcmd 下载管线 — **按用户决策取消移除**（引导/下载/停止/事件/设置项全部摘除，改动保留于 git 历史 20b1466..内） — acceptance: n/a (covers: 范围修订)
+- [x] T3: 实例 Mod 本地管理（list_mods/mods_dir/delete_mod）+ 前端 Mod 页（搜索浏览、本地列表、打开目录、删除、暂缓说明）+ 镜像与网络设置组 — acceptance: 构建通过；实机 DOM 冒烟：15 结果、0 下载按钮、暂缓说明在、镜像组无 steamcmd 行 (covers: S2; depends: T1)
+- [x] T4: 实机验证 + 体积 + 独立评审 + 文档定稿 — acceptance: 搜索/列表/删除链路实测；setup≤20MB；评审 PASS；status=delivered (covers: S2; depends: T3)
+
+### 实测存档（2026-10-05）
+
+| 指标 | 值 |
+|---|---|
+| 工坊搜索（代理） | 15 条，首条 subdustry (subnautica) id=3776239024 |
+| steamcmd 引导 | 曾实测成功（zip→解压→自更新→连接 Steam OK）；物品下载因 Missing decryption key 失败 → 功能按决策取消 |
+| 裁剪后体积 | setup 1.94MB / exe 4.93MB |
+| 移除验证 | 结果卡仅 [页面]；设置镜像组仅 代理/GitHub前缀/工坊镜像 |

@@ -82,7 +82,7 @@ fn preset_sources() -> Vec<SourceItem> {
     ]
 }
 
-fn app_dir() -> PathBuf {
+pub(crate) fn app_dir() -> PathBuf {
     if cfg!(windows) {
         let appdata = std::env::var("APPDATA").unwrap_or_else(|_| ".".into());
         PathBuf::from(appdata).join("StarlightLauncher")

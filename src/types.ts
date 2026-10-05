@@ -68,3 +68,28 @@ export interface DownloadErrorPayload {
   fileName: string
   code: number
 }
+
+export interface WorkshopItem {
+  id: string
+  title: string
+  url: string
+}
+
+export interface ModFile {
+  name: string
+  size: number
+  mtime: string
+}
+
+export interface ModLogPayload {
+  instanceId: string
+  line: string
+  stream: string
+}
+
+export interface ModDonePayload {
+  instanceId: string
+  fileId: string
+  ok: boolean
+  files: string[]
+}

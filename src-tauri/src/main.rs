@@ -4,6 +4,7 @@ mod downloader;
 mod github;
 mod instances;
 mod launcher;
+mod mods;
 mod sources;
 
 use std::sync::{Mutex, OnceLock};
@@ -100,6 +101,10 @@ fn main() {
             sources::list_sources,
             sources::save_sources,
             github::fetch_repo_versions,
+            mods::search_workshop,
+            mods::list_mods,
+            mods::mods_dir,
+            mods::delete_mod,
             downloader::start_download,
             downloader::stop_download,
             set_close_behavior,

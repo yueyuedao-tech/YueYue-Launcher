@@ -81,7 +81,7 @@ input, select { font: inherit; color: var(--ink); }
   border-radius: 2px;
   background: var(--grad);
 }
-.topnav-btn.has-dot::after {
+.topnav-btn.has-dot::before {
   content: '';
   position: absolute;
   top: 6px; right: 6px;
@@ -441,6 +441,7 @@ input, select { font: inherit; color: var(--ink); }
   .brand { font-size: 26px; letter-spacing: 4px; }
   .page { padding: 20px 16px 30px; }
   .toolbar { flex-wrap: wrap; }
+  .toolbar .field { width: 100%; }
   .row-card { flex-wrap: wrap; }
   .news-card { max-width: none; }
   .section-tabs { flex-wrap: wrap; }
