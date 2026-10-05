@@ -27,3 +27,44 @@ export interface LaunchExitPayload {
   id: string
   code: number
 }
+
+export type SourceKind = 'github-repo' | 'direct-url'
+
+export interface SourceItem {
+  id: string
+  name: string
+  kind: SourceKind
+  url: string
+  repo: string
+  asset: string
+  note: string
+  group: string
+  collapsed: boolean
+  latestEnabled: boolean
+  openInNewPage: boolean
+}
+
+export interface GithubVersion {
+  tag: string
+  title: string
+  updated: string
+  pageUrl: string
+  jarUrl: string
+}
+
+export interface DownloadProgressPayload {
+  fileName: string
+  received: number
+  total: number
+  percent: number
+}
+
+export interface DownloadDonePayload {
+  fileName: string
+  path: string
+}
+
+export interface DownloadErrorPayload {
+  fileName: string
+  code: number
+}

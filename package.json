@@ -27,6 +27,7 @@
     "vue-tsc": "^2.2.0"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.12.1"
+    "@tauri-apps/api": "^2.12.1",
+    "@tauri-apps/plugin-shell": "^2.4.0"
   }
 }

@@ -1,8 +1,9 @@
 import { reactive, ref, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
-import type { InstanceInfo, InstanceList } from './types'
+import { getCurrentWindow } from '@tauri-apps/api/window'
+import type { GithubVersion, InstanceInfo, InstanceList } from './types'
 
-export type ViewId = 'home' | 'instances' | 'settings'
+export type ViewId = 'home' | 'instances' | 'downloads' | 'settings'
 export type LaunchStatus = 'running' | 'done' | 'failed'
 
 export const store = reactive({
@@ -34,7 +35,7 @@ export async function loadInstances(): Promise<void> {
   }
 }
 
-// ---------- 扫描结果缓存（每次进页面重扫会造成明显卡顿） ----------
+// ---------- 扫描结果缓存 ----------
 export const jarScan = ref<string[]>([])
 export const javaScan = ref<string[]>(['java'])
 let scanDone = false
@@ -66,17 +67,85 @@ export function closeLaunch(): void {
   store.launch.open = false
 }
 
+// ---------- 下载状态（App 层全局监听，跨页面不丢） ----------
+export interface DlState {
+  status: 'downloading' | 'done' | 'error'
+  percent: number
+  received: number
+  total: number
+  path?: string
+  code?: number
+}
+
+export const downloadStates = reactive<Record<string, DlState>>({})
+
+// ---------- 新版本小红点 ----------
+export const updateDot = ref(false)
+export const latestTag = ref('')
+
+/** 启动后静默检查 GitHub 最新版本（失败静默） */
+export async function checkForUpdates(): Promise<void> {
+  if (!settings.updateCheck) return
+  try {
+    const versions = (await invoke('fetch_repo_versions', {
+      repo: 'Anuken/Mindustry',
+      asset: 'Mindustry.jar',
+      proxy: settings.proxy,
+      prefix: settings.githubPrefix,
+    })) as GithubVersion[]
+    if (versions.length) {
+      latestTag.value = versions[0].tag
+      updateDot.value = latestTag.value !== settings.lastSeenTag
+    }
+  } catch {
+    /* 离线/被墙 → 静默 */
+  }
+}
+
+/** 进入下载页视为已读 */
+export function ackUpdate(): void {
+  if (updateDot.value && latestTag.value) {
+    settings.lastSeenTag = latestTag.value
+  }
+  updateDot.value = false
+}
+
 // ---------- 设置（localStorage 持久化） ----------
 const SETTINGS_KEY = 'starlight-launcher-settings'
+
+export const ACCENT_PAIRS: Record<string, [string, string]> = {
+  粉: ['#ff7db0', '#6ee7f9'],
+  紫: ['#c084fc', '#818cf8'],
+  青: ['#22d3ee', '#a78bfa'],
+  橙: ['#fb923c', '#fbbf24'],
+}
 
 export interface Settings {
   theme: '暗色' | '跟随系统'
   memory: number
+  proxy: string
+  githubPrefix: string
+  accent: keyof typeof ACCENT_PAIRS | string
+  bgShade: number
+  alwaysOnTop: boolean
+  closeBehavior: 'exit' | 'minimize'
+  downloadDir: string
+  updateCheck: boolean
+  lastSeenTag: string
 }
 
 const defaults: Settings = {
   theme: '暗色',
   memory: 4096,
+  proxy: '',
+  githubPrefix: '',
+  accent: '粉',
+  bgShade: 96,
+  alwaysOnTop: false,
+  closeBehavior: 'exit',
+  downloadDir: '',
+  updateCheck: true,
+  lastSeenTag: '',
 }
 
 function loadSettings(): Settings {
@@ -97,4 +166,39 @@ watch(
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(v))
   },
   { deep: true },
+)
+
+function applyAccent(): void {
+  const pair = ACCENT_PAIRS[settings.accent] ?? ACCENT_PAIRS['粉']
+  document.documentElement.style.setProperty('--pink', pair[0])
+  document.documentElement.style.setProperty('--cyan', pair[1])
+}
+
+function applyBgShade(): void {
+  // 遮罩强度 0-100 → 0.05-0.97（96 ≈ 原默认 0.93）
+  const veil = Math.min(0.97, Math.max(0.05, (settings.bgShade / 100) * 0.97))
+  document.documentElement.style.setProperty('--veil', veil.toFixed(3))
+}
+
+watch(() => settings.accent, applyAccent, { immediate: true })
+watch(() => settings.bgShade, applyBgShade, { immediate: true })
+
+watch(
+  () => settings.alwaysOnTop,
+  (v) => {
+    getCurrentWindow()
+      .setAlwaysOnTop(v)
+      .catch((e) => console.error('setAlwaysOnTop failed', e))
+  },
+  { immediate: true },
+)
+
+watch(
+  () => settings.closeBehavior,
+  (v) => {
+    invoke('set_close_behavior', { mode: v }).catch((e) =>
+      console.error('set_close_behavior failed', e),
+    )
+  },
+  { immediate: true },
 )

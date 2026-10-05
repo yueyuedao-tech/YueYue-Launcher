@@ -1,6 +1,6 @@
 {
   "identifier": "default",
-  "description": "默认能力：主窗口基础权限（V1 无 IPC）",
+  "description": "默认能力：主窗口基础权限 + shell 打开外部页面",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "shell:allow-open"]
 }

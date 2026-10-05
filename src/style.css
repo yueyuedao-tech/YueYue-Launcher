@@ -10,7 +10,9 @@
   --pink: #ff7db0;
   --cyan: #6ee7f9;
   --amber: #ffd166;
-  --grad: linear-gradient(120deg, #ff7db0, #6ee7f9);
+  --grad: linear-gradient(120deg, var(--pink), var(--cyan));
+  /* 主页遮罩强度（0.05-0.97，由设置 bgShade 写入） */
+  --veil: 0.93;
   --radius: 14px;
   --rail-w: 68px;
 }
@@ -54,11 +56,21 @@ input, select { font: inherit; color: var(--ink); }
   border: 1px solid var(--line);
 }
 .rail-btn {
+  position: relative;
   width: 46px; height: 46px;
   display: grid; place-items: center;
   border-radius: 12px;
   color: var(--ink-dim);
   transition: background .15s, color .15s, transform .15s;
+}
+.rail-btn.has-dot::after {
+  content: '';
+  position: absolute;
+  top: 8px; right: 8px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #ff5d5d;
+  box-shadow: 0 0 6px rgba(255, 93, 93, .8);
 }
 .rail-btn:hover { background: var(--card-hover); color: var(--ink); }
 .rail-btn.active { background: var(--card); color: var(--ink); }
@@ -148,8 +160,17 @@ input, select { font: inherit; color: var(--ink); }
   content: '';
   position: absolute; inset: 0;
   background:
-    linear-gradient(90deg, rgba(18,18,28,.93) 0%, rgba(18,18,28,.72) 45%, rgba(18,18,28,.38) 100%),
-    linear-gradient(0deg, rgba(18,18,28,.88) 0%, rgba(18,18,28,0) 48%);
+    linear-gradient(
+      90deg,
+      rgba(18, 18, 28, var(--veil)) 0%,
+      rgba(18, 18, 28, calc(var(--veil) * 0.59)) 45%,
+      rgba(18, 18, 28, calc(var(--veil) * 0.13)) 100%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(18, 18, 28, calc(var(--veil) * 0.95)) 0%,
+      rgba(18, 18, 28, 0) 48%
+    );
   filter: none;
 }
 .home > :not(.home-bg) { position: relative; z-index: 1; }
