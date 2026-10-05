@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import type { GithubVersion, InstanceInfo, InstanceList } from './types'
 
-export type ViewId = 'home' | 'instances' | 'downloads' | 'settings'
+export type ViewId = 'home' | 'instances' | 'downloads' | 'mod' | 'settings' | 'personal'
 export type LaunchStatus = 'running' | 'done' | 'failed'
 
 export const store = reactive({
@@ -132,6 +132,7 @@ export interface Settings {
   downloadDir: string
   updateCheck: boolean
   lastSeenTag: string
+  navPosition: 'left' | 'top'
 }
 
 const defaults: Settings = {
@@ -146,6 +147,7 @@ const defaults: Settings = {
   downloadDir: '',
   updateCheck: true,
   lastSeenTag: '',
+  navPosition: 'left',
 }
 
 function loadSettings(): Settings {

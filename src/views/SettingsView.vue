@@ -1,80 +1,37 @@
 <script setup lang="ts">
-import { ACCENT_PAIRS, settings } from '../store'
+import { ref } from 'vue'
+import { settings } from '../store'
+
+type Tab = 'download' | 'github' | 'launch'
+const active = ref<Tab>('download')
+const tabs: { id: Tab; label: string }[] = [
+  { id: 'download', label: '下载' },
+  { id: 'github', label: 'GitHub' },
+  { id: 'launch', label: '启动' },
+]
 </script>
 
 <template>
   <section class="page">
     <h1 class="page-title">设置</h1>
-    <p class="page-sub">偏好保存在本地（localStorage）；具体启动参数以各实例的 launch.config.json 为准</p>
+    <p class="page-sub">分区配置；个性化（外观/窗口/导航）已移至「个性化」页</p>
 
-    <div class="settings-grid">
-      <div class="set-group">
-        <h3>外观</h3>
-        <div class="set-row">
-          <div>
-            <div class="label">主题</div>
-            <div class="hint">V1 仅内置暗色主题</div>
-          </div>
-          <div class="ctrl">
-            <select v-model="settings.theme" class="field">
-              <option>暗色</option>
-              <option>跟随系统</option>
-            </select>
-          </div>
-        </div>
-        <div class="set-row">
-          <div>
-            <div class="label">强调色</div>
-            <div class="hint">渐变按钮/高亮/标签整体换色</div>
-          </div>
-          <div class="ctrl">
-            <select v-model="settings.accent" class="field">
-              <option v-for="(_, k) in ACCENT_PAIRS" :key="k" :value="k">{{ k }}</option>
-            </select>
-          </div>
-        </div>
-        <div class="set-row">
-          <div>
-            <div class="label">主页背景遮罩强度</div>
-            <div class="hint">越高背景越暗（文字越清晰），默认 96</div>
-          </div>
-          <div class="ctrl">
-            <input v-model.number="settings.bgShade" type="range" min="0" max="100" step="2" />
-            <span class="val">{{ settings.bgShade }}</span>
-          </div>
-        </div>
-      </div>
+    <!-- 顶部居中分区 tab -->
+    <div class="section-tabs" role="tablist">
+      <button
+        v-for="t in tabs"
+        :key="t.id"
+        class="section-tab"
+        :class="{ active: active === t.id }"
+        role="tab"
+        @click="active = t.id"
+      >
+        {{ t.label }}
+      </button>
+    </div>
 
-      <div class="set-group">
-        <h3>窗口</h3>
-        <div class="set-row">
-          <div>
-            <div class="label">窗口置顶</div>
-            <div class="hint">启动器始终浮在最上层</div>
-          </div>
-          <div class="ctrl">
-            <label class="switch">
-              <input v-model="settings.alwaysOnTop" type="checkbox" />
-              <span class="track" />
-              <span class="thumb" />
-            </label>
-          </div>
-        </div>
-        <div class="set-row">
-          <div>
-            <div class="label">关闭按钮行为</div>
-            <div class="hint">最小化到托盘时可用托盘菜单恢复/退出</div>
-          </div>
-          <div class="ctrl">
-            <select v-model="settings.closeBehavior" class="field">
-              <option value="exit">直接退出</option>
-              <option value="minimize">最小化到托盘</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div class="set-group">
+    <div class="settings-grid" style="margin-top: 16px">
+      <div v-show="active === 'download'" class="set-group">
         <h3>下载</h3>
         <div class="set-row">
           <div>
@@ -96,7 +53,7 @@ import { ACCENT_PAIRS, settings } from '../store'
         </div>
       </div>
 
-      <div class="set-group">
+      <div v-show="active === 'github'" class="set-group">
         <h3>GitHub</h3>
         <div class="set-row">
           <div>
@@ -133,7 +90,7 @@ import { ACCENT_PAIRS, settings } from '../store'
         </div>
       </div>
 
-      <div class="set-group">
+      <div v-show="active === 'launch'" class="set-group">
         <h3>启动</h3>
         <div class="set-row">
           <div>
