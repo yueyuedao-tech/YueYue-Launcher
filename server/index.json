@@ -1,24 +1,44 @@
 {
   "schema": 1,
   "app": "yueyue-launcher",
-  "generated": "2026-10-05T14:24:24.586Z",
-  "count": 1,
+  "generated": "2026-10-05T15:32:52.910Z",
+  "count": 2,
   "items": [
     {
-      "id": "github-官方仓库",
-      "name": "GitHub 官方仓库",
-      "kind": "github-repo",
-      "url": "",
-      "repo": "Anuken/Mindustry",
+      "id": "mindustry-v8",
+      "name": "Mindustry v8",
+      "kind": "file-list",
+      "url": "https://file.mdtbbs.cn/category/Mindustry/v8",
+      "repo": "",
       "asset": "Mindustry.jar",
-      "note": "官方 releases 索引（Atom），可展开历史版本",
-      "group": "官方源",
+      "note": "mdtbbs 文件站分类目录",
+      "group": "中心",
+      "tags": [
+        "目录",
+        "中心",
+        "v8"
+      ],
+      "size": 0,
+      "logo": "",
+      "scope": "client"
+    },
+    {
+      "id": "mindustryx",
+      "name": "MindustryX",
+      "kind": "github-repo",
+      "url": "https://github.com/TinyLake/MindustryX/releases",
+      "repo": "TinyLake/MindustryX",
+      "asset": "Mindustry.jar",
+      "note": "TinyLake/MindustryX releases",
+      "group": "中心",
       "tags": [
         "仓库",
-        "官方源",
-        "版本索引"
+        "中心",
+        "GitHub"
       ],
-      "size": 0
+      "size": 0,
+      "logo": "",
+      "scope": "client"
     }
   ]
 }

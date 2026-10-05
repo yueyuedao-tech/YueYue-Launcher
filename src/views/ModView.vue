@@ -82,7 +82,7 @@ function fmtBytes(n: number): string {
 }
 
 onMounted(refreshMods)
-// 切换实例立即刷新列表，避免陈旧列表按新 currentId 误删
+// 切换游戏立即刷新列表，避免陈旧列表按新 currentId 误删
 watch(currentId, refreshMods)
 </script>
 
@@ -92,7 +92,7 @@ watch(currentId, refreshMods)
       <div>
         <h1 class="page-title">Mod 管理</h1>
         <p class="page-sub" style="margin-bottom: 0">
-          工坊搜索（可浏览）· 实例 Mod 本地管理
+          工坊搜索（可浏览）· 游戏 Mod 本地管理
           <template v-if="settings.proxy"> · 代理 {{ settings.proxy }}</template>
           <template v-if="settings.workshopMirror"> · 工坊镜像已配</template>
         </p>
@@ -100,13 +100,13 @@ watch(currentId, refreshMods)
       <div style="display: flex; gap: 10px; align-items: center">
         <select v-model="selectedInstanceId" class="field" style="min-width: 200px">
           <option v-for="i in instances" :key="i.id" :value="i.id">{{ i.name }}</option>
-          <option v-if="!instances.length" value="" disabled>（无实例）</option>
+          <option v-if="!instances.length" value="" disabled>（无游戏）</option>
         </select>
         <button class="btn-ghost" :disabled="!currentId" @click="refreshMods">刷新列表</button>
       </div>
     </div>
 
-    <p v-if="!instances.length" class="page-sub">请先在「实例」页创建一个实例</p>
+    <p v-if="!instances.length" class="page-sub">请先在「游戏」页创建一个游戏</p>
 
     <!-- 搜索区 -->
     <div v-if="currentId" class="set-group" style="margin-bottom: 16px">
@@ -146,7 +146,7 @@ watch(currentId, refreshMods)
       </div>
     </div>
 
-    <!-- 当前实例已装 Mod -->
+    <!-- 当前游戏已装 Mod -->
     <div class="set-group" v-if="currentId">
       <h3>已安装 Mod（{{ mods.length }}）— {{ currentName }}</h3>
       <p v-if="modsError" style="color: #ff7db0; font-size: 13px; padding: 8px 0">{{ modsError }}</p>
@@ -161,7 +161,7 @@ watch(currentId, refreshMods)
           </div>
         </div>
       </div>
-      <div v-else class="empty" style="padding: 20px 0">该实例还没有 Mod（可将 .jar 放入其 mods 目录）</div>
+      <div v-else class="empty" style="padding: 20px 0">该游戏还没有 Mod（可将 .jar 放入其 mods 目录）</div>
       <div style="padding: 4px 0 12px">
         <button class="btn-ghost" @click="openModsFolder">打开 Mod 文件夹</button>
       </div>

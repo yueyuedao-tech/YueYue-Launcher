@@ -9,6 +9,34 @@ const settingsNav = computed<'left' | 'top'>({
     settings.settingsNavPosition = v
   },
 })
+
+/** 自定义背景图：先压到 1600 宽的 JPEG 再存，避免撑爆 localStorage 配额 */
+function onBgFile(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  const url = URL.createObjectURL(file)
+  const img = new Image()
+  img.onload = () => {
+    const scale = Math.min(1, 1600 / Math.max(1, img.width))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(img.width * scale))
+    canvas.height = Math.max(1, Math.round(img.height * scale))
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      settings.bgImage = canvas.toDataURL('image/jpeg', 0.78)
+    }
+    URL.revokeObjectURL(url)
+  }
+  img.onerror = () => URL.revokeObjectURL(url)
+  img.src = url
+  input.value = ''
+}
+
+function clearBg() {
+  settings.bgImage = ''
+}
 </script>
 
 <template>
@@ -45,6 +73,18 @@ const settingsNav = computed<'left' | 'top'>({
 
     <div class="set-group">
       <h3>外观</h3>
+      <div class="set-row">
+        <div>
+          <div class="label">自定义背景图</div>
+        </div>
+        <div class="ctrl" style="gap: 8px">
+          <label class="btn-ghost" style="position: relative; overflow: hidden">
+            选择图片
+            <input type="file" accept="image/*" style="position: absolute; inset: 0; opacity: 0; cursor: pointer" @change="onBgFile" />
+          </label>
+          <button class="btn-ghost" @click="clearBg">恢复默认</button>
+        </div>
+      </div>
       <div class="set-row">
         <div>
           <div class="label">主题</div>

@@ -10,6 +10,8 @@ import {
   checkForUpdates,
   ackUpdate,
   settings,
+  loadCentralVersions,
+  syncCentralVersions,
 } from './store'
 import type {
   DownloadDonePayload,
@@ -34,7 +36,7 @@ const views = {
 
 const nav: { id: ViewId; label: string; path: string }[] = [
   { id: 'home', label: '首页', path: 'M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z' },
-  { id: 'instances', label: '实例', path: 'M4 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z' },
+  { id: 'instances', label: '游戏', path: 'M4 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z' },
   { id: 'downloads', label: '下载', path: 'M12 4v10m0 0 4-4m-4 4-4-4M5 19h14' },
   { id: 'mod', label: 'Mod', path: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' },
   { id: 'settings', label: '设置', path: 'M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7zm7.4-2.6.1-1-.1-1 2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L15 3.4h-4l-.3 2.5c-.6.2-1.2.6-1.7 1l-2.4-1-2 3.4 2 1.6-.1 1 .1 1-2 1.6 2 3.4 2.4-1c.5.4 1.1.8 1.7 1l.3 2.5h4l.3-2.5c.6-.2 1.2-.6 1.7-1l2.4 1 2-3.4z' },
@@ -50,6 +52,8 @@ function go(id: ViewId) {
 
 onMounted(async () => {
   loadInstances()
+  // 开机即读本地版本缓存（立刻可渲染），随后后台向服务器索引并按需覆盖
+  void loadCentralVersions().then(() => syncCentralVersions())
   unlisteners.push(
     await listen<LaunchExitPayload>('launch-exit', () => {
       loadInstances()

@@ -3,17 +3,23 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { open as openExternal } from '@tauri-apps/plugin-shell'
 import {
+  centralVersions,
+  countCentralVersions,
   downloadStates,
   instances,
   loadInstances,
   settings,
   store,
+  versionSyncing,
   type DlState,
 } from '../store'
-import type { CentralIndex, CentralItem, GithubVersion, SourceItem } from '../types'
-
-/** 源表行：本地源 + 中心索引行（中心行不可编辑/删除） */
-type RowItem = SourceItem & { fromCentral?: boolean; tags?: string[]; size?: number }
+import type {
+  CentralIndex,
+  CentralItem,
+  CentralVersion,
+  GithubVersion,
+  SourceItem,
+} from '../types'
 
 const sources = ref<SourceItem[]>([])
 const central = ref<CentralItem[]>([])
@@ -25,12 +31,12 @@ const busy = ref(false)
 
 // 分组折叠状态（初始取组内任一源的 collapsed）
 const groupOpen = reactive<Record<string, boolean>>({})
-// github 源展开状态与版本缓存
+// 本地 github 源的展开状态与版本缓存
 const expanded = reactive<Record<string, boolean>>({})
 const versions = reactive<
   Record<string, { loading: boolean; error: string; items: GithubVersion[] }>
 >({})
-/** 仓库源版本列表：最新一条常显，其余版本默认收起 */
+/** 本地仓库源：最新一条常显，其余默认收起（中心源的版本全部展开） */
 const showAllVersions = reactive<Record<string, boolean>>({})
 
 function shownVersions(id: string): GithubVersion[] {
@@ -38,52 +44,33 @@ function shownVersions(id: string): GithubVersion[] {
   return showAllVersions[id] ? all : all.slice(0, 1)
 }
 
-const showAdd = ref(false)
-const form = reactive({
-  kind: 'direct-url' as 'direct-url' | 'github-repo',
-  name: '',
-  url: '',
-  repo: '',
-  asset: 'Mindustry.jar',
-  note: '',
-  group: '默认',
-  collapsed: false,
-  latestEnabled: true,
-  openInNewPage: false,
-})
-
-/** 中心索引行 → 源表行形态，复用同一套下载/版本/进度逻辑 */
-function toRow(c: CentralItem): RowItem {
-  return {
-    id: `c-${c.id}`,
-    name: c.name,
-    kind: c.kind,
-    url: c.url,
-    repo: c.repo,
-    asset: c.asset,
-    note: c.note,
-    group: `中心 · ${c.group}`,
-    collapsed: false,
-    latestEnabled: true,
-    openInNewPage: false,
-    fromCentral: true,
-    tags: c.tags,
-    size: c.size,
-  }
+/** 中心源版本：来自本地缓存，不折叠 */
+function centralVersionsOf(id: string): CentralVersion[] {
+  return centralVersions.value?.sources?.[id] ?? []
 }
 
+function syncStateText(): string {
+  const idx = centralVersions.value
+  const n = countCentralVersions()
+  if (versionSyncing.value) return '正在向服务器索引…'
+  if (!idx || !idx.total) return '尚未索引'
+  if (idx.ok === idx.total) return `已从服务器同步 · ${n} 条版本已存到本地`
+  if (idx.ok > 0) return `部分源已同步，其余用本地数据 · 共 ${n} 条`
+  if (idx.syncedAt) return `本地缓存 · 连不上服务器时直接用 · 共 ${n} 条`
+  return '正在首次索引 · 结果会存到本地'
+}
+
+/** 本地源表分组（中心索引单独成区，不再混排、也没有「中心 · 」前缀） */
 const groups = computed(() => {
   const order: string[] = []
-  const map: Record<string, RowItem[]> = {}
-  const push = (s: RowItem) => {
+  const map: Record<string, SourceItem[]> = {}
+  for (const s of sources.value) {
     if (!map[s.group]) {
       map[s.group] = []
       order.push(s.group)
     }
     map[s.group].push(s)
   }
-  central.value.forEach((c) => push(toRow(c)))
-  sources.value.forEach((s) => push(s))
   return order.map((g) => ({ name: g, items: map[g] }))
 })
 
@@ -112,7 +99,7 @@ function applyPrefix(url: string, force: boolean): string {
 }
 
 function instanceNameFor(raw: string): string {
-  let base = raw.replace(/[\\/:*?"<>|]/g, '_').trim().slice(0, 36) || '实例'
+  let base = raw.replace(/[\\/:*?"<>|]/g, '_').trim().slice(0, 36) || '游戏'
   if (instances.value.some((i) => i.id === base)) {
     let n = 2
     while (instances.value.some((i) => i.id === `${base}-${n}`)) n++
@@ -125,8 +112,10 @@ function stateOf(fileName: string): DlState | undefined {
   return downloadStates[fileName]
 }
 
-async function refreshAll() {
-  await Promise.all([loadCentral(), loadSources()])
+/** 资产文件名太长，只留最后两段（如 …-Desktop.jar → Desktop.jar） */
+function shortAsset(name: string): string {
+  const p = name.split('-')
+  return p.length >= 3 ? p.slice(-2).join('-') : name
 }
 
 async function loadSources() {
@@ -179,37 +168,6 @@ async function toggleGroup(name: string) {
     s.collapsed = !groupOpen[name]
   }
   await persist()
-}
-
-async function addSource() {
-  busy.value = true
-  try {
-    const item: SourceItem = {
-      id: 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      name: form.name.trim(),
-      kind: form.kind,
-      url: form.kind === 'direct-url' ? form.url.trim() : '',
-      repo: form.kind === 'github-repo' ? form.repo.trim() : '',
-      asset: form.asset.trim() || 'Mindustry.jar',
-      note: form.note.trim(),
-      group: form.group.trim() || '默认',
-      collapsed: form.collapsed,
-      latestEnabled: form.latestEnabled,
-      openInNewPage: form.openInNewPage,
-    }
-    sources.value = [...sources.value, item]
-    await persist()
-    if (!subsError.value) {
-      form.name = ''
-      form.url = ''
-      form.repo = ''
-      form.note = ''
-      showAdd.value = false
-      await loadSources()
-    }
-  } finally {
-    busy.value = false
-  }
 }
 
 async function removeSource(item: SourceItem) {
@@ -348,107 +306,79 @@ onMounted(() => {
       <div>
         <h1 class="page-title">下载中心</h1>
       </div>
-      <div style="display: flex; gap: 10px">
-        <button class="btn-ghost" :disabled="busy" @click="showAdd = !showAdd">
-          {{ showAdd ? '收起' : '+ 添加源' }}
-        </button>
-        <button class="btn-ghost" :disabled="busy || centralLoading" @click="refreshAll">刷新列表</button>
-      </div>
     </div>
+    <p class="page-sub" style="margin-bottom: 14px">{{ syncStateText() }}</p>
 
     <p v-if="subsError" style="color: #ff7db0; font-size: 13px; margin-bottom: 12px">{{ subsError }}</p>
     <p v-if="centralMeta.note" style="color: var(--amber); font-size: 12px; margin-bottom: 12px">
       {{ centralMeta.note }}
     </p>
 
-    <!-- 添加源 -->
-    <div v-if="showAdd" class="set-group" style="margin-bottom: 18px">
-      <h3>添加下载源</h3>
-      <div class="set-row">
-        <div class="label">类型</div>
-        <div class="ctrl">
-          <select v-model="form.kind" class="field">
-            <option value="direct-url">直链 URL</option>
-            <option value="github-repo">GitHub 仓库</option>
-          </select>
-        </div>
-      </div>
-      <div class="set-row">
-        <div class="label">名称</div>
-        <div class="ctrl" style="flex: 1; max-width: 520px">
-          <input v-model="form.name" class="field" style="width: 100%" placeholder="如：Mindustry 官方仓库" />
-        </div>
-      </div>
-      <div v-if="form.kind === 'direct-url'" class="set-row">
-        <div class="label">URL<div class="hint">必须以 http(s):// 开头</div></div>
-        <div class="ctrl" style="flex: 1; max-width: 640px">
-          <input v-model="form.url" class="field" style="width: 100%" placeholder="https://…/Mindustry.jar" />
-        </div>
-      </div>
-      <template v-else>
-        <div class="set-row">
-          <div class="label">仓库<div class="hint">owner/name，如 Anuken/Mindustry</div></div>
-          <div class="ctrl" style="flex: 1; max-width: 420px">
-            <input v-model="form.repo" class="field" style="width: 100%" placeholder="Anuken/Mindustry" />
+    <!-- 中心索引：logo/标签/版本均由中心服务器下发，只收客户端源 -->
+    <div class="section-h">中心 · 仅客户端（服务端稍后接入）</div>
+    <div v-if="centralLoading" class="empty">正在拉取中心索引…</div>
+    <template v-else>
+      <div v-for="c in central" :key="c.id" class="row-card" style="flex-direction: column; align-items: stretch; gap: 0; margin-bottom: 14px">
+        <div style="display: flex; gap: 14px; align-items: flex-start">
+          <div class="row-icon cy" style="overflow: hidden">
+            <img v-if="c.logo" :src="c.logo" alt="" style="width:100%;height:100%;object-fit:cover" @error="($event.target as HTMLImageElement).style.display='none'" />
+            <template v-else>{{ c.name.slice(0, 1) }}</template>
+          </div>
+          <div class="row-main">
+            <div class="name">
+              {{ c.name }}
+              <span v-for="t in c.tags" :key="t" class="tag" style="margin-left: 6px">{{ t }}</span>
+            </div>
+            <div class="meta" style="word-break: break-all">{{ c.url }}</div>
+            <div v-if="c.note" class="meta">{{ c.note }}</div>
           </div>
         </div>
-        <div class="set-row">
-          <div class="label">下载资产名<div class="hint">每个 release 里要下的文件</div></div>
-          <div class="ctrl" style="flex: 1; max-width: 320px">
-            <input v-model="form.asset" class="field" style="width: 100%" />
-          </div>
-        </div>
-      </template>
-      <div class="set-row">
-        <div class="label">分组</div>
-        <div class="ctrl">
-          <input v-model="form.group" class="field" placeholder="默认" style="width: 160px" />
-        </div>
-      </div>
-      <div class="set-row">
-        <div class="label">备注</div>
-        <div class="ctrl" style="flex: 1; max-width: 520px">
-          <input v-model="form.note" class="field" style="width: 100%" placeholder="可选" />
-        </div>
-      </div>
-      <div class="set-row">
-        <div class="label">初始折叠</div>
-        <div class="ctrl">
-          <label class="switch">
-            <input v-model="form.collapsed" type="checkbox" />
-            <span class="track" />
-            <span class="thumb" />
-          </label>
-        </div>
-      </div>
-      <div class="set-row">
-        <div class="label">显示「最新」徽标<div class="hint">仓库源第一条 release 标记最新</div></div>
-        <div class="ctrl">
-          <label class="switch">
-            <input v-model="form.latestEnabled" type="checkbox" />
-            <span class="track" />
-            <span class="thumb" />
-          </label>
-        </div>
-      </div>
-      <div class="set-row">
-        <div class="label">提供「页面」按钮<div class="hint">用系统浏览器打开 release/资源页</div></div>
-        <div class="ctrl">
-          <label class="switch">
-            <input v-model="form.openInNewPage" type="checkbox" />
-            <span class="track" />
-            <span class="thumb" />
-          </label>
-        </div>
-      </div>
-      <div class="set-row" style="justify-content: flex-end; gap: 10px">
-        <button class="btn-grad" style="font-size: 14px; padding: 9px 26px" :disabled="busy" @click="addSource">
-          添加
-        </button>
-      </div>
-    </div>
 
-    <!-- 分组源列表 -->
+        <div class="vlist">
+          <div v-if="versionSyncing && !centralVersionsOf(c.id).length" class="meta" style="padding: 8px 0">
+            正在扫描版本…
+          </div>
+          <div v-else-if="!centralVersionsOf(c.id).length" class="meta" style="padding: 8px 0">
+            本地暂无版本缓存，索引完成后自动填充
+          </div>
+          <div
+            v-for="(v, vi) in centralVersionsOf(c.id)"
+            :key="c.id + '-' + vi"
+            class="row-card"
+            style="padding: 10px 14px"
+          >
+            <div class="row-main">
+              <div class="name" style="font-size: 14px">
+                {{ v.tag }}
+                <span v-if="vi === 0" class="tag" style="margin-left: 6px; background: rgba(255,125,176,.16); color: var(--pink)">最新</span>
+                <span v-if="v.dropped" class="tag" style="margin-left: 6px; background: rgba(255,255,255,.07); color: var(--ink-dim)">
+                  已滤除 {{ v.dropped }} 个服务端
+                </span>
+              </div>
+              <div class="meta">{{ v.title }}{{ v.date ? ' · ' + v.date : '' }}</div>
+            </div>
+            <div class="row-side" style="gap: 8px; flex-wrap: wrap; justify-content: flex-end">
+              <template v-if="v.assets.length">
+                <button
+                  v-for="a in v.assets"
+                  :key="a.url"
+                  class="btn-ghost"
+                  style="color: var(--cyan); font-size: 12px; padding: 6px 12px"
+                  @click="openPage(a.url)"
+                >
+                  {{ shortAsset(a.name) }}{{ a.size ? ' · ' + fmtBytes(a.size) : '' }}
+                </button>
+              </template>
+              <button v-else class="btn-ghost" style="font-size: 12px; padding: 6px 12px" @click="openPage(v.pageUrl)">
+                {{ v.folder ? '打开目录' : '页面' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 本地源表（预置源已下线，只有手动保留的才会显示） -->
     <template v-if="groups.length">
       <div v-for="g in groups" :key="g.name" style="margin-bottom: 16px">
         <button
@@ -469,26 +399,14 @@ onMounted(() => {
             <div class="row-main" style="min-width: 240px">
               <div class="name">
                 {{ item.name }}
-                <span
-                  v-for="t in item.tags ?? []"
-                  :key="t"
-                  class="tag"
-                  style="margin-left: 6px; background: rgba(110, 231, 249, 0.14)"
-                >
-                  {{ t }}
-                </span>
-                <span v-if="!item.tags?.length" class="tag" style="margin-left: 6px">
+                <span class="tag" style="margin-left: 6px">
                   {{ item.kind === 'github-repo' ? '仓库' : '直链' }}
                 </span>
               </div>
               <div class="meta" style="word-break: break-all">
                 {{ item.kind === 'github-repo' ? item.repo : item.url }}
               </div>
-              <div v-if="item.note || item.size" class="meta">
-                <template v-if="item.note">{{ item.note }}</template>
-                <template v-if="item.note && item.size"> · </template>
-                <template v-if="item.size">{{ fmtBytes(item.size) }}</template>
-              </div>
+              <div v-if="item.note" class="meta">{{ item.note }}</div>
             </div>
 
             <div class="row-side" style="flex-wrap: wrap; gap: 8px">
@@ -520,7 +438,7 @@ onMounted(() => {
                     :disabled="busy"
                     @click="createInstanceFrom(fileNameForDirect(item), item.name, item.id)"
                   >
-                    创建实例
+                    创建游戏
                   </button>
                   <button class="btn-ghost" @click="startDirect(item)">重新下载</button>
                 </template>
@@ -543,7 +461,7 @@ onMounted(() => {
               >
                 页面
               </button>
-              <button v-if="!item.fromCentral" class="btn-ghost" style="color: #ff8f8f" @click="removeSource(item)">删除</button>
+              <button class="btn-ghost" style="color: #ff8f8f" @click="removeSource(item)">删除</button>
             </div>
 
             <div v-if="cardErrors[item.id]" style="flex-basis: 100%; color: #ff7db0; font-size: 12px">
@@ -608,7 +526,7 @@ onMounted(() => {
                         :disabled="busy"
                         @click="createInstanceFrom(fileNameForVersion(item, v), `${v.tag}`, item.id + ':' + v.tag)"
                       >
-                        创建实例
+                        创建游戏
                       </button>
                     </template>
                     <template v-else-if="stateOf(fileNameForVersion(item, v))?.status === 'error'">
@@ -646,6 +564,6 @@ onMounted(() => {
         </div>
       </div>
     </template>
-    <div v-else class="empty">源表为空——点右上角「添加源」</div>
+    <div v-else class="empty">本地源表为空 · 下载走上方的中心索引</div>
   </section>
 </template>

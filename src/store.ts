@@ -1,11 +1,11 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
-import type { GithubVersion, InstanceInfo, InstanceList } from './types'
+import type { GithubVersion, InstanceInfo, InstanceList, VersionIndex } from './types'
 
 export type ViewId = 'home' | 'instances' | 'downloads' | 'mod' | 'settings'
 export type LaunchStatus = 'running' | 'done' | 'failed'
-export type SettingsTab = 'download' | 'mirror' | 'launch' | 'personal'
+export type SettingsTab = 'download' | 'mirror' | 'launch' | 'game' | 'personal'
 
 export const store = reactive({
   view: 'home' as ViewId,
@@ -21,7 +21,41 @@ export const store = reactive({
 /** 设置页当前分区（会话态，不持久化） */
 export const settingsTab = ref<SettingsTab>('download')
 
-// ---------- 实例 ----------
+// ---------- 中心索引的版本缓存（开机即取本地，后台再向服务器刷新） ----------
+export const centralVersions = ref<VersionIndex | null>(null)
+export const versionSyncing = ref(false)
+
+export function countCentralVersions(): number {
+  const src = centralVersions.value?.sources ?? {}
+  return Object.values(src).reduce((a, b) => a + b.length, 0)
+}
+
+/** 只读本地缓存：界面立刻有内容，不等网络 */
+export async function loadCentralVersions(): Promise<void> {
+  try {
+    centralVersions.value = (await invoke('list_central_versions')) as VersionIndex
+  } catch {
+    centralVersions.value = null
+  }
+}
+
+/** 后台向服务器索引；内容 hash 未变则不覆盖本地 */
+export async function syncCentralVersions(): Promise<void> {
+  if (versionSyncing.value) return
+  versionSyncing.value = true
+  try {
+    centralVersions.value = (await invoke('sync_central_versions', {
+      base: settings.centralServer.trim(),
+      proxy: settings.proxy,
+    })) as VersionIndex
+  } catch (e) {
+    console.error('syncCentralVersions failed', e)
+  } finally {
+    versionSyncing.value = false
+  }
+}
+
+// ---------- 游戏 ----------
 export const instances = ref<InstanceInfo[]>([])
 export const skippedCount = ref(0)
 export const selectedInstanceId = ref('')
@@ -36,6 +70,18 @@ export async function loadInstances(): Promise<void> {
     }
   } catch (e) {
     console.error('loadInstances failed', e)
+  }
+}
+
+/** 已隐藏（删本体、保留存档）的游戏：不参与正常列表，可恢复 */
+export const hiddenInstances = ref<InstanceInfo[]>([])
+
+export async function loadHidden(): Promise<void> {
+  try {
+    hiddenInstances.value = (await invoke('list_hidden_instances')) as InstanceInfo[]
+  } catch (e) {
+    console.error('loadHidden failed', e)
+    hiddenInstances.value = []
   }
 }
 
@@ -133,6 +179,12 @@ export interface Settings {
   bgShade: number
   alwaysOnTop: boolean
   closeBehavior: 'exit' | 'minimize'
+  /** 删除游戏的默认方式：keep = 删本体留存档；purge = 连存档一起删 */
+  defaultDelete: 'keep' | 'purge'
+  /** 是否启用存档隔离（启动设置） */
+  saveIsolation: boolean
+  /** 自定义背景图，dataURL；空 = 默认背景 */
+  bgImage: string
   downloadDir: string
   updateCheck: boolean
   lastSeenTag: string
@@ -154,6 +206,9 @@ const defaults: Settings = {
   bgShade: 96,
   alwaysOnTop: false,
   closeBehavior: 'exit',
+  defaultDelete: 'keep',
+  saveIsolation: true,
+  bgImage: '',
   downloadDir: '',
   updateCheck: true,
   lastSeenTag: '',

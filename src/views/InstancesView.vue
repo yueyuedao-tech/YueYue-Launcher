@@ -3,9 +3,11 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import {
   ensureScanned,
+  hiddenInstances,
   instances,
   jarScan,
   javaScan,
+  loadHidden,
   loadInstances,
   resetLaunch,
   selectedInstanceId,
@@ -57,7 +59,8 @@ function resetForm(info?: InstanceInfo) {
     form.javaPath = 'java'
     form.jvmArgs = ''
     form.memoryMb = settings.memory
-    form.isolate = true
+    // 新建游戏的隔离默认值跟随「设置 → 启动」的开关
+    form.isolate = settings.saveIsolation
   }
   showForm.value = true
 }
@@ -106,12 +109,46 @@ async function submit() {
   }
 }
 
-async function remove(info: InstanceInfo) {
-  if (!window.confirm(`删除实例「${info.name}」？其数据目录 data/ 将一并删除，不可恢复。`)) return
+/** 待删除的游戏：弹出两种删除方式，默认高亮取自设置（避免误删） */
+const pendingDelete = ref<InstanceInfo | null>(null)
+
+function askDelete(info: InstanceInfo) {
+  pendingDelete.value = info
+}
+
+async function doDelete(mode: 'keep' | 'purge') {
+  const info = pendingDelete.value
+  if (!info) return
   busy.value = true
   try {
-    await invoke('delete_instance', { id: info.id })
-    await loadInstances()
+    await invoke('delete_instance', { id: info.id, mode })
+    pendingDelete.value = null
+    await Promise.all([loadInstances(), loadHidden()])
+  } catch (e) {
+    window.alert(String(e))
+  } finally {
+    busy.value = false
+  }
+}
+
+async function restore(info: InstanceInfo) {
+  busy.value = true
+  try {
+    await invoke('restore_instance', { id: info.id })
+    await Promise.all([loadInstances(), loadHidden()])
+  } catch (e) {
+    window.alert(String(e))
+  } finally {
+    busy.value = false
+  }
+}
+
+/** 彻底删除已隐藏的游戏（此时才连存档一起清掉） */
+async function purgeHidden(info: InstanceInfo) {
+  busy.value = true
+  try {
+    await invoke('delete_instance', { id: info.id, mode: 'purge' })
+    await loadHidden()
   } catch (e) {
     window.alert(String(e))
   } finally {
@@ -154,8 +191,8 @@ function baseName(p: string) {
 }
 
 onMounted(async () => {
-  // scan 有结果缓存：仅首次进入实例页执行，后续切换页面不再重扫
-  await Promise.all([loadInstances(), ensureScanned()])
+  // scan 有结果缓存：仅首次进入游戏页执行，后续切换页面不再重扫
+  await Promise.all([loadInstances(), loadHidden(), ensureScanned()])
   if (!editingId.value && !form.jarPath) form.jarPath = jarScan.value[0] ?? ''
 })
 </script>
@@ -164,9 +201,9 @@ onMounted(async () => {
   <section class="page">
     <div class="toolbar" style="justify-content: space-between">
       <div>
-        <h1 class="page-title">实例管理</h1>
+        <h1 class="page-title">游戏</h1>
         <p class="page-sub" style="margin-bottom: 0">
-          每个实例独立文件夹（instance.json + launch.config.json + data/），存档设置互相隔离
+          每个游戏独立文件夹（instance.json + launch.config.json + data/），存档互相隔离
         </p>
       </div>
       <div style="display: flex; gap: 10px; align-items: center">
@@ -174,18 +211,19 @@ onMounted(async () => {
           {{ rescanning ? '扫描中…' : '重新扫描 jar' }}
         </button>
         <button class="btn-grad" style="font-size: 14px; padding: 10px 26px" @click="resetForm()">
-          + 新建实例
+          + 新建游戏
         </button>
       </div>
     </div>
 
-    <p v-if="skippedCount > 0" class="page-sub">⚠ 已跳过 {{ skippedCount }} 个损坏的实例条目</p>
+    <p v-if="skippedCount > 0" class="page-sub">⚠ 已跳过 {{ skippedCount }} 个损坏的游戏条目</p>
 
-    <!-- 新建/编辑表单 -->
-    <div v-if="showForm" class="set-group" style="margin-bottom: 18px">
-      <h3>{{ editingId ? `编辑实例：${editingId}` : '新建实例' }}</h3>
+    <!-- 新建/编辑：独立面板（相当于新开一个窗口） -->
+    <div v-if="showForm" class="edit-overlay" @click.self="showForm = false">
+    <div class="set-group" style="margin-bottom: 18px">
+      <h3>{{ editingId ? `编辑游戏：${editingId}` : '新建游戏' }}</h3>
       <div class="set-row">
-        <div class="label">实例名称</div>
+        <div class="label">游戏名称</div>
         <div class="ctrl">
           <input v-model="form.name" class="field" style="width: 220px" :disabled="!!editingId" placeholder="如：主线服-测试" />
         </div>
@@ -200,7 +238,7 @@ onMounted(async () => {
         </div>
       </div>
       <div class="set-row">
-        <div class="label">Java 运行时<div class="hint">每实例可绑定不同 JRE</div></div>
+        <div class="label">Java 运行时<div class="hint">每游戏可绑定不同 JRE</div></div>
         <div class="ctrl" style="flex: 1; max-width: 560px">
           <input v-model="form.javaPath" class="field" style="width: 100%" list="java-options" />
           <datalist id="java-options">
@@ -222,7 +260,7 @@ onMounted(async () => {
         </div>
       </div>
       <div class="set-row">
-        <div class="label">数据隔离<div class="hint">注入 AppData/XDG_DATA_HOME 指向实例 data/</div></div>
+        <div class="label">数据隔离<div class="hint">注入 AppData/XDG_DATA_HOME 指向游戏 data/</div></div>
         <div class="ctrl">
           <label class="switch">
             <input v-model="form.isolate" type="checkbox" />
@@ -239,8 +277,42 @@ onMounted(async () => {
         </button>
       </div>
     </div>
+    </div>
 
-    <!-- 实例列表 -->
+    <!-- 删除方式选择 -->
+    <div v-if="pendingDelete" class="edit-overlay" @click.self="pendingDelete = null">
+      <div class="set-group" style="max-width: 620px; margin: 40px auto">
+        <h3>删除「{{ pendingDelete.name }}」</h3>
+        <div
+          class="delete-opt"
+          :class="{ sel: settings.defaultDelete === 'keep' }"
+          @click="doDelete('keep')"
+        >
+          <div class="ic">🗂</div>
+          <div>
+            <div class="ot">删除游戏本体 · 保留存档</div>
+            <div class="od">从列表中隐藏（真实环境中隐藏该目录），元数据与存档全部保留，可随时恢复</div>
+          </div>
+        </div>
+        <div
+          class="delete-opt"
+          :class="{ sel: settings.defaultDelete === 'purge' }"
+          @click="doDelete('purge')"
+        >
+          <div class="ic">🗑</div>
+          <div>
+            <div class="ot">完全删除 · 含存档</div>
+            <div class="od">游戏本体与该目录下所有存档一并清除，不可恢复</div>
+          </div>
+        </div>
+        <div class="set-row">
+          <div class="hint">默认方式可在「设置 → 游戏」里更改，避免误删</div>
+          <button class="btn-ghost" @click="pendingDelete = null">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 游戏列表 -->
     <div v-if="instances.length" class="list">
       <div
         v-for="i in instances"
@@ -263,12 +335,30 @@ onMounted(async () => {
           <button v-if="!i.running" class="btn-grad" style="font-size: 13px; padding: 8px 20px" :disabled="startingId !== null" @click.stop="start(i)">启动</button>
           <button v-else class="btn-ghost" style="color: #ff7db0" @click.stop="stop(i)">停止</button>
           <button class="btn-ghost" @click.stop="resetForm(i)">编辑</button>
-          <button class="btn-ghost" style="color: #ff8f8f" @click.stop="remove(i)">删除</button>
+          <button class="btn-ghost" style="color: #ff8f8f" @click.stop="askDelete(i)">删除</button>
         </div>
       </div>
     </div>
     <div v-else-if="!showForm" class="empty">
-      还没有实例——点击右上角「新建实例」创建第一个客户端
+      还没有游戏——点击右上角「新建游戏」，或去「下载」拿一个客户端
     </div>
+
+    <!-- 已隐藏（只删了本体、存档还在） -->
+    <template v-if="hiddenInstances.length">
+      <div class="section-h" style="margin-top: 22px">已隐藏（保留元数据与存档）</div>
+      <div class="list">
+        <div v-for="h in hiddenInstances" :key="h.id" class="row-card" style="opacity: .72">
+          <div class="row-icon">🗃</div>
+          <div class="row-main">
+            <div class="name">{{ h.name }} <span class="tag" style="margin-left: 6px">已隐藏</span></div>
+            <div class="meta">本体目录已隐藏 · 元数据保留 · {{ baseName(h.jarPath) }}</div>
+          </div>
+          <div class="row-side">
+            <button class="btn-ghost" :disabled="busy" @click="restore(h)">恢复显示</button>
+            <button class="btn-ghost" style="color: #ff8f8f" :disabled="busy" @click="purgeHidden(h)">彻底删除</button>
+          </div>
+        </div>
+      </div>
+    </template>
   </section>
 </template>

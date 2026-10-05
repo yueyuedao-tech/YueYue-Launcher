@@ -8,10 +8,21 @@ import {
   loadInstances,
   resetLaunch,
   selectedInstanceId,
+  settings,
   store,
 } from '../store'
 
 const inst = computed(() => currentInstance())
+/** 自定义背景图（个性化里选的）；没有则用内置 hero 图 */
+const bgStyle = computed(() =>
+  settings.bgImage
+    ? {
+        backgroundImage: `url("${settings.bgImage}")`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }
+    : undefined,
+)
 let starting = false
 
 async function launch() {
@@ -43,20 +54,20 @@ async function launch() {
 
 <template>
   <div class="home">
-    <div class="home-bg" aria-hidden="true" />
+    <div class="home-bg" aria-hidden="true" :style="bgStyle" />
 
     <header>
       <div class="brand">Yue<em>Yue</em> Launcher</div>
-      <div class="brand-sub">YYL · Windows / Linux · Mindustry 实例启动</div>
+      <div class="brand-sub">YYL · Windows / Linux · Mindustry 游戏启动</div>
 
       <div class="launch-zone">
         <div class="version-pick">
-          <label for="inst">当前实例</label>
+          <label for="inst">当前游戏</label>
           <select id="inst" v-model="selectedInstanceId">
             <option v-for="i in instances" :key="i.id" :value="i.id">
               {{ i.name }}{{ i.running ? '（运行中）' : '' }}
             </option>
-            <option v-if="!instances.length" value="" disabled>（无实例，请先创建）</option>
+            <option v-if="!instances.length" value="" disabled>（无游戏，请先创建）</option>
           </select>
         </div>
 

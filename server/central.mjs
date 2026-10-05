@@ -22,17 +22,29 @@ const SCHEMA = 1
 /** 源内容清单：只写事实，标签由 build 阶段统一派生 */
 const SOURCES = [
   {
-    name: 'GitHub 官方仓库',
+    name: 'Mindustry v8',
+    kind: 'file-list',
+    url: 'https://file.mdtbbs.cn/category/Mindustry/v8',
+    group: '中心',
+    note: 'mdtbbs 文件站分类目录',
+    tags: ['v8'],
+    scope: 'client',
+    logo: '',
+  },
+  {
+    name: 'MindustryX',
     kind: 'github-repo',
-    repo: 'Anuken/Mindustry',
-    asset: 'Mindustry.jar',
-    group: '官方源',
-    note: '官方 releases 索引（Atom），可展开历史版本',
-    tags: ['版本索引'],
+    repo: 'TinyLake/MindustryX',
+    url: 'https://github.com/TinyLake/MindustryX/releases',
+    group: '中心',
+    note: 'TinyLake/MindustryX releases',
+    tags: ['GitHub'],
+    scope: 'client',
+    logo: '',
   },
 ]
 
-const KIND_TAG = { 'direct-url': '直链', 'github-repo': '仓库' }
+const KIND_TAG = { 'direct-url': '直链', 'github-repo': '仓库', 'file-list': '目录' }
 
 const clean = (s, n) => String(s ?? '').trim().slice(0, n)
 const slug = (s, i) =>
@@ -45,9 +57,12 @@ function tagsOf(src) {
 }
 
 function build() {
+  const KINDS = ['direct-url', 'github-repo', 'file-list']
   const items = SOURCES.map((s, i) => {
-    const kind = s.kind === 'github-repo' ? 'github-repo' : 'direct-url'
-    const ok = kind === 'github-repo' ? /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(s.repo ?? '') : /^https?:\/\//.test(s.url ?? '')
+    const kind = KINDS.includes(s.kind) ? s.kind : 'direct-url'
+    const ok = kind === 'github-repo'
+      ? /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(s.repo ?? '')
+      : /^https?:\/\//.test(s.url ?? '')
     if (!ok) throw new Error(`第 ${i + 1} 条源不合法：${s.name}`)
     return {
       id: slug(s.name, i),
@@ -57,9 +72,12 @@ function build() {
       repo: clean(s.repo, 120),
       asset: clean(s.asset, 100) || 'Mindustry.jar',
       note: clean(s.note, 80),
-      group: clean(s.group, 24) || '默认',
+      group: clean(s.group, 24) || '中心',
       tags: tagsOf({ ...s, kind }),
       size: Number(s.size) > 0 ? Number(s.size) : 0,
+      // logo 由中心服务器下发，用于识别游戏；空则前端用首字母兜底
+      logo: /^https?:\/\//.test(s.logo ?? '') ? clean(s.logo, 500) : '',
+      scope: s.scope === 'server' ? 'server' : 'client',
     }
   })
   return {

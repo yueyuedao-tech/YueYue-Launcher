@@ -39,7 +39,7 @@ onMounted(async () => {
       }
     }),
   )
-  append(`[启动器] 请求启动实例「${instanceName()}」…`)
+  append(`[启动器] 请求启动游戏「${instanceName()}」…`)
 })
 
 onBeforeUnmount(() => {

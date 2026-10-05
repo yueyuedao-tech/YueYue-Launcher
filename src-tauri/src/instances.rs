@@ -303,13 +303,115 @@ pub async fn update_instance(
 }
 
 #[tauri::command]
-pub async fn delete_instance(id: String) -> Result<(), String> {
+/// 删除游戏。mode：
+/// - "keep"  = 只删本体、保留存档与元数据（目录移到 .hidden/，列表不再显示）
+/// - "purge" = 彻底删除，连同存档一起清除
+pub async fn delete_instance(id: String, mode: String) -> Result<(), String> {
     let id = validate_id(&id)?;
     let dir = instances_root().join(&id);
     if !dir.is_dir() {
-        return Err(format!("实例不存在: {id}"));
+        return Err(format!("游戏不存在: {id}"));
     }
-    fs::remove_dir_all(&dir).map_err(|e| e.to_string())
+    match mode.as_str() {
+        "purge" => fs::remove_dir_all(&dir).map_err(|e| e.to_string()),
+        "keep" => {
+            let hidden = hidden_root();
+            fs::create_dir_all(&hidden).map_err(|e| e.to_string())?;
+            let dst = hidden.join(&id);
+            if dst.exists() {
+                fs::remove_dir_all(&dst).map_err(|e| e.to_string())?;
+            }
+            fs::rename(&dir, &dst).map_err(|e| e.to_string())
+        }
+        other => Err(format!("未知删除方式: {other}")),
+    }
+}
+
+/// 已隐藏（只删本体、保留存档）的游戏列表
+#[tauri::command]
+pub async fn list_hidden_instances() -> Vec<InstanceInfo> {
+    let root = hidden_root();
+    let mut out = Vec::new();
+    if let Ok(rd) = fs::read_dir(&root) {
+        for entry in rd.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                if let Some(info) = load_instance_dir(&path) {
+                    out.push(info);
+                }
+            }
+        }
+    }
+    out.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+    out
+}
+
+/// 恢复被隐藏的游戏
+#[tauri::command]
+pub async fn restore_instance(id: String) -> Result<(), String> {
+    let id = validate_id(&id)?;
+    let src = hidden_root().join(&id);
+    if !src.is_dir() {
+        return Err(format!("未找到已隐藏的游戏: {id}"));
+    }
+    let dst = instances_root().join(&id);
+    if dst.exists() {
+        return Err("同名游戏已存在于列表中".into());
+    }
+    fs::rename(&src, &dst).map_err(|e| e.to_string())
+}
+
+fn hidden_root() -> PathBuf {
+    instances_root().join(".hidden")
+}
+
+/* ---------- 存档 ---------- */
+
+fn saves_dir(id: &str) -> Result<PathBuf, String> {
+    let info = read_instance(id)?;
+    let dir = data_dir_abs(&info).join("saves");
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir)
+}
+
+/// 在设置里新开一个存档：建目录并写入最小 metadata，游戏内可直接看到
+#[tauri::command]
+pub async fn create_save(id: String, name: String) -> Result<Vec<String>, String> {
+    let name = name.trim();
+    if name.is_empty() || name.chars().count() > 40 {
+        return Err("存档名需为 1-40 字符".into());
+    }
+    if name.contains(['\\', '/', ':', '*', '?', '"', '<', '>', '|']) {
+        return Err("存档名包含非法字符".into());
+    }
+    let dir = saves_dir(&id)?;
+    let slot = dir.join(name);
+    if slot.exists() {
+        return Err(format!("存档已存在: {name}"));
+    }
+    fs::create_dir_all(&slot).map_err(|e| e.to_string())?;
+    let meta = serde_json::json!({ "name": name, "description": "" });
+    fs::write(slot.join("metadata.json"), serde_json::to_string_pretty(&meta).unwrap())
+        .map_err(|e| e.to_string())?;
+    list_saves(id).await
+}
+
+/// 扫描某游戏目录下现有的存档
+#[tauri::command]
+pub async fn list_saves(id: String) -> Result<Vec<String>, String> {
+    let dir = saves_dir(&id)?;
+    let mut out: Vec<String> = Vec::new();
+    if let Ok(rd) = fs::read_dir(&dir) {
+        for entry in rd.flatten() {
+            if entry.path().is_dir() {
+                if let Some(n) = entry.file_name().to_str() {
+                    out.push(n.to_string());
+                }
+            }
+        }
+    }
+    out.sort();
+    Ok(out)
 }
 
 pub fn data_dir_abs(info: &InstanceInfo) -> PathBuf {
