@@ -1,9 +1,9 @@
 {
-  "name": "anime-launcher",
+  "name": "yueyue-launcher",
   "version": "0.1.0",
   "private": true,
-  "description": "PCL 风格二次元游戏启动器（Windows / Linux）",
-  "author": "Starlight Launcher",
+  "description": "YueYue Launcher (YYL) - Mindustry instance launcher",
+  "author": "YYL",
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {

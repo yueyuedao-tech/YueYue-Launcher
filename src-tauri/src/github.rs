@@ -31,7 +31,7 @@ fn field(entry: &str, open: &str, close: &str) -> String {
     }
 }
 
-fn repo_ok(repo: &str) -> bool {
+pub(crate) fn repo_ok(repo: &str) -> bool {
     let mut parts = repo.split('/');
     let (Some(owner), Some(name), None) = (parts.next(), parts.next(), parts.next()) else {
         return false;

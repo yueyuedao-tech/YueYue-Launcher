@@ -9,7 +9,7 @@ function createWindow() {
     minHeight: 560,
     backgroundColor: '#12121c',
     autoHideMenuBar: true,
-    title: '星启 · 启动器',
+    title: 'YueYue Launcher (YYL)',
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

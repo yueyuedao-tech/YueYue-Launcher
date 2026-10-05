@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "app": "yueyue-launcher",
+  "generated": "2026-10-05T14:24:24.586Z",
+  "count": 1,
+  "items": [
+    {
+      "id": "github-官方仓库",
+      "name": "GitHub 官方仓库",
+      "kind": "github-repo",
+      "url": "",
+      "repo": "Anuken/Mindustry",
+      "asset": "Mindustry.jar",
+      "note": "官方 releases 索引（Atom），可展开历史版本",
+      "group": "官方源",
+      "tags": [
+        "仓库",
+        "官方源",
+        "版本索引"
+      ],
+      "size": 0
+    }
+  ]
+}

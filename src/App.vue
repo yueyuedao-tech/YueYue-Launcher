@@ -22,7 +22,6 @@ import InstancesView from './views/InstancesView.vue'
 import DownloadsView from './views/DownloadsView.vue'
 import ModView from './views/ModView.vue'
 import SettingsView from './views/SettingsView.vue'
-import PersonalView from './views/PersonalView.vue'
 import LaunchOverlay from './components/LaunchOverlay.vue'
 
 const views = {
@@ -31,7 +30,6 @@ const views = {
   downloads: DownloadsView,
   mod: ModView,
   settings: SettingsView,
-  personal: PersonalView,
 } as const
 
 const nav: { id: ViewId; label: string; path: string }[] = [
@@ -40,7 +38,6 @@ const nav: { id: ViewId; label: string; path: string }[] = [
   { id: 'downloads', label: '下载', path: 'M12 4v10m0 0 4-4m-4 4-4-4M5 19h14' },
   { id: 'mod', label: 'Mod', path: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' },
   { id: 'settings', label: '设置', path: 'M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7zm7.4-2.6.1-1-.1-1 2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L15 3.4h-4l-.3 2.5c-.6.2-1.2.6-1.7 1l-2.4-1-2 3.4 2 1.6-.1 1 .1 1-2 1.6 2 3.4 2.4-1c.5.4 1.1.8 1.7 1l.3 2.5h4l.3-2.5c.6-.2 1.2-.6 1.7-1l2.4 1 2-3.4z' },
-  { id: 'personal', label: '个性化', path: 'M4 8h8M16 8h4M4 16h4M12 16h8M14 5v6M8 13v6' },
 ]
 
 const current = computed(() => views[store.view])
@@ -96,11 +93,11 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="shell">
-    <!-- 顶部居中导航（navPosition=top 时显示；窄屏隐藏，由底部栏接管） -->
+    <!-- 顶部导航（navPosition=top 时显示；窄屏隐藏，由底部栏接管） -->
     <header v-if="settings.navPosition === 'top'" class="topnav">
       <div class="topnav-brand">
-        <img class="logo" src="./assets/logo.png" alt="星启启动器 logo" />
-        <span class="topnav-title">星启启动器</span>
+        <img class="logo" src="./assets/logo.png" alt="YueYue Launcher logo" />
+        <span class="topnav-title">YueYue Launcher</span>
       </div>
       <nav class="topnav-items" aria-label="顶部导航">
         <button
@@ -126,7 +123,7 @@ onBeforeUnmount(() => {
         :class="{ 'rail--hidden': settings.navPosition === 'top' }"
         aria-label="主导航"
       >
-        <img class="logo" src="./assets/logo.png" alt="星启启动器 logo" />
+        <img class="logo" src="./assets/logo.png" alt="YueYue Launcher logo" />
         <button
           v-for="item in nav"
           :key="item.id"

@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod central;
 mod cmdutil;
 mod downloader;
 mod github;
@@ -49,7 +50,7 @@ fn ensure_tray(app: &AppHandle) -> Result<(), String> {
     let mut builder = TrayIconBuilder::with_id("main-tray")
         .menu(&menu)
         .show_menu_on_left_click(false)
-        .tooltip("星启启动器")
+        .tooltip("YYL · YueYue Launcher")
         .on_menu_event(|app, event| match event.id.as_ref() {
             "show" => {
                 if let Some(w) = app.get_webview_window("main") {
@@ -88,6 +89,15 @@ fn ensure_tray(app: &AppHandle) -> Result<(), String> {
 
 fn main() {
     tauri::Builder::default()
+        // 单实例：重复启动改为聚焦已有窗口，否则第二个实例会抢同一 WebView2
+        // 用户数据目录、在 setup 阶段 panic（panic=abort + windows 子系统 = 静默闪退）
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.unminimize();
+                let _ = w.show();
+                let _ = w.set_focus();
+            }
+        }))
         .manage(CloseMode::default())
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
@@ -101,6 +111,7 @@ fn main() {
             launcher::stop_instance,
             sources::list_sources,
             sources::save_sources,
+            central::fetch_central_index,
             github::fetch_repo_versions,
             mods::search_workshop,
             mods::list_mods,

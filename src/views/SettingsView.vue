@@ -1,57 +1,71 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { settings } from '../store'
+import { settings, settingsNavPos, settingsTab, type SettingsTab } from '../store'
+import PersonalControls from './PersonalControls.vue'
 
-type Tab = 'download' | 'mirror' | 'github' | 'launch'
-const active = ref<Tab>('download')
-const tabs: { id: Tab; label: string }[] = [
+const tabs: { id: SettingsTab; label: string }[] = [
   { id: 'download', label: '下载' },
   { id: 'mirror', label: '镜像与网络' },
-  { id: 'github', label: 'GitHub' },
   { id: 'launch', label: '启动' },
+  { id: 'personal', label: '个性化' },
 ]
+
+function pick(id: SettingsTab) {
+  settingsTab.value = id
+}
 </script>
 
 <template>
-  <section class="page">
-    <h1 class="page-title">设置</h1>
-    <p class="page-sub">分区配置；个性化（外观/窗口/导航）已移至「个性化」页</p>
-
-    <!-- 顶部居中分区 tab -->
-    <div class="section-tabs" role="tablist">
+  <section
+    class="page settings-page"
+    :class="settingsNavPos === 'top' ? 'settings-page--topnav' : 'settings-page--sidenav'"
+  >
+    <!-- 设置专属分类导航栏：默认跟随主导航位置 -->
+    <nav
+      class="settings-nav"
+      :class="{ 'settings-nav--top': settingsNavPos === 'top' }"
+      aria-label="设置分类"
+    >
+      <h1 class="settings-nav-title">设置</h1>
       <button
         v-for="t in tabs"
         :key="t.id"
-        class="section-tab"
-        :class="{ active: active === t.id }"
+        class="settings-nav-btn"
+        :class="{ active: settingsTab === t.id }"
         role="tab"
-        @click="active = t.id"
+        :aria-selected="settingsTab === t.id"
+        @click="pick(t.id)"
       >
         {{ t.label }}
       </button>
-    </div>
+    </nav>
 
-    <div class="settings-grid" style="margin-top: 16px">
-      <div v-show="active === 'download'" class="set-group">
+    <div class="settings-body">
+      <div v-show="settingsTab === 'download'" class="set-group">
         <h3>下载</h3>
         <div class="set-row">
           <div>
             <div class="label">下载目录</div>
-            <div class="hint">留空 = 默认（%APPDATA%\StarlightLauncher\downloads）</div>
           </div>
           <div class="ctrl" style="flex: 1; max-width: 420px">
             <input v-model="settings.downloadDir" class="field" style="width: 100%" placeholder="D:\Mindustry下载" />
           </div>
         </div>
+        <div class="set-row">
+          <div>
+            <div class="label">中心化服务器</div>
+          </div>
+          <div class="ctrl" style="flex: 1; max-width: 420px">
+            <input v-model="settings.centralServer" class="field" style="width: 100%" placeholder="http://127.0.0.1:8787" />
+          </div>
+        </div>
       </div>
 
-      <!-- 镜像与网络：统一优先级 = 镜像 → 代理 → 直连 -->
-      <div v-show="active === 'mirror'" class="set-group">
+      <!-- 镜像与网络：地址用镜像前缀、连接用代理，可叠加 -->
+      <div v-show="settingsTab === 'mirror'" class="set-group">
         <h3>镜像与网络</h3>
         <div class="set-row">
           <div>
             <div class="label">下载代理</div>
-            <div class="hint">连接用代理，可与镜像前缀同时使用；示例 127.0.0.1:7897</div>
           </div>
           <div class="ctrl" style="flex: 1; max-width: 320px">
             <input v-model="settings.proxy" class="field" style="width: 100%" placeholder="127.0.0.1:7897" />
@@ -60,7 +74,6 @@ const tabs: { id: Tab; label: string }[] = [
         <div class="set-row">
           <div>
             <div class="label">GitHub 加速前缀</div>
-            <div class="hint">拼在 github.com 前（jar/Atom/版本索引）</div>
           </div>
           <div class="ctrl" style="flex: 1; max-width: 420px">
             <input
@@ -80,20 +93,14 @@ const tabs: { id: Tab; label: string }[] = [
         <div class="set-row">
           <div>
             <div class="label">工坊镜像</div>
-            <div class="hint">拼在 steamcommunity.com 前（搜索用）；留空走代理</div>
           </div>
           <div class="ctrl" style="flex: 1; max-width: 420px">
             <input v-model="settings.workshopMirror" class="field" style="width: 100%" placeholder="https://your-steam-mirror/" />
           </div>
         </div>
-      </div>
-
-      <div v-show="active === 'github'" class="set-group">
-        <h3>GitHub</h3>
         <div class="set-row">
           <div>
             <div class="label">新版本小红点</div>
-            <div class="hint">启动时静默检查 GitHub 最新版本，失败不提示；加速前缀在「镜像与网络」配置</div>
           </div>
           <div class="ctrl">
             <label class="switch">
@@ -105,12 +112,11 @@ const tabs: { id: Tab; label: string }[] = [
         </div>
       </div>
 
-      <div v-show="active === 'launch'" class="set-group">
+      <div v-show="settingsTab === 'launch'" class="set-group">
         <h3>启动</h3>
         <div class="set-row">
           <div>
             <div class="label">新实例默认内存</div>
-            <div class="hint">创建实例时的初始值，创建后可在实例里单独改</div>
           </div>
           <div class="ctrl">
             <input v-model.number="settings.memory" type="range" min="1024" max="16384" step="512" />
@@ -118,6 +124,9 @@ const tabs: { id: Tab; label: string }[] = [
           </div>
         </div>
       </div>
+
+      <!-- 个性化（原独立页已归档至此，数据同源） -->
+      <PersonalControls v-show="settingsTab === 'personal'" />
     </div>
   </section>
 </template>

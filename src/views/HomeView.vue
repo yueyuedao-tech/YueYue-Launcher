@@ -46,8 +46,8 @@ async function launch() {
     <div class="home-bg" aria-hidden="true" />
 
     <header>
-      <div class="brand">星<em>启</em>启动器</div>
-      <div class="brand-sub">STARLIGHT LAUNCHER · Windows / Linux · Mindustry 实例启动</div>
+      <div class="brand">Yue<em>Yue</em> Launcher</div>
+      <div class="brand-sub">YYL · Windows / Linux · Mindustry 实例启动</div>
 
       <div class="launch-zone">
         <div class="version-pick">
@@ -61,12 +61,6 @@ async function launch() {
         </div>
 
         <button class="btn-grad" @click="launch">启 动</button>
-        <div style="color: var(--ink-dim); font-size: 12px">
-          <template v-if="inst">
-            {{ inst.jarPath }} · 数据隔离 {{ inst.isolate ? '开' : '关' }} · Java {{ inst.javaPath }}
-          </template>
-          <template v-else>尚无实例——点击后前往实例管理创建</template>
-        </div>
       </div>
     </header>
 

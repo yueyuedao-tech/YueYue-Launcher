@@ -50,36 +50,36 @@ struct SourcesFile {
     sources: Vec<SourceItem>,
 }
 
-/// 预置：官方仓库索引 + 已验证的 v146 直链（HTTP 200 / 72939318 bytes）
-fn preset_sources() -> Vec<SourceItem> {
-    vec![
-        SourceItem {
-            id: "src-github-official".into(),
-            name: "GitHub 官方仓库".into(),
-            kind: SourceKind::GithubRepo,
-            url: String::new(),
-            repo: "Anuken/Mindustry".into(),
-            asset: default_asset(),
-            note: "官方 releases 索引（Atom）".into(),
-            group: "官方源".into(),
-            collapsed: false,
-            latest_enabled: true,
-            open_in_new_page: true,
-        },
-        SourceItem {
-            id: "src-v146-direct".into(),
-            name: "Mindustry v146 直链".into(),
-            kind: SourceKind::DirectUrl,
-            url: "https://github.com/Anuken/Mindustry/releases/download/v146/Mindustry.jar".into(),
-            repo: String::new(),
-            asset: default_asset(),
-            note: "官方 stable · 约 73MB（已验证 200）".into(),
-            group: "直链".into(),
-            collapsed: false,
-            latest_enabled: false,
-            open_in_new_page: false,
-        },
-    ]
+/// 预置：只保留官方仓库索引。直链条目已随中心索引一起下线
+/// （下载中心改为只展示「中心 · 官方源」）
+pub fn preset_sources() -> Vec<SourceItem> {
+    vec![SourceItem {
+        id: "src-github-official".into(),
+        name: "GitHub 官方仓库".into(),
+        kind: SourceKind::GithubRepo,
+        url: String::new(),
+        repo: "Anuken/Mindustry".into(),
+        asset: default_asset(),
+        note: "官方 releases 索引（Atom）".into(),
+        group: "官方源".into(),
+        collapsed: false,
+        latest_enabled: true,
+        open_in_new_page: true,
+    }]
+}
+
+/// 已下线的预置源 id：老安装里存下来的这两条同样要清掉
+const RETIRED_PRESET_IDS: [&str; 2] = ["src-github-official", "src-v146-direct"];
+
+/// 过滤已下线的预置源，并报告是否发生了变化（用于回写）
+fn drop_retired(items: Vec<SourceItem>) -> (Vec<SourceItem>, bool) {
+    let before = items.len();
+    let kept: Vec<SourceItem> = items
+        .into_iter()
+        .filter(|s| !RETIRED_PRESET_IDS.contains(&s.id.as_str()))
+        .collect();
+    let changed = kept.len() != before;
+    (kept, changed)
 }
 
 fn app_dir() -> PathBuf {
@@ -172,13 +172,30 @@ fn migrate_legacy() -> Option<Vec<SourceItem>> {
 }
 
 fn write_sources(items: &[SourceItem]) -> Result<(), String> {
-    let path = sources_path();
+    write_sources_to(&sources_path(), items)
+}
+
+fn write_sources_to(path: &std::path::Path, items: &[SourceItem]) -> Result<(), String> {
     if let Some(p) = path.parent() {
         fs::create_dir_all(p).map_err(|e| e.to_string())?;
     }
     let file = SourcesFile { sources: items.to_vec() };
-    fs::write(&path, serde_json::to_string_pretty(&file).map_err(|e| e.to_string())?)
+    fs::write(path, serde_json::to_string_pretty(&file).map_err(|e| e.to_string())?)
         .map_err(|e| e.to_string())
+}
+
+/// 读取已有源表并清掉已下线的预置源，发生变化则回写一次
+fn load_existing(path: &std::path::Path) -> Vec<SourceItem> {
+    let loaded = fs::read_to_string(path)
+        .ok()
+        .and_then(|s| serde_json::from_str::<SourcesFile>(&s).ok())
+        .map(|f| f.sources)
+        .unwrap_or_default();
+    let (items, changed) = drop_retired(loaded);
+    if changed {
+        let _ = write_sources_to(path, &items);
+    }
+    items
 }
 
 #[tauri::command]
@@ -189,11 +206,7 @@ pub async fn list_sources() -> Vec<SourceItem> {
         let _ = write_sources(&items);
         return items;
     }
-    fs::read_to_string(&path)
-        .ok()
-        .and_then(|s| serde_json::from_str::<SourcesFile>(&s).ok())
-        .map(|f| f.sources)
-        .unwrap_or_default()
+    load_existing(&path)
 }
 
 #[tauri::command]
@@ -255,9 +268,28 @@ mod tests {
         let s = serde_json::to_string(&SourcesFile { sources: preset_sources() }).unwrap();
         assert!(s.contains("github-repo") && s.contains("latestEnabled"));
         let back: SourcesFile = serde_json::from_str(&s).unwrap();
-        assert_eq!(back.sources.len(), 2);
+        // 预置只留官方仓库索引，直链已随中心索引下线
+        assert_eq!(back.sources.len(), 1);
         assert_eq!(back.sources[0].kind, SourceKind::GithubRepo);
-        assert_eq!(back.sources[1].kind, SourceKind::DirectUrl);
+        assert!(back.sources[0].group == "官方源");
+    }
+
+    #[test]
+    fn retired_presets_are_dropped() {
+        let mut kept = direct();
+        kept.id = "user-added".into();
+        let mut a = direct();
+        a.id = "src-github-official".into();
+        let mut b = direct();
+        b.id = "src-v146-direct".into();
+        let (out, changed) = drop_retired(vec![a, kept, b]);
+        assert!(changed);
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].id, "user-added");
+        // 没有预置源时不应误触发回写
+        let (same, changed) = drop_retired(out);
+        assert!(!changed);
+        assert_eq!(same.len(), 1);
     }
 
     #[test]
@@ -269,5 +301,31 @@ mod tests {
         }
         let v: OldFile = serde_json::from_str(legacy).unwrap();
         assert_eq!(v.items.len(), 1);
+    }
+
+    /// 真实迁移：老 sources.json 里的两条预置源被清掉并回写，用户自添的源保留
+    #[test]
+    fn loading_existing_file_clears_retired_presets() {
+        let dir = std::env::temp_dir().join(format!("yyl-src-test-{}", std::process::id()));
+        let _ = fs::create_dir_all(&dir);
+        let path = dir.join("sources.json");
+
+        let mut user = direct();
+        user.id = "user-added".into();
+        user.name = "我自己加的".into();
+        let mut a = direct();
+        a.id = "src-github-official".into();
+        let mut b = direct();
+        b.id = "src-v146-direct".into();
+        write_sources_to(&path, &[a, b, user]).unwrap();
+
+        let got = load_existing(&path);
+        assert_eq!(got.len(), 1);
+        assert_eq!(got[0].id, "user-added");
+
+        // 回写已生效：再读一次仍然只剩一条，且不会反复改写
+        let again = load_existing(&path);
+        assert_eq!(again.len(), 1);
+        let _ = fs::remove_dir_all(&dir);
     }
 }

@@ -10,9 +10,15 @@ import {
   store,
   type DlState,
 } from '../store'
-import type { GithubVersion, SourceItem } from '../types'
+import type { CentralIndex, CentralItem, GithubVersion, SourceItem } from '../types'
+
+/** 源表行：本地源 + 中心索引行（中心行不可编辑/删除） */
+type RowItem = SourceItem & { fromCentral?: boolean; tags?: string[]; size?: number }
 
 const sources = ref<SourceItem[]>([])
+const central = ref<CentralItem[]>([])
+const centralMeta = ref({ source: '', note: '' })
+const centralLoading = ref(false)
 const subsError = ref('')
 const cardErrors = reactive<Record<string, string>>({})
 const busy = ref(false)
@@ -24,6 +30,13 @@ const expanded = reactive<Record<string, boolean>>({})
 const versions = reactive<
   Record<string, { loading: boolean; error: string; items: GithubVersion[] }>
 >({})
+/** 仓库源版本列表：最新一条常显，其余版本默认收起 */
+const showAllVersions = reactive<Record<string, boolean>>({})
+
+function shownVersions(id: string): GithubVersion[] {
+  const all = versions[id]?.items ?? []
+  return showAllVersions[id] ? all : all.slice(0, 1)
+}
 
 const showAdd = ref(false)
 const form = reactive({
@@ -39,16 +52,38 @@ const form = reactive({
   openInNewPage: false,
 })
 
+/** 中心索引行 → 源表行形态，复用同一套下载/版本/进度逻辑 */
+function toRow(c: CentralItem): RowItem {
+  return {
+    id: `c-${c.id}`,
+    name: c.name,
+    kind: c.kind,
+    url: c.url,
+    repo: c.repo,
+    asset: c.asset,
+    note: c.note,
+    group: `中心 · ${c.group}`,
+    collapsed: false,
+    latestEnabled: true,
+    openInNewPage: false,
+    fromCentral: true,
+    tags: c.tags,
+    size: c.size,
+  }
+}
+
 const groups = computed(() => {
   const order: string[] = []
-  const map: Record<string, SourceItem[]> = {}
-  for (const s of sources.value) {
+  const map: Record<string, RowItem[]> = {}
+  const push = (s: RowItem) => {
     if (!map[s.group]) {
       map[s.group] = []
       order.push(s.group)
     }
     map[s.group].push(s)
   }
+  central.value.forEach((c) => push(toRow(c)))
+  sources.value.forEach((s) => push(s))
   return order.map((g) => ({ name: g, items: map[g] }))
 })
 
@@ -90,6 +125,10 @@ function stateOf(fileName: string): DlState | undefined {
   return downloadStates[fileName]
 }
 
+async function refreshAll() {
+  await Promise.all([loadCentral(), loadSources()])
+}
+
 async function loadSources() {
   try {
     sources.value = (await invoke('list_sources')) as SourceItem[]
@@ -101,6 +140,24 @@ async function loadSources() {
     }
   } catch (e) {
     subsError.value = String(e)
+  }
+}
+
+/** 查询中心化服务器索引；失败由后端降级为内置索引，这里只负责提示 */
+async function loadCentral() {
+  centralLoading.value = true
+  try {
+    const r = (await invoke('fetch_central_index', {
+      base: settings.centralServer.trim(),
+      proxy: settings.proxy,
+    })) as CentralIndex
+    central.value = r.items
+    centralMeta.value = { source: r.source, note: r.note }
+  } catch (e) {
+    centralMeta.value = { source: 'builtin', note: String(e) }
+    central.value = []
+  } finally {
+    centralLoading.value = false
   }
 }
 
@@ -164,6 +221,7 @@ async function removeSource(item: SourceItem) {
 async function fetchVersions(s: SourceItem) {
   expanded[s.id] = !expanded[s.id]
   if (!expanded[s.id]) return
+  showAllVersions[s.id] = false
   if (versions[s.id]?.items.length || versions[s.id]?.loading) return
   versions[s.id] = { loading: true, error: '', items: [] }
   try {
@@ -211,7 +269,7 @@ function startVersion(s: SourceItem, v: GithubVersion) {
 /** 镜像重试：前缀为空时给出去设置页的提示，而非静默退化为普通重试 */
 function mirrorRetry(url: string, fileName: string, errKey: string) {
   if (!settings.githubPrefix.trim()) {
-    cardErrors[errKey] = '请先在设置页「GitHub」分组填写加速前缀，再使用镜像重试'
+    cardErrors[errKey] = '请先在设置页「镜像与网络」填写加速前缀，再使用镜像重试'
     return
   }
   void startUrl(url, fileName, true, errKey)
@@ -278,7 +336,10 @@ function baseName(p: string) {
   return p.split(/[\\/]/).pop() ?? p
 }
 
-onMounted(loadSources)
+onMounted(() => {
+  void loadCentral()
+  void loadSources()
+})
 </script>
 
 <template>
@@ -286,22 +347,19 @@ onMounted(loadSources)
     <div class="toolbar" style="justify-content: space-between">
       <div>
         <h1 class="page-title">下载中心</h1>
-        <p class="page-sub" style="margin-bottom: 0">
-          分组源表 · GitHub 仓库版本索引 · 镜像加速
-          <template v-if="settings.proxy"> · 代理 {{ settings.proxy }}</template>
-          <template v-else> · 直连</template>
-          <template v-if="settings.githubPrefix"> · 已配加速前缀</template>
-        </p>
       </div>
       <div style="display: flex; gap: 10px">
         <button class="btn-ghost" :disabled="busy" @click="showAdd = !showAdd">
           {{ showAdd ? '收起' : '+ 添加源' }}
         </button>
-        <button class="btn-ghost" :disabled="busy" @click="loadSources">刷新列表</button>
+        <button class="btn-ghost" :disabled="busy || centralLoading" @click="refreshAll">刷新列表</button>
       </div>
     </div>
 
     <p v-if="subsError" style="color: #ff7db0; font-size: 13px; margin-bottom: 12px">{{ subsError }}</p>
+    <p v-if="centralMeta.note" style="color: var(--amber); font-size: 12px; margin-bottom: 12px">
+      {{ centralMeta.note }}
+    </p>
 
     <!-- 添加源 -->
     <div v-if="showAdd" class="set-group" style="margin-bottom: 18px">
@@ -398,12 +456,12 @@ onMounted(loadSources)
           style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px"
           @click="toggleGroup(g.name)"
         >
-          <span>{{ groupOpen[g.name] ? '▾' : '▸' }}</span>
+          <span>{{ groupOpen[g.name] === false ? '▸' : '▾' }}</span>
           <span style="font-weight: 600">{{ g.name }}</span>
           <span style="color: var(--ink-dim)">{{ g.items.length }} 个源</span>
         </button>
 
-        <div v-show="groupOpen[g.name]" class="list">
+        <div v-show="groupOpen[g.name] !== false" class="list">
           <div v-for="item in g.items" :key="item.id" class="row-card" style="flex-wrap: wrap">
             <div class="row-icon" :class="{ cy: item.kind === 'github-repo' }">
               {{ item.kind === 'github-repo' ? '🐙' : '⬇' }}
@@ -411,12 +469,26 @@ onMounted(loadSources)
             <div class="row-main" style="min-width: 240px">
               <div class="name">
                 {{ item.name }}
-                <span class="tag" style="margin-left: 6px">{{ item.kind === 'github-repo' ? '仓库' : '直链' }}</span>
+                <span
+                  v-for="t in item.tags ?? []"
+                  :key="t"
+                  class="tag"
+                  style="margin-left: 6px; background: rgba(110, 231, 249, 0.14)"
+                >
+                  {{ t }}
+                </span>
+                <span v-if="!item.tags?.length" class="tag" style="margin-left: 6px">
+                  {{ item.kind === 'github-repo' ? '仓库' : '直链' }}
+                </span>
               </div>
               <div class="meta" style="word-break: break-all">
                 {{ item.kind === 'github-repo' ? item.repo : item.url }}
               </div>
-              <div v-if="item.note" class="meta">{{ item.note }}</div>
+              <div v-if="item.note || item.size" class="meta">
+                <template v-if="item.note">{{ item.note }}</template>
+                <template v-if="item.note && item.size"> · </template>
+                <template v-if="item.size">{{ fmtBytes(item.size) }}</template>
+              </div>
             </div>
 
             <div class="row-side" style="flex-wrap: wrap; gap: 8px">
@@ -471,7 +543,7 @@ onMounted(loadSources)
               >
                 页面
               </button>
-              <button class="btn-ghost" style="color: #ff8f8f" @click="removeSource(item)">删除</button>
+              <button v-if="!item.fromCentral" class="btn-ghost" style="color: #ff8f8f" @click="removeSource(item)">删除</button>
             </div>
 
             <div v-if="cardErrors[item.id]" style="flex-basis: 100%; color: #ff7db0; font-size: 12px">
@@ -488,8 +560,21 @@ onMounted(loadSources)
                 {{ versions[item.id].error }}
               </div>
               <div v-else class="list" style="gap: 8px">
+                <div v-if="(versions[item.id]?.items.length ?? 0) > 1" style="padding-bottom: 2px">
+                  <button
+                    class="btn-ghost"
+                    style="font-size: 12px; padding: 5px 12px"
+                    @click="showAllVersions[item.id] = !showAllVersions[item.id]"
+                  >
+                    {{
+                      showAllVersions[item.id]
+                        ? '收起其他版本'
+                        : `展开全部版本（${versions[item.id]?.items.length ?? 0}）`
+                    }}
+                  </button>
+                </div>
                 <div
-                  v-for="(v, idx) in versions[item.id]?.items ?? []"
+                  v-for="(v, idx) in shownVersions(item.id)"
                   :key="v.tag"
                   class="row-card"
                   style="padding: 10px 14px"

@@ -52,6 +52,28 @@ export interface GithubVersion {
   jarUrl: string
 }
 
+/** 中心化服务器索引的单条内容（标签由服务端打好，客户端不参与打标） */
+export interface CentralItem {
+  id: string
+  name: string
+  kind: SourceKind
+  url: string
+  repo: string
+  asset: string
+  note: string
+  group: string
+  tags: string[]
+  size: number
+}
+
+export interface CentralIndex {
+  /** remote = 中心化服务器；builtin = 内置兜底 */
+  source: string
+  /** 非空表示远程失败原因 */
+  note: string
+  items: CentralItem[]
+}
+
 export interface DownloadProgressPayload {
   fileName: string
   received: number

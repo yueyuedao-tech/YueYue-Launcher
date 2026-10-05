@@ -1,10 +1,11 @@
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import type { GithubVersion, InstanceInfo, InstanceList } from './types'
 
-export type ViewId = 'home' | 'instances' | 'downloads' | 'mod' | 'settings' | 'personal'
+export type ViewId = 'home' | 'instances' | 'downloads' | 'mod' | 'settings'
 export type LaunchStatus = 'running' | 'done' | 'failed'
+export type SettingsTab = 'download' | 'mirror' | 'launch' | 'personal'
 
 export const store = reactive({
   view: 'home' as ViewId,
@@ -16,6 +17,9 @@ export const store = reactive({
     logs: [] as { text: string; cls: string }[],
   },
 })
+
+/** 设置页当前分区（会话态，不持久化） */
+export const settingsTab = ref<SettingsTab>('download')
 
 // ---------- 实例 ----------
 export const instances = ref<InstanceInfo[]>([])
@@ -133,6 +137,11 @@ export interface Settings {
   updateCheck: boolean
   lastSeenTag: string
   navPosition: 'left' | 'top'
+  /** 设置页分类导航位置；不填 = 跟随主导航 */
+  settingsNavPosition?: 'left' | 'top'
+  navMigrated?: boolean
+  /** 中心化服务器地址（留空 = 用内置索引） */
+  centralServer: string
   workshopMirror: string
 }
 
@@ -148,21 +157,35 @@ const defaults: Settings = {
   downloadDir: '',
   updateCheck: true,
   lastSeenTag: '',
-  navPosition: 'left',
+  navPosition: 'top',
+  centralServer: '',
   workshopMirror: '',
 }
 
 function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
-    if (raw) return { ...defaults, ...(JSON.parse(raw) as Partial<Settings>) }
+    if (raw) {
+      const parsed = { ...defaults, ...(JSON.parse(raw) as Partial<Settings>) } as Settings
+      // 一次性迁移：老配置升级后默认改为顶部导航
+      if (!parsed.navMigrated) {
+        parsed.navPosition = 'top'
+        parsed.navMigrated = true
+      }
+      return parsed
+    }
   } catch {
     /* 忽略损坏的本地数据 */
   }
-  return { ...defaults }
+  return { ...defaults, navMigrated: true }
 }
 
 export const settings = reactive<Settings>(loadSettings())
+
+/** 设置页分类导航位置：没单独设置过就跟随主导航 */
+export const settingsNavPos = computed<'left' | 'top'>(
+  () => settings.settingsNavPosition ?? settings.navPosition,
+)
 
 watch(
   settings,
