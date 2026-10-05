@@ -208,11 +208,31 @@ function startVersion(s: SourceItem, v: GithubVersion) {
   void startUrl(v.jarUrl, fileNameForVersion(s, v), false, s.id + ':' + v.tag)
 }
 
+/** 镜像重试：前缀为空时给出去设置页的提示，而非静默退化为普通重试 */
+function mirrorRetry(url: string, fileName: string, errKey: string) {
+  if (!settings.githubPrefix.trim()) {
+    cardErrors[errKey] = '请先在设置页「GitHub」分组填写加速前缀，再使用镜像重试'
+    return
+  }
+  void startUrl(url, fileName, true, errKey)
+}
+
 async function cancel(fileName: string, errKey: string) {
   try {
     await invoke('stop_download', { fileName })
+    // 成功取消 → 复位为可再次下载（后端 stop 不发事件，状态在这里归零）
+    delete downloadStates[fileName]
+    delete cardErrors[errKey]
   } catch (e) {
-    cardErrors[errKey] = String(e)
+    const msg = String(e)
+    if (msg.includes('未在下载')) {
+      // 后端已无此任务：要么刚完成（done 事件将至/已至，listener 见无条目会忽略）
+      // 要么从未启动——都应把卡住的 downloading 复位
+      delete downloadStates[fileName]
+      delete cardErrors[errKey]
+    } else {
+      cardErrors[errKey] = msg
+    }
   }
 }
 
@@ -437,7 +457,7 @@ onMounted(loadSources)
                     失败 code={{ stateOf(fileNameForDirect(item))!.code }}
                   </span>
                   <button class="btn-ghost" @click="startDirect(item)">重试</button>
-                  <button class="btn-ghost" @click="startUrl(item.url, fileNameForDirect(item), true, item.id)">镜像重试</button>
+                  <button class="btn-ghost" @click="mirrorRetry(item.url, fileNameForDirect(item), item.id)">镜像重试</button>
                 </template>
                 <template v-else>
                   <button class="btn-grad" style="font-size: 13px; padding: 8px 22px" @click="startDirect(item)">下载</button>
@@ -511,7 +531,7 @@ onMounted(loadSources)
                       <button class="btn-ghost" @click="startVersion(item, v)">重试</button>
                       <button
                         class="btn-ghost"
-                        @click="startUrl(v.jarUrl, fileNameForVersion(item, v), true, item.id + ':' + v.tag)"
+                        @click="mirrorRetry(v.jarUrl, fileNameForVersion(item, v), item.id + ':' + v.tag)"
                       >
                         镜像重试
                       </button>

@@ -39,7 +39,7 @@ import { ACCENT_PAIRS, settings } from '../store'
             <div class="hint">越高背景越暗（文字越清晰），默认 96</div>
           </div>
           <div class="ctrl">
-            <input v-model.number="settings.bgShade" type="range" min="10" max="100" step="2" />
+            <input v-model.number="settings.bgShade" type="range" min="0" max="100" step="2" />
             <span class="val">{{ settings.bgShade }}</span>
           </div>
         </div>

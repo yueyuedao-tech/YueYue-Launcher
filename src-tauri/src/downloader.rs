@@ -106,10 +106,7 @@ pub async fn start_download(
     if dest.exists() {
         std::fs::remove_file(&dest).map_err(|e| e.to_string())?;
     }
-
-    // 阻塞在 async 命令里只会占用 tokio 工作线程，不碰主线程
-    let total = head_content_length(&url, &proxy);
-
+    // 不做阻塞 HEAD：先 spawn 登记（否则 HEAD 最长20s 的空窗期无法取消），总大小由后台线程异步探测
     let mut cmd = Command::new("curl");
     cmd.args(["-L", "--fail", "--retry", "2", "-sS", "-o"]);
     cmd.arg(&dest);
@@ -121,13 +118,31 @@ pub async fn start_download(
     cmd.stderr(Stdio::piped());
     cmd.stdout(Stdio::null());
 
+    // 检查-启动-登记为一个临界区，消除同名并发窗口
+    let mut table = active().lock().unwrap();
+    if table.contains_key(&id) {
+        return Err("该文件已在下载中".into());
+    }
     let child = cmd
         .spawn()
         .map_err(|e| format!("无法执行 curl（系统需自带 curl）: {e}"))?;
 
     let handle = Arc::new(Mutex::new(child));
-    active().lock().unwrap().insert(id.clone(), handle.clone());
+    table.insert(id.clone(), handle.clone());
+    drop(table);
     dests().lock().unwrap().insert(id.clone(), dest.clone());
+
+    // 总大小异步探测（完成前任何时刻读到 0 → 进度按已收字节显示）
+    let total = Arc::new(std::sync::atomic::AtomicU64::new(0));
+    {
+        let total = total.clone();
+        let url2 = url.clone();
+        let proxy2 = proxy.clone();
+        std::thread::spawn(move || {
+            let n = head_content_length(&url2, &proxy2);
+            total.store(n, std::sync::atomic::Ordering::Relaxed);
+        });
+    }
 
     let app_p = app.clone();
     let id_p = id.clone();
@@ -149,14 +164,15 @@ pub async fn start_download(
         }
 
         let received = std::fs::metadata(&dest_p).map(|m| m.len()).unwrap_or(0);
-        let percent = if total > 0 {
-            (received as f64 / total as f64 * 100.0).min(100.0)
+        let total_now = total.load(std::sync::atomic::Ordering::Relaxed);
+        let percent = if total_now > 0 {
+            (received as f64 / total_now as f64 * 100.0).min(100.0)
         } else {
             0.0
         };
         let _ = app_p.emit(
             "download-progress",
-            ProgressPayload { file_name: id_p.clone(), received, total, percent },
+            ProgressPayload { file_name: id_p.clone(), received, total: total_now, percent },
         );
 
         enum Wait {
@@ -185,6 +201,7 @@ pub async fn start_download(
         if ours {
             table.remove(&id_w);
             drop(table);
+            dests().lock().unwrap().remove(&id_w);
             match outcome {
                 Wait::Exited(st) if st.success() && dest_p.exists() => {
                     let _ = app_w.emit(
@@ -197,8 +214,16 @@ pub async fn start_download(
                 }
                 other => {
                     let _ = std::fs::remove_file(&dest_p);
+                    // 本机 curl 在 --retry 耗尽后可能以 0 退出却无产物，
+                    // 此时用 -2 标记「成功退出但无文件」的幽灵失败
                     let code = match other {
-                        Wait::Exited(st) => st.code().unwrap_or(-1),
+                        Wait::Exited(st) => {
+                            if st.success() {
+                                -2
+                            } else {
+                                st.code().unwrap_or(-1)
+                            }
+                        }
                         _ => -1,
                     };
                     let _ = app_w.emit(

@@ -71,7 +71,8 @@ commits: # empty while in progress
 | GitHub 加速前缀 githubPrefix | 文本 + datalist 提示 | §3 |
 
 - `tauri-plugin-shell`（npm + crate + capability `shell:allow-open`）：页面按钮系统浏览器打开
-- `tauri` features `tray-icon`,`menu`：托盘所需，体积影响计入验收
+- `tauri` feature `tray-icon`（v2 菜单 API 内建、无需独立 feature）：托盘所需，体积影响计入验收
+- 取消语义：`stop_download` 成功后由**前端复位该文件的下载状态**（后端 stop 不发事件，成功=回到可下载，「未在下载」错误=已完成则保留 done）
 
 ### 6. 前端结构调整
 

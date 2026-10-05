@@ -103,7 +103,7 @@ fn sources_path() -> PathBuf {
 
 pub fn validate_source(s: &SourceItem) -> Result<(), String> {
     crate::instances::validate_id(&s.id)?;
-    if s.name.trim().is_empty() || s.name.len() > 60 {
+    if s.name.trim().is_empty() || s.name.chars().count() > 60 {
         return Err("源名称需为 1-60 字符".into());
     }
     match s.kind {
@@ -165,6 +165,8 @@ fn migrate_legacy() -> Option<Vec<SourceItem>> {
                 latest_enabled: false,
                 open_in_new_page: false,
             })
+            // 迁移产物复验：非法 URL 直接丢弃，避免页面按钮打开非 http(s)
+            .filter(|s| validate_source(s).is_ok())
             .collect(),
     )
 }
