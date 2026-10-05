@@ -1,14 +1,25 @@
 ---
 feature: download-page
-status: designed
-updated: 2026-10-04
+status: delivered
+updated: 2026-10-05
 branch: master
-commits: # empty while in progress
+commits: 5284505..fdf55fd
 ---
 
 # 下载页（结构化源表 + GitHub 索引 + 镜像 + 个性化设置）
 
 ## Report
+
+**What was built** — 下载中心完整落地：`sources.json` 结构化源表（kind=github-repo/direct-url、分组、折叠、latestEnabled/openInNewPage 开关，旧 subscriptions.json 只读迁移并复验，预置官方仓库+v146 直链双源）；GitHub `releases.atom` 版本索引（免 API 限额，手工解析零新依赖，行右侧「最新」徽标置首行）；curl.exe 真实下载（先 spawn 登记根除取消空窗、后台线程异步探测总大小、进度/完成/错误事件、取消双侧复位、幽灵失败标 -2）；全局 GitHub 加速前缀 + 空前缀「镜像重试」守卫提示；下载完一键创建实例。个性化设置 7+2 项全做：强调色四色主题（CSS 变量联动）、主页遮罩强度（--veil）、窗口置顶、关闭行为（退出/最小化到托盘，懒创建托盘+CloseRequested 拦截）、自定义下载目录、新版本小红点（启动静默 fetch+已读标记）、下载代理、加速前缀、更新开关。导航恢复四项（主页/实例/下载/设置）。新依赖仅 tray-icon 与 tauri-plugin-shell。
+
+**Verification** — `cargo test` 9/9（Atom 样例解析、repo/asset/源名校验、迁移与预置往返）；typecheck/build/check:dist 全 PASS；体积 setup **1.93MB** / exe **4.89MB**（<20MB）。实机 CDP：迁移（无 BOM 夹具）→migrated-0、删除→预置双源、Atom 真拉 10 条首条 **v160.5**、红点亮起、accent紫→#c084fc/#818cf8、bgShade60→veil0.582、set_close_behavior minimize（托盘建成）；下载全链：v146 真下 69.6MB（20 条 progress→done，total 与 HEAD 一致）、UI 进度条→创建实例按钮、取消→复位→重下→完成全周期、downloadDir 覆盖落自定义目录、gh-proxy 前缀 5s 拉完 69.56MB；一键建实例 json 实读正确并保留为可用实例；错误态点「镜像重试」空前缀显示设置页指引。独立评审一轮 2 critical（取消卡死、镜像提示缺失）→ 修复+实测 → 复核 **PASS**（残余：取消落在登记前毫秒窗可能留孤儿 curl——人工时序几乎不可达，已披露）。
+
+**Journey log**
+- 取消卡死的根因有两层：HEAD(20s) 在登记前的空窗 + 晚生僵尸 curl 写文件——「先 spawn 登记 + 后台探测总大小」同时根除。
+- 本机 curl `--retry` 耗尽后退出码为 0（stderr 仍报 7）：成功判定必须 `dest.exists()` 兜底，幽灵失败记 -2。
+- 手写迁移夹具带 UTF-8 BOM 会被 serde 拒绝；真实旧文件是旧版 Rust 写出（无 BOM）不受影响，测试夹具改用无 BOM 写入。
+- 公共镜像前缀对 releases.atom 多返回非 feed（ghfast/gh-proxy 实测），但文件下载正常（gh-proxy 69.56MB/5s）；错误文案已引导排查。
+- 评审关闭状态的 T25 属流程内记录；复核结论以本 Report 为准。
 
 ## [S1] Problem
 
@@ -95,8 +106,22 @@ commits: # empty while in progress
 
 ## Tasks
 
-- [ ] T1: Rust 源表层（结构/迁移/预置/校验）+ GitHub Atom 索引 + 下载层参数扩展（downloadDir/dest 注册） — acceptance: cargo test 通过（含 Atom 解析与迁移用例）、cargo check 通过 (covers: S2 §1 §2 §4)
-- [ ] T2: 托盘/关闭行为/置顶/shell-open 四件 Rust 侧（features+plugin+set_close_behavior+懒托盘+CloseRequested） — acceptance: cargo check 通过；实机最小化到托盘→恢复→退出链路可用 (covers: S2 §5; depends: T1)
-- [ ] T3: 前端——源表 UI（分组折叠/版本列表/最新徽标/页面按钮/镜像重试/增删源）+ 7 项设置接线 + 小红点 — acceptance: 构建通过；DOM 冒烟：四导航、组折叠、版本行含「最新」徽标 (covers: S2 §3 §5 §6; depends: T1 T2)
-- [ ] T4: 实机全链路验证 — acceptance: 迁移/Atom 真实版本/小文件代理下载 progress→done/官方 jar 真下载→一键建实例/accent与bgShade生效/红点亮起清零/托盘链路；测试产物处置明确 (covers: S2; depends: T3)
-- [ ] T5: 体积回归 + 独立评审 + 文档定稿 — acceptance: setup≤20MB；评审 PASS；status=delivered (covers: S2; depends: T4)
+- [x] T1: Rust 源表层（结构/迁移/预置/校验）+ GitHub Atom 索引 + 下载层参数扩展（downloadDir/dest 注册） — acceptance: cargo test 通过（含 Atom 解析与迁移用例）、cargo check 通过 (covers: S2 §1 §2 §4)
+- [x] T2: 托盘/关闭行为/置顶/shell-open 四件 Rust 侧（features+plugin+set_close_behavior+懒托盘+CloseRequested） — acceptance: cargo check 通过；实机最小化到托盘→恢复→退出链路可用 (covers: S2 §5; depends: T1)
+- [x] T3: 前端——源表 UI（分组折叠/版本列表/最新徽标/页面按钮/镜像重试/增删源）+ 7 项设置接线 + 小红点 — acceptance: 构建通过；DOM 冒烟：四导航、组折叠、版本行含「最新」徽标 (covers: S2 §3 §5 §6; depends: T1 T2)
+- [x] T4: 实机全链路验证 — acceptance: 迁移/Atom 真实版本/小文件代理下载 progress→done/官方 jar 真下载→一键建实例/accent与bgShade生效/红点亮起清零/托盘链路；测试产物处置明确 (covers: S2; depends: T3)
+- [x] T5: 体积回归 + 独立评审 + 文档定稿 — acceptance: setup≤20MB；评审 PASS；status=delivered (covers: S2; depends: T4)
+
+### 实测数字存档（2026-10-05）
+
+| 指标 | 值 |
+|---|---|
+| NSIS 安装包 | 1.93 MB |
+| exe（前端内嵌） | 4.89 MB |
+| cargo test | 9/9 PASS |
+| 官方 v146 jar 真下载 | 69.6 MB，进度事件 20 条 |
+| gh-proxy 镜像前缀下载 | 69.56 MB / 5s |
+| Atom 索引 | 10 条，首条 v160.5 |
+| 取消→复位→重下→完成 | UI 实测全周期 PASS |
+
+复验命令：`npm run typecheck && cargo test && node node_modules/@tauri-apps/cli/tauri.js build --bundles nsis`（系统 Node + 代理）；CDP 实机驱动脚本逻辑见 Journey log。
