@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { open as openExternal } from '@tauri-apps/plugin-shell'
 import {
   centralVersions,
-  countCentralVersions,
   downloadStates,
   instances,
   loadInstances,
@@ -14,9 +14,12 @@ import {
   type DlState,
 } from '../store'
 import type {
+  CentralAsset,
   CentralIndex,
   CentralItem,
   CentralVersion,
+  DownloadDonePayload,
+  DownloadErrorPayload,
   GithubVersion,
   SourceItem,
 } from '../types'
@@ -44,20 +47,14 @@ function shownVersions(id: string): GithubVersion[] {
   return showAllVersions[id] ? all : all.slice(0, 1)
 }
 
-/** 中心源版本：来自本地缓存，不折叠 */
+/** 中心源版本：来自本地缓存，最新版独立置顶，其余默认折叠 */
 function centralVersionsOf(id: string): CentralVersion[] {
   return centralVersions.value?.sources?.[id] ?? []
 }
 
-function syncStateText(): string {
-  const idx = centralVersions.value
-  const n = countCentralVersions()
-  if (versionSyncing.value) return '正在向服务器索引…'
-  if (!idx || !idx.total) return '尚未索引'
-  if (idx.ok === idx.total) return `已从服务器同步 · ${n} 条版本已存到本地`
-  if (idx.ok > 0) return `部分源已同步，其余用本地数据 · 共 ${n} 条`
-  if (idx.syncedAt) return `本地缓存 · 连不上服务器时直接用 · 共 ${n} 条`
-  return '正在首次索引 · 结果会存到本地'
+/** 该源本次拉取失败的原因（没有数据时才显示，方便定位限流/断网） */
+function centralErrorOf(id: string): string {
+  return centralVersions.value?.errors?.[id] ?? ''
 }
 
 /** 本地源表分组（中心索引单独成区，不再混排、也没有「中心 · 」前缀） */
@@ -294,10 +291,119 @@ function baseName(p: string) {
   return p.split(/[\\/]/).pop() ?? p
 }
 
-onMounted(() => {
+/** 旧版本默认折叠（最新版始终独立显示在最上面） */
+const showOld = reactive<Record<string, boolean>>({})
+
+type DlState2 = {
+  sourceName: string
+  version: string
+  url: string
+  fileName: string
+  name: string
+  downloadDir: string
+  memoryMb: number
+  isolate: boolean
+  javaPath: string
+  jvmArgs: string
+  state: 'form' | 'downloading' | 'creating' | 'done' | 'error'
+  error: string
+}
+
+/** 点「下载」直接弹出创建面板；所有字段留空即走默认值 */
+const dlPanel = ref<DlState2 | null>(null)
+
+function defaultFileName(sourceName: string, version: string, url: string): string {
+  const ext = url.match(/\.[A-Za-z0-9]{1,7}$/)?.[0] ?? '.jar'
+  const raw = `${sourceName}-${version}`.replace(/[\\/:*?"<>|]+/g, '_').trim()
+  return (raw || 'download').slice(0, 80) + ext
+}
+
+function askDownload(c: CentralItem, v: CentralVersion, a: CentralAsset) {
+  dlPanel.value = {
+    sourceName: c.name,
+    version: v.tag,
+    url: a.url,
+    fileName: defaultFileName(c.name, v.tag, a.url),
+    name: `${c.name} ${v.tag}`.slice(0, 40),
+    downloadDir: settings.downloadDir,
+    memoryMb: settings.memory,
+    isolate: settings.saveIsolation,
+    javaPath: 'java',
+    jvmArgs: '',
+    state: 'form',
+    error: '',
+  }
+}
+
+function closePanel() {
+  const s = dlPanel.value?.state
+  if (s === 'downloading' || s === 'creating') return
+  dlPanel.value = null
+}
+
+async function confirmDownload() {
+  const p = dlPanel.value
+  if (!p) return
+  p.state = 'downloading'
+  p.error = ''
+  try {
+    await invoke('start_download', {
+      url: p.url,
+      fileName: p.fileName,
+      proxy: settings.proxy,
+      downloadDir: p.downloadDir,
+    })
+  } catch (e) {
+    p.state = 'error'
+    p.error = String(e)
+  }
+}
+
+/** 下载完成后自动用面板里选的隔离/内存/路径创建游戏 */
+async function createFromPanel(path: string) {
+  const p = dlPanel.value
+  if (!p) return
+  p.state = 'creating'
+  p.error = ''
+  try {
+    await invoke('create_instance', {
+      name: p.name,
+      jarPath: path,
+      javaPath: p.javaPath.trim() || 'java',
+      jvmArgs: p.jvmArgs.split(/\s+/).filter(Boolean),
+      memoryMb: p.memoryMb,
+      isolate: p.isolate,
+    })
+    p.state = 'done'
+    await loadInstances()
+  } catch (e) {
+    p.state = 'error'
+    p.error = String(e)
+  }
+}
+
+const unlisteners: UnlistenFn[] = []
+
+onMounted(async () => {
   void loadCentral()
   void loadSources()
+  unlisteners.push(
+    await listen<DownloadDonePayload>('download-done', (e) => {
+      const p = dlPanel.value
+      if (p && e.payload.fileName === p.fileName) void createFromPanel(e.payload.path)
+    }),
+    await listen<DownloadErrorPayload>('download-error', (e) => {
+      const p = dlPanel.value
+      if (p && e.payload.fileName === p.fileName) {
+        p.state = 'error'
+        p.error = `下载失败 code=${e.payload.code}`
+      }
+    }),
+  )
 })
+
+onBeforeUnmount(() => unlisteners.forEach((u) => u()))
+
 </script>
 
 <template>
@@ -307,15 +413,13 @@ onMounted(() => {
         <h1 class="page-title">下载中心</h1>
       </div>
     </div>
-    <p class="page-sub" style="margin-bottom: 14px">{{ syncStateText() }}</p>
 
     <p v-if="subsError" style="color: #ff7db0; font-size: 13px; margin-bottom: 12px">{{ subsError }}</p>
     <p v-if="centralMeta.note" style="color: var(--amber); font-size: 12px; margin-bottom: 12px">
       {{ centralMeta.note }}
     </p>
 
-    <!-- 中心索引：logo/标签/版本均由中心服务器下发，只收客户端源 -->
-    <div class="section-h">中心 · 仅客户端（服务端稍后接入）</div>
+    <!-- 中心索引：logo/标签/版本均由中心服务器下发 -->
     <div v-if="centralLoading" class="empty">正在拉取中心索引…</div>
     <template v-else>
       <div v-for="c in central" :key="c.id" class="row-card" style="flex-direction: column; align-items: stretch; gap: 0; margin-bottom: 14px">
@@ -338,42 +442,98 @@ onMounted(() => {
           <div v-if="versionSyncing && !centralVersionsOf(c.id).length" class="meta" style="padding: 8px 0">
             正在扫描版本…
           </div>
-          <div v-else-if="!centralVersionsOf(c.id).length" class="meta" style="padding: 8px 0">
-            本地暂无版本缓存，索引完成后自动填充
+          <div v-else-if="!centralVersionsOf(c.id).length" class="meta" style="padding: 8px 0; color: #ff8f8f">
+            {{ centralErrorOf(c.id) || '本地暂无版本缓存，索引完成后自动填充' }}
           </div>
+          <!-- 最新版独立置顶 -->
           <div
-            v-for="(v, vi) in centralVersionsOf(c.id)"
-            :key="c.id + '-' + vi"
-            class="row-card"
-            style="padding: 10px 14px"
+            v-if="centralVersionsOf(c.id).length"
+            class="row-card row-card--latest"
+            style="padding: 13px 15px"
           >
             <div class="row-main">
-              <div class="name" style="font-size: 14px">
-                {{ v.tag }}
-                <span v-if="vi === 0" class="tag" style="margin-left: 6px; background: rgba(255,125,176,.16); color: var(--pink)">最新</span>
-                <span v-if="v.dropped" class="tag" style="margin-left: 6px; background: rgba(255,255,255,.07); color: var(--ink-dim)">
-                  已滤除 {{ v.dropped }} 个服务端
+              <div class="name" style="font-size: 14.5px">
+                {{ centralVersionsOf(c.id)[0].tag }}
+                <span class="tag" style="margin-left: 6px; background: rgba(255,125,176,.16); color: var(--pink)">最新</span>
+                <span
+                  v-if="centralVersionsOf(c.id)[0].dropped"
+                  class="tag"
+                  style="margin-left: 6px; background: rgba(255,255,255,.07); color: var(--ink-dim)"
+                >
+                  已滤除 {{ centralVersionsOf(c.id)[0].dropped }} 个服务端
                 </span>
               </div>
-              <div class="meta">{{ v.title }}{{ v.date ? ' · ' + v.date : '' }}</div>
+              <div class="meta">
+                {{ centralVersionsOf(c.id)[0].title }}{{ centralVersionsOf(c.id)[0].date ? ' · ' + centralVersionsOf(c.id)[0].date : '' }}
+              </div>
             </div>
             <div class="row-side" style="gap: 8px; flex-wrap: wrap; justify-content: flex-end">
-              <template v-if="v.assets.length">
+              <template v-if="centralVersionsOf(c.id)[0].assets.length">
                 <button
-                  v-for="a in v.assets"
+                  v-for="a in centralVersionsOf(c.id)[0].assets"
                   :key="a.url"
-                  class="btn-ghost"
-                  style="color: var(--cyan); font-size: 12px; padding: 6px 12px"
-                  @click="openPage(a.url)"
+                  class="btn-grad"
+                  style="font-size: 12px; padding: 7px 15px"
+                  @click="askDownload(c, centralVersionsOf(c.id)[0], a)"
                 >
                   {{ shortAsset(a.name) }}{{ a.size ? ' · ' + fmtBytes(a.size) : '' }}
                 </button>
               </template>
-              <button v-else class="btn-ghost" style="font-size: 12px; padding: 6px 12px" @click="openPage(v.pageUrl)">
-                {{ v.folder ? '打开目录' : '页面' }}
+              <button
+                v-else
+                class="btn-ghost"
+                style="font-size: 12px; padding: 6px 12px"
+                @click="openPage(centralVersionsOf(c.id)[0].pageUrl)"
+              >
+                {{ centralVersionsOf(c.id)[0].folder ? '打开目录' : '页面' }}
               </button>
             </div>
           </div>
+
+          <!-- 其余旧版本默认折叠 -->
+          <template v-if="centralVersionsOf(c.id).length > 1">
+            <button class="old-toggle" @click="showOld[c.id] = !showOld[c.id]">
+              {{ showOld[c.id] ? '收起旧版本' : `展开旧版本（${centralVersionsOf(c.id).length - 1}）` }}
+            </button>
+            <div v-show="showOld[c.id]" class="old-list">
+              <div
+                v-for="(v, vi) in centralVersionsOf(c.id).slice(1)"
+                :key="c.id + '-old-' + vi"
+                class="row-card"
+                style="padding: 10px 14px"
+              >
+                <div class="row-main">
+                  <div class="name" style="font-size: 14px">
+                    {{ v.tag }}
+                    <span
+                      v-if="v.dropped"
+                      class="tag"
+                      style="margin-left: 6px; background: rgba(255,255,255,.07); color: var(--ink-dim)"
+                    >
+                      已滤除 {{ v.dropped }} 个服务端
+                    </span>
+                  </div>
+                  <div class="meta">{{ v.title }}{{ v.date ? ' · ' + v.date : '' }}</div>
+                </div>
+                <div class="row-side" style="gap: 8px; flex-wrap: wrap; justify-content: flex-end">
+                  <template v-if="v.assets.length">
+                    <button
+                      v-for="a in v.assets"
+                      :key="a.url"
+                      class="btn-ghost"
+                      style="color: var(--cyan); font-size: 12px; padding: 6px 12px"
+                      @click="askDownload(c, v, a)"
+                    >
+                      {{ shortAsset(a.name) }}{{ a.size ? ' · ' + fmtBytes(a.size) : '' }}
+                    </button>
+                  </template>
+                  <button v-else class="btn-ghost" style="font-size: 12px; padding: 6px 12px" @click="openPage(v.pageUrl)">
+                    {{ v.folder ? '打开目录' : '页面' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
       </div>
     </template>
@@ -565,5 +725,118 @@ onMounted(() => {
       </div>
     </template>
     <div v-else class="empty">本地源表为空 · 下载走上方的中心索引</div>
+
+    <!-- 下载创建面板：字段留空即使用默认值 -->
+    <div v-if="dlPanel" class="edit-overlay" @click.self="closePanel">
+      <div class="set-group" style="max-width: 680px; margin: 40px auto">
+        <h3>下载并创建 · {{ dlPanel.sourceName }} {{ dlPanel.version }}</h3>
+
+        <div class="set-row">
+          <div class="label">游戏名称</div>
+          <div class="ctrl" style="flex: 1; max-width: 340px">
+            <input v-model="dlPanel.name" class="field" style="width: 100%" :disabled="dlPanel.state !== 'form'" />
+          </div>
+        </div>
+
+        <div class="set-row">
+          <div class="label">下载目录</div>
+          <div class="ctrl" style="flex: 1; max-width: 340px">
+            <input
+              v-model="dlPanel.downloadDir"
+              class="field"
+              style="width: 100%"
+              :disabled="dlPanel.state !== 'form'"
+              placeholder="留空 = 默认下载目录"
+            />
+          </div>
+        </div>
+
+        <div class="set-row">
+          <div class="label">内存 (MB)</div>
+          <div class="ctrl">
+            <input
+              v-model.number="dlPanel.memoryMb"
+              type="range"
+              min="1024"
+              max="16384"
+              step="512"
+              :disabled="dlPanel.state !== 'form'"
+            />
+            <span class="val">{{ dlPanel.memoryMb }} MB</span>
+          </div>
+        </div>
+
+        <div class="set-row">
+          <div class="label">数据隔离</div>
+          <div class="ctrl">
+            <label class="switch">
+              <input v-model="dlPanel.isolate" type="checkbox" :disabled="dlPanel.state !== 'form'" />
+              <span class="track" />
+              <span class="thumb" />
+            </label>
+          </div>
+        </div>
+
+        <div class="set-row">
+          <div class="label">Java 运行时</div>
+          <div class="ctrl" style="flex: 1; max-width: 340px">
+            <input
+              v-model="dlPanel.javaPath"
+              class="field"
+              style="width: 100%"
+              :disabled="dlPanel.state !== 'form'"
+              placeholder="留空 = java"
+            />
+          </div>
+        </div>
+
+        <div class="set-row">
+          <div class="label">JVM 参数</div>
+          <div class="ctrl" style="flex: 1; max-width: 340px">
+            <input
+              v-model="dlPanel.jvmArgs"
+              class="field"
+              style="width: 100%"
+              :disabled="dlPanel.state !== 'form'"
+              placeholder="留空 = 不加"
+            />
+          </div>
+        </div>
+
+        <div class="set-row">
+          <div class="hint">
+            全部留空即用默认值：下载目录 = 设置里的下载目录 · 内存 = {{ settings.memory }} MB ·
+            隔离 = {{ settings.saveIsolation ? '开' : '关' }} · Java = java · JVM 参数不加
+          </div>
+        </div>
+
+        <p v-if="dlPanel.error" style="color: #ff7db0; font-size: 13px; padding: 8px 0">{{ dlPanel.error }}</p>
+        <p v-if="dlPanel.state === 'done'" style="color: var(--cyan); font-size: 13px; padding: 8px 0">
+          已创建游戏「{{ dlPanel.name }}」
+        </p>
+
+        <div class="set-row" style="justify-content: flex-end; gap: 10px">
+          <template v-if="dlPanel.state === 'form'">
+            <button class="btn-ghost" @click="closePanel">取消</button>
+            <button class="btn-grad" style="font-size: 14px; padding: 9px 26px" @click="confirmDownload">
+              下载并创建
+            </button>
+          </template>
+          <template v-else-if="dlPanel.state === 'downloading'">
+            <span class="meta">下载中 {{ downloadStates[dlPanel.fileName]?.percent?.toFixed(0) ?? 0 }}%</span>
+          </template>
+          <template v-else-if="dlPanel.state === 'creating'">
+            <span class="meta">正在创建游戏…</span>
+          </template>
+          <template v-else-if="dlPanel.state === 'done'">
+            <button class="btn-grad" style="font-size: 14px; padding: 9px 26px" @click="closePanel">完成</button>
+          </template>
+          <template v-else>
+            <button class="btn-ghost" @click="closePanel">关闭</button>
+            <button class="btn-grad" style="font-size: 14px; padding: 9px 26px" @click="confirmDownload">重试</button>
+          </template>
+        </div>
+      </div>
+    </div>
   </section>
 </template>

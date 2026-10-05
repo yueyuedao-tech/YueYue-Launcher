@@ -98,6 +98,8 @@ export interface VersionIndex {
   syncMs: number
   sources: Record<string, CentralVersion[]>
   hashes: Record<string, string>
+  /** 源 id → 本次拉取失败原因（成功时清除） */
+  errors: Record<string, string>
 }
 
 export interface CentralIndex {

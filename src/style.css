@@ -301,6 +301,23 @@ input, select { font: inherit; color: var(--ink); }
 /* 下载中心：中心索引分区标题与版本列表 */
 .section-h { font-size: 13px; font-weight: 600; letter-spacing: 1px; color: var(--ink-dim); margin: 0 0 10px 2px; }
 .vlist { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+/* 最新版独立置顶，视觉上比旧版更突出 */
+.row-card--latest {
+  border-color: rgba(255, 125, 176, 0.45);
+  background: rgba(255, 125, 176, 0.06);
+}
+/* 旧版本默认折叠 */
+.old-toggle {
+  align-self: flex-start;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--ink-dim);
+  border: 1px solid var(--line);
+  transition: background .15s, color .15s;
+}
+.old-toggle:hover { background: var(--card-hover); color: var(--ink); }
+.old-list { display: flex; flex-direction: column; gap: 8px; }
 
 /* 游戏：编辑 / 删除用的独立面板，视觉上等同新开窗口 */
 .edit-overlay {

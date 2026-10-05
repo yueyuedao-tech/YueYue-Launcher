@@ -22,6 +22,17 @@ const SCHEMA = 1
 /** 源内容清单：只写事实，标签由 build 阶段统一派生 */
 const SOURCES = [
   {
+    name: 'Mindustry 官方',
+    kind: 'github-repo',
+    repo: 'Anuken/Mindustry',
+    url: 'https://github.com/Anuken/Mindustry/releases',
+    group: '中心',
+    note: 'Anuken/Mindustry 官方 releases',
+    tags: ['官方'],
+    scope: 'client',
+    logo: '',
+  },
+  {
     name: 'Mindustry v8',
     kind: 'file-list',
     url: 'https://file.mdtbbs.cn/category/Mindustry/v8',

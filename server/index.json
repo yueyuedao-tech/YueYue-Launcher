@@ -1,9 +1,27 @@
 {
   "schema": 1,
   "app": "yueyue-launcher",
-  "generated": "2026-10-05T15:32:52.910Z",
-  "count": 2,
+  "generated": "2026-10-05T17:14:26.717Z",
+  "count": 3,
   "items": [
+    {
+      "id": "mindustry-官方",
+      "name": "Mindustry 官方",
+      "kind": "github-repo",
+      "url": "https://github.com/Anuken/Mindustry/releases",
+      "repo": "Anuken/Mindustry",
+      "asset": "Mindustry.jar",
+      "note": "Anuken/Mindustry 官方 releases",
+      "group": "中心",
+      "tags": [
+        "仓库",
+        "中心",
+        "官方"
+      ],
+      "size": 0,
+      "logo": "",
+      "scope": "client"
+    },
     {
       "id": "mindustry-v8",
       "name": "Mindustry v8",

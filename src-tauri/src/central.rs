@@ -86,6 +86,9 @@ pub struct VersionIndex {
     /// 源 id → 内容 hash；一致则不覆盖本地
     #[serde(default)]
     pub hashes: BTreeMap<String, String>,
+    /// 源 id → 本次拉取失败原因（便于排查，成功时清除）
+    #[serde(default)]
+    pub errors: BTreeMap<String, String>,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -108,6 +111,20 @@ struct IndexFile {
 /// 当前只收客户端源，服务端源待后续接入。
 fn builtin_items() -> Vec<CentralItem> {
     vec![
+        CentralItem {
+            id: "src-mindustry-official".into(),
+            name: "Mindustry 官方".into(),
+            kind: "github-repo".into(),
+            url: "https://github.com/Anuken/Mindustry/releases".into(),
+            repo: "Anuken/Mindustry".into(),
+            asset: d_asset(),
+            note: "Anuken/Mindustry 官方 releases".into(),
+            group: "中心".into(),
+            tags: vec!["仓库".into(), "中心".into(), "官方".into()],
+            size: 0,
+            logo: String::new(),
+            scope: d_scope(),
+        },
         CentralItem {
             id: "src-mdtbbs-v8".into(),
             name: "Mindustry v8".into(),
@@ -189,9 +206,25 @@ fn sanitize(items: Vec<CentralItem>) -> Vec<CentralItem> {
     out
 }
 
+/// 从错误体里抠出 GitHub 的 message 字段，取不到就截断正文
+fn message_of(body: &str) -> String {
+    if let Some(i) = body.find("\"message\"") {
+        let rest = &body[i + "\"message\"".len()..];
+        if let Some(j) = rest.find('"') {
+            let val = &rest[j + 1..];
+            if let Some(k) = val.find('"') {
+                return val[..k].chars().take(140).collect();
+            }
+        }
+    }
+    body.trim().chars().take(80).collect()
+}
+
+/// curl 默认对 4xx/5xx 也返回 0（不加 -f），所以必须把状态码单独取回来判断，
+/// 否则 rate limit 的错误 JSON 会被当成正常数据丢给解析器。
 fn http_get(url: &str, proxy: &str, headers: &[&str], timeout: u32) -> Result<String, String> {
     let mut cmd = crate::cmdutil::no_console("curl");
-    cmd.args(["-sSL", "--max-time", &timeout.to_string()]);
+    cmd.args(["-sSL", "-w", "\n%{http_code}", "--max-time", &timeout.to_string()]);
     for h in headers {
         cmd.args(["-H", h]);
     }
@@ -202,11 +235,21 @@ fn http_get(url: &str, proxy: &str, headers: &[&str], timeout: u32) -> Result<St
     let out = cmd.output().map_err(|e| format!("无法执行 curl: {e}"))?;
     if !out.status.success() {
         return Err(format!(
-            "拉取失败（code {}）",
+            "curl 退出码 {}",
             out.status.code().unwrap_or(-1)
         ));
     }
-    Ok(String::from_utf8_lossy(&out.stdout).into_owned())
+    let raw = String::from_utf8_lossy(&out.stdout);
+    let (body, code) = match raw.rsplit_once('\n') {
+        Some((b, c)) if c.len() == 3 && c.chars().all(|d| d.is_ascii_digit()) => {
+            (b.to_string(), c.to_string())
+        }
+        _ => (raw.trim_end().to_string(), String::new()),
+    };
+    if !code.is_empty() && !code.starts_with('2') {
+        return Err(format!("HTTP {code}: {}", message_of(&body)));
+    }
+    Ok(body)
 }
 
 fn fetch_sync(base: &str, proxy: &str) -> Result<CentralIndex, String> {
@@ -374,7 +417,8 @@ fn gh_versions(repo: &str, proxy: &str) -> Result<Vec<CentralVersion>, String> {
         let url = format!(
             "https://api.github.com/repos/{repo}/releases?per_page=100&page={page}"
         );
-        let text = http_get(&url, proxy, &headers, 20)?;
+        // 单页可达 659KB（官方仓库 100 条），慢链路下 20s 不够用
+        let text = http_get(&url, proxy, &headers, 45)?;
         let rels: Vec<GhRelease> =
             serde_json::from_str(&text).map_err(|e| format!("GitHub JSON 解析失败: {e}"))?;
         if rels.is_empty() {
@@ -535,6 +579,17 @@ fn versions_of(it: &CentralItem, proxy: &str) -> Result<Vec<CentralVersion>, Str
 /// 实现放在阻塞线程池：curl 单次要几秒到二十秒，占主线程会让窗口「未响应」。
 fn sync_blocking(base: &str, proxy: &str) -> Result<VersionIndex, String> {
     let t0 = std::time::Instant::now();
+
+    // 新鲜缓存直接用：GitHub 未认证只有 60 次/小时，反复开应用不该每次都打请求
+    const SYNC_TTL_MS: u64 = 15 * 60 * 1000;
+    let cached = read_index();
+    if cached.synced_at > 0
+        && !cached.sources.is_empty()
+        && now_ms().saturating_sub(cached.synced_at) < SYNC_TTL_MS
+    {
+        return Ok(cached);
+    }
+
     let index = fetch_sync(base, proxy)?;
     let items = index.items;
     let total = items.len();
@@ -558,9 +613,15 @@ fn sync_blocking(base: &str, proxy: &str) -> Result<VersionIndex, String> {
         match res {
             Ok(list) if !list.is_empty() => {
                 merge_index(&mut idx, &it.id, list);
+                idx.errors.remove(&it.id);
                 ok += 1;
             }
-            Ok(_) | Err(_) => { /* 沿用本地缓存，界面照常显示 */ }
+            Ok(_) => {
+                idx.errors.insert(it.id.clone(), "解析结果为空".into());
+            }
+            Err(e) => {
+                idx.errors.insert(it.id.clone(), e.chars().take(160).collect());
+            }
         }
     }
     if ok > 0 {
@@ -587,11 +648,13 @@ mod tests {
     #[test]
     fn builtin_index_is_all_client_sources() {
         let items = sanitize(builtin_items());
-        assert_eq!(items.len(), 2);
+        assert_eq!(items.len(), 3);
         assert!(items.iter().all(|i| !i.name.is_empty() && !i.tags.is_empty()));
         assert!(items.iter().all(|i| i.scope == "client"));
         assert!(items.iter().any(|i| i.kind == "file-list"));
-        assert!(items.iter().any(|i| i.kind == "github-repo"));
+        assert!(items.iter().any(|i| i.repo == "Anuken/Mindustry"));
+        // 官方源排在最前
+        assert_eq!(items[0].repo, "Anuken/Mindustry");
     }
 
     #[test]
@@ -729,5 +792,14 @@ mod tests {
         assert_eq!(idx.source, "builtin");
         assert!(idx.note.is_empty());
         assert!(fetch_sync("ftp://x", "").is_err());
+    }
+
+    #[test]
+    fn extracts_github_error_message() {
+        // GitHub 限流时返回的是对象而不是数组，必须把 message 抠出来给人看
+        let body = r#"{"message":"API rate limit exceeded for 1.2.3.4.","documentation_url":"https://x"}"#;
+        assert_eq!(message_of(body), "API rate limit exceeded for 1.2.3.4.");
+        assert_eq!(message_of("  not json at all  "), "not json at all");
+        assert_eq!(message_of(""), "");
     }
 }
