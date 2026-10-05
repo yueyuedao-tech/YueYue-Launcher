@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { open as openExternal } from '@tauri-apps/plugin-shell'
 import { instances, selectedInstanceId, settings } from '../store'
@@ -82,6 +82,8 @@ function fmtBytes(n: number): string {
 }
 
 onMounted(refreshMods)
+// 切换实例立即刷新列表，避免陈旧列表按新 currentId 误删
+watch(currentId, refreshMods)
 </script>
 
 <template>

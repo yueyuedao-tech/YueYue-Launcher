@@ -51,7 +51,7 @@ const tabs: { id: Tab; label: string }[] = [
         <div class="set-row">
           <div>
             <div class="label">下载代理</div>
-            <div class="hint">全局代理，示例 127.0.0.1:7897；镜像为空时生效</div>
+            <div class="hint">连接用代理，可与镜像前缀同时使用；示例 127.0.0.1:7897</div>
           </div>
           <div class="ctrl" style="flex: 1; max-width: 320px">
             <input v-model="settings.proxy" class="field" style="width: 100%" placeholder="127.0.0.1:7897" />

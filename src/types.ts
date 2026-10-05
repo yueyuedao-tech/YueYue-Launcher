@@ -80,16 +80,3 @@ export interface ModFile {
   size: number
   mtime: string
 }
-
-export interface ModLogPayload {
-  instanceId: string
-  line: string
-  stream: string
-}
-
-export interface ModDonePayload {
-  instanceId: string
-  fileId: string
-  ok: boolean
-  files: string[]
-}
