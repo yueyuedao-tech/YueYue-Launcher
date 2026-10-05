@@ -1,5 +1,4 @@
 use serde::Serialize;
-use std::process::Command;
 
 #[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -76,7 +75,7 @@ pub async fn fetch_repo_versions(
     }
 
     let url = format!("{prefix}https://github.com/{repo}/releases.atom");
-    let mut cmd = Command::new("curl");
+    let mut cmd = crate::cmdutil::no_console("curl");
     cmd.args(["-sSL", "--max-time", "30"]);
     if !proxy.trim().is_empty() {
         cmd.args(["--proxy", proxy.trim()]);

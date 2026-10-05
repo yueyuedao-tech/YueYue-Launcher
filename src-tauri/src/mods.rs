@@ -1,6 +1,5 @@
 use serde::Serialize;
 use std::fs;
-use std::process::Command;
 use std::path::PathBuf;
 
 const APPID: &str = "1127400";
@@ -128,7 +127,7 @@ pub async fn search_workshop(
     } else {
         format!("{}{}", mirror.trim(), path)
     };
-    let mut cmd = Command::new("curl");
+    let mut cmd = crate::cmdutil::no_console("curl");
     cmd.args(["-sSL", "--max-time", "25"]);
     if !proxy.trim().is_empty() {
         cmd.args(["--proxy", proxy.trim()]);

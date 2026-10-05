@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 /// 实例 id 即目录名：拒绝空、.、.. 及路径分隔符，防止越出 instances 根
 pub fn validate_id(id: &str) -> Result<String, String> {
@@ -27,7 +26,7 @@ fn validate_java(java: &str) -> Result<(), String> {
             return Err(format!("java 不存在: {java}"));
         }
     } else {
-        let probe = Command::new(java).arg("-version").output();
+        let probe = crate::cmdutil::no_console(java).arg("-version").output();
         if probe.is_err() {
             return Err(format!("java 不可用: {java}"));
         }

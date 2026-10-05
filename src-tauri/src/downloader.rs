@@ -1,7 +1,7 @@
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Stdio};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
@@ -62,7 +62,7 @@ fn resolve_dir(download_dir: &str) -> PathBuf {
 
 /// HEAD 请求取最终 Content-Length（跟随重定向），失败返回 0
 fn head_content_length(url: &str, proxy: &str) -> u64 {
-    let mut cmd = Command::new("curl");
+    let mut cmd = crate::cmdutil::no_console("curl");
     cmd.args(["-sIL", "--max-time", "20"]);
     if !proxy.trim().is_empty() {
         cmd.args(["--proxy", proxy.trim()]);
@@ -107,7 +107,7 @@ pub async fn start_download(
         std::fs::remove_file(&dest).map_err(|e| e.to_string())?;
     }
     // 不做阻塞 HEAD：先 spawn 登记（否则 HEAD 最长20s 的空窗期无法取消），总大小由后台线程异步探测
-    let mut cmd = Command::new("curl");
+    let mut cmd = crate::cmdutil::no_console("curl");
     cmd.args(["-L", "--fail", "--retry", "2", "-sS", "-o"]);
     cmd.arg(&dest);
     if !proxy.trim().is_empty() {
@@ -250,7 +250,7 @@ pub async fn stop_download(file_name: String) -> Result<(), String> {
     };
     #[cfg(windows)]
     {
-        let _ = Command::new("taskkill")
+        let _ = crate::cmdutil::no_console("taskkill")
             .args(["/PID", &pid.to_string(), "/T", "/F"])
             .stdout(Stdio::null())
             .stderr(Stdio::null())

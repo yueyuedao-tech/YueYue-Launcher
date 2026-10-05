@@ -2,7 +2,7 @@ use crate::instances;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Stdio};
 use std::sync::{Arc, Mutex, OnceLock};
 use tauri::{AppHandle, Emitter};
 
@@ -44,7 +44,7 @@ pub async fn launch_instance(app: AppHandle, id: String) -> Result<(), String> {
     let data_abs = instances::data_dir_abs(&info);
     std::fs::create_dir_all(&data_abs).map_err(|e| e.to_string())?;
 
-    let mut cmd = Command::new(&info.java_path);
+    let mut cmd = crate::cmdutil::no_console(&info.java_path);
     cmd.arg(format!("-Xmx{}M", info.memory_mb));
     for a in &info.jvm_args {
         if !a.trim().is_empty() {
@@ -159,7 +159,7 @@ pub async fn stop_instance(id: String) -> Result<(), String> {
     };
     #[cfg(windows)]
     {
-        let _ = Command::new("taskkill")
+        let _ = crate::cmdutil::no_console("taskkill")
             .args(["/PID", &pid.to_string(), "/T", "/F"])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -168,7 +168,7 @@ pub async fn stop_instance(id: String) -> Result<(), String> {
     #[cfg(not(windows))]
     {
         // 进程组终止（spawn 时 process_group(0)，pgid == 子进程 pid）
-        let _ = Command::new("kill")
+        let _ = crate::cmdutil::no_console("kill")
             .args(["-KILL", &format!("-{pid}")])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
