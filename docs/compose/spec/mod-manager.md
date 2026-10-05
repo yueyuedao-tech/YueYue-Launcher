@@ -1,14 +1,23 @@
 ---
 feature: mod-manager
-status: designed
+status: delivered
 updated: 2026-10-05
 branch: master
-commits: # empty while in progress
+commits: c8fb294..e69c70a
 ---
 
-# Mod 管理（Steam 创意工坊 + steamcmd + 实例级安装 + 统一镜像设置）
+# Mod 管理（工坊搜索 + 实例本地管理；steamcmd 下载按决策取消）
 
 ## Report
+
+**What was built** — 工坊搜索：解析新版 Steam 页面结构（`workshopItemTitle` 类已被 Steam 移除，按 `<a href="…?id=N">标题</a>` 形态实现，缩略图/带属性链接天然排除，最多 20 条），代理/工坊镜像链路可配；实例 Mod 本地管理：list_mods（名称/大小/修改时间）、mods_dir（shell 打开目录）、delete_mod（validate_id + 文件名白名单 + is_file 防越权）；Mod 页含实例选择器、搜索浏览（结果仅「页面」跳转 + 暂缓说明）、本地列表与删除；设置页「镜像与网络」组集中 下载代理/GitHub 加速前缀/工坊镜像。**steamcmd 下载管线按用户决策整体移除**（引导/下载/停止/事件/包镜像设置，git 历史保留），登录方案由用户后续配置。导航布局与全部前期功能不受影响。
+
+**Verification** — cargo test 12/12（新 Steam 结构解析/实体反转义/urlencode/文件名校验）、cargo check 零警告；实机 CDP：代理搜索 15 条首条 subdustry (subnautica)、结果卡仅 [页面]、暂缓说明在、镜像组三行无 steamcmd 残留；**真实删除链路**：dummy 文件→list 见→delete_mod ok→消失→list 0；**切换实例自动刷新**（watch 修复）：t-A=1 → 切 v146=0 未点刷新、标题实时更新；构建链全 PASS，体积 setup 1.94MB / exe 4.93MB。独立评审一轮 2 critical（status 未定稿、切换陈旧列表）→ 修复+实测+本定稿 → 复核 PASS。
+
+**Journey log**
+- steamcmd 匿名下载 Mindustry 工坊报 Missing decryption key（appinfo 67 token denied）——需拥有者登录；经用户决策取消该管线，保留搜索与本地管理。
+- 新版 Steam 页面已无 workshopItemTitle 类；解析改按无属性锚文本链接形态。
+- 死类型与提示文案（镜像/代理实为可叠加而非回退）随评审一并清理。
 
 ## [S1] Problem
 

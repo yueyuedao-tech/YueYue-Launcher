@@ -1,14 +1,21 @@
 ---
 feature: nav-layout
-status: designed
+status: delivered
 updated: 2026-10-05
 branch: master
-commits: # empty while in progress
+commits: 3716357..c8fb294
 ---
 
 # 导航布局系统（顶/左互换 + 设置分区 + 6 项导航 + 个性化页）
 
 ## Report
+
+**What was built** — 导航布局系统：left/top 双容器互换（个性化页一键切换，localStorage 持久化，reload 保持）、6 项导航（首页/实例/下载/Mod/设置/个性化，两容器共用 go() 含下载页红点已读）、个性化独立页（迁入外观+窗口+导航位置）、设置页三 tab 分区（下载/GitHub/启动）、Mod 占位页。窄屏保持底部栏接管。
+
+**Verification** — 构建链全 PASS；CDP 实测：默认左栏 6 项全可导航（页面标题依次正确）、radio 切顶栏后 topnav 6 项/rail 隐藏、设置 3 tab 互斥同刻仅 1 组可见、navPosition 持久化。独立评审 PASS（0 critical；2 个非关键 CSS 项已随 mod-manager 批次修复：窄屏工具栏输入撑满恢复、顶栏红点移至 ::before 避免与活动下划线冲突）。
+
+**Journey log**
+- rail 按钮文字在 title 属性（仅图标），CDP 测试用 textContent 找不到——用 title||textContent 兜底。
 
 ## [S1] Problem
 
@@ -54,4 +61,4 @@ commits: # empty while in progress
 
 ## Tasks
 
-- [ ] T1: 导航容器互换 + 6 项导航 + PersonalView 迁移 + 设置页分区 tab + Mod 占位 — acceptance: 构建通过；CDP 实测两种位置互换、持久化、6项可导航、tab 分区生效 (covers: S2)
+- [x] T1: 导航容器互换 + 6 项导航 + PersonalView 迁移 + 设置页分区 tab + Mod 占位 — acceptance: 构建通过；CDP 实测两种位置互换、持久化、6项可导航、tab 分区生效 (covers: S2)
