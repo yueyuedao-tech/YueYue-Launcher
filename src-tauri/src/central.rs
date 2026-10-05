@@ -249,9 +249,13 @@ fn fetch_sync(base: &str, proxy: &str) -> Result<CentralIndex, String> {
 
 /// 查询中心化服务器的索引清单（`{base}/index.json`）。
 /// base 为空或拉取失败时退回内置索引，保证下载中心始终可用。
+///
+/// 必须是 async + spawn_blocking：同步命令会在主线程执行，curl 一堵窗口就「未响应」。
 #[tauri::command]
-pub fn fetch_central_index(base: String, proxy: String) -> Result<CentralIndex, String> {
-    fetch_sync(&base, &proxy)
+pub async fn fetch_central_index(base: String, proxy: String) -> Result<CentralIndex, String> {
+    tauri::async_runtime::spawn_blocking(move || fetch_sync(&base, &proxy))
+        .await
+        .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
 /* ================= 版本索引：开机预取 → 本地缓存 → 仅在变化时覆盖 ================= */
@@ -275,12 +279,18 @@ fn index_path() -> PathBuf {
     app_dir().join("central_versions.json")
 }
 
-/// 只读本地缓存：界面立刻有内容，不等网络
-#[tauri::command]
-pub fn list_central_versions() -> VersionIndex {
+fn read_index() -> VersionIndex {
     fs::read_to_string(index_path())
         .ok()
         .and_then(|s| serde_json::from_str::<VersionIndex>(&s).ok())
+        .unwrap_or_default()
+}
+
+/// 只读本地缓存：界面立刻有内容，不等网络
+#[tauri::command]
+pub async fn list_central_versions() -> VersionIndex {
+    tauri::async_runtime::spawn_blocking(read_index)
+        .await
         .unwrap_or_default()
 }
 
@@ -521,15 +531,16 @@ fn versions_of(it: &CentralItem, proxy: &str) -> Result<Vec<CentralVersion>, Str
 
 /// 开机预取所有源的版本到本地；并行拉取。
 /// 拉失败的源沿用本地缓存，全部失败则缓存原样保留。
-#[tauri::command]
-pub fn sync_central_versions(base: String, proxy: String) -> Result<VersionIndex, String> {
+///
+/// 实现放在阻塞线程池：curl 单次要几秒到二十秒，占主线程会让窗口「未响应」。
+fn sync_blocking(base: &str, proxy: &str) -> Result<VersionIndex, String> {
     let t0 = std::time::Instant::now();
-    let index = fetch_sync(&base, &proxy)?;
+    let index = fetch_sync(base, proxy)?;
     let items = index.items;
     let total = items.len();
 
     // 代理串先降为 &str（Copy），才能被多个线程闭包同时捕获
-    let proxy_ref: &str = proxy.as_str();
+    let proxy_ref: &str = proxy;
     let results: Vec<Result<Vec<CentralVersion>, String>> = std::thread::scope(|s| {
         let handles: Vec<_> = items
             .iter()
@@ -541,7 +552,7 @@ pub fn sync_central_versions(base: String, proxy: String) -> Result<VersionIndex
             .collect()
     });
 
-    let mut idx = list_central_versions();
+    let mut idx = read_index();
     let mut ok = 0usize;
     for (it, res) in items.iter().zip(results.into_iter()) {
         match res {
@@ -560,6 +571,13 @@ pub fn sync_central_versions(base: String, proxy: String) -> Result<VersionIndex
     idx.sync_ms = t0.elapsed().as_millis() as u64;
     let _ = save_index(&idx);
     Ok(idx)
+}
+
+#[tauri::command]
+pub async fn sync_central_versions(base: String, proxy: String) -> Result<VersionIndex, String> {
+    tauri::async_runtime::spawn_blocking(move || sync_blocking(&base, &proxy))
+        .await
+        .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
 #[cfg(test)]
