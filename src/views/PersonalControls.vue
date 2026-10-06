@@ -146,6 +146,16 @@ function clearBg() {
           <span class="val">{{ settings.bgShade }}</span>
         </div>
       </div>
+      <div class="set-row">
+        <div>
+          <div class="label">导航栏透明度</div>
+          <div class="hint" style="font-size: 12px">0 = 完全不透明（各页面看起来最一致）</div>
+        </div>
+        <div class="ctrl">
+          <input v-model.number="settings.navTransparency" type="range" min="0" max="100" step="2" />
+          <span class="val">{{ settings.navTransparency }}</span>
+        </div>
+      </div>
     </div>
 
     <div class="set-group">

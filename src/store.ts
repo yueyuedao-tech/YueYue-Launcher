@@ -296,6 +296,20 @@ export async function syncCentralVersions(force = false): Promise<void> {
   }
 }
 
+// 服务器列表一改就重新拉索引与版本（防抖，避免在输入框里打字时狂发请求）。
+// 没有这个的话，改完地址要重启应用才生效，很容易误以为「服务器不可达」。
+let serverChangeTimer: ReturnType<typeof setTimeout> | undefined
+watch(
+  () => centralServerList().join('|'),
+  () => {
+    if (serverChangeTimer) clearTimeout(serverChangeTimer)
+    serverChangeTimer = setTimeout(() => {
+      void loadCentralIndex(true)
+      void syncCentralVersions(true)
+    }, 900)
+  },
+)
+
 // ---------- 游戏 ----------
 export const instances = ref<InstanceInfo[]>([])
 export const skippedCount = ref(0)
@@ -508,6 +522,8 @@ export interface Settings {
   bgImage: string
   /** 背景图是否也用在其他页面（首页始终显示） */
   bgAllPages: boolean
+  /** 导航栏透明度：0 = 完全不透明，100 = 全透明（默认 28 ≈ 原来的 0.72 不透明度） */
+  navTransparency: number
   downloadDir: string
   updateCheck: boolean
   lastSeenTag: string
@@ -559,6 +575,7 @@ const defaults: Settings = {
   saveIsolation: true,
   bgImage: '',
   bgAllPages: true,
+  navTransparency: 28,
   downloadDir: '',
   updateCheck: true,
   lastSeenTag: '',
@@ -646,6 +663,14 @@ function applyBgShade(): void {
 
 watch(() => settings.accent, applyAccent, { immediate: true })
 watch(() => settings.bgShade, applyBgShade, { immediate: true })
+
+/** 导航栏透明度 0-100 → 不透明度 1.000-0.000 */
+function applyNavTransparency(): void {
+  const t = Math.min(100, Math.max(0, Number(settings.navTransparency) || 0))
+  document.documentElement.style.setProperty('--nav-alpha', (1 - t / 100).toFixed(3))
+}
+
+watch(() => settings.navTransparency, applyNavTransparency, { immediate: true })
 
 /* ---------- 代理：系统代理 / 自定义 ---------- */
 
