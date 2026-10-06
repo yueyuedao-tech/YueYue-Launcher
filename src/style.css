@@ -34,7 +34,7 @@ input, select { font: inherit; color: var(--ink); }
 ::-webkit-scrollbar-track { background: transparent; }
 
 /* ---------- 布局 ---------- */
-.shell { display: flex; flex-direction: column; height: 100%; }
+.shell { display: flex; flex-direction: column; height: 100%; position: relative; z-index: 1; }
 .shell-body { display: flex; flex: 1; min-height: 0; }
 
 /* ---------- 顶部居中导航（navPosition=top） ---------- */
@@ -386,6 +386,19 @@ select.field option { background: #171722; color: var(--ink); }
   /* 背景模糊（个性化里可调）：放大一点，避免模糊后边缘透出底色 */
   filter: blur(var(--bg-blur, 0px));
   transform: scale(calc(1 + var(--bg-blur, 0px) / 300));
+}
+/* 其他页面用的背景层：整窗固定，内容整体压在它上面（见 .shell 的 z-index）。
+   首页那套左右渐变压暗是按 hero 排版调的，直接套到列表页会让中间过亮、
+   卡片文字看不清，所以这里换成整体均匀压暗。 */
+.home-bg--app { position: fixed; }
+.home-bg--app::after {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(18, 18, 28, calc(var(--veil) * 0.97)) 0%,
+      rgba(18, 18, 28, calc(var(--veil) * 0.86)) 42%,
+      rgba(18, 18, 28, calc(var(--veil) * 0.94)) 100%
+    );
 }
 .home-bg::after {
   content: '';

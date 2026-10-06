@@ -506,6 +506,8 @@ export interface Settings {
   saveIsolation: boolean
   /** 自定义背景图，dataURL；空 = 默认背景 */
   bgImage: string
+  /** 背景图是否也用在其他页面（首页始终显示） */
+  bgAllPages: boolean
   downloadDir: string
   updateCheck: boolean
   lastSeenTag: string
@@ -556,6 +558,7 @@ const defaults: Settings = {
   defaultDelete: 'keep',
   saveIsolation: true,
   bgImage: '',
+  bgAllPages: true,
   downloadDir: '',
   updateCheck: true,
   lastSeenTag: '',
@@ -605,6 +608,20 @@ export const settings = reactive<Settings>(loadSettings())
 /** 设置页分类导航位置：没单独设置过就跟随主导航 */
 export const settingsNavPos = computed<'left' | 'top'>(
   () => settings.settingsNavPosition ?? settings.navPosition,
+)
+
+/**
+ * 背景图层的内联样式：选了自定义图就用它，没选则返回 undefined
+ * （走 CSS 里的内置 hero 图）。首页与其他页面共用同一份，保证是同一张图。
+ */
+export const bgImageStyle = computed(() =>
+  settings.bgImage
+    ? {
+        backgroundImage: `url("${settings.bgImage}")`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }
+    : undefined,
 )
 
 watch(

@@ -106,6 +106,18 @@ function clearBg() {
       </div>
       <div class="set-row">
         <div>
+          <div class="label">背景图也用在其他页面</div>
+        </div>
+        <div class="ctrl">
+          <label class="switch">
+            <input v-model="settings.bgAllPages" type="checkbox" />
+            <span class="track" />
+            <span class="thumb" />
+          </label>
+        </div>
+      </div>
+      <div class="set-row">
+        <div>
           <div class="label">主题</div>
         </div>
         <div class="ctrl">

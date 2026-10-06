@@ -4,6 +4,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { marked } from 'marked'
 import {
   autoCollapseLaunch,
+  bgImageStyle,
   currentInstance,
   effectiveInfoBar,
   instances,
@@ -37,16 +38,6 @@ function inlineMd(text: string): string {
 }
 
 const inst = computed(() => currentInstance())
-/** 自定义背景图（个性化里选的）；没有则用内置 hero 图 */
-const bgStyle = computed(() =>
-  settings.bgImage
-    ? {
-        backgroundImage: `url("${settings.bgImage}")`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }
-    : undefined,
-)
 let starting = false
 
 async function launch() {
@@ -78,7 +69,7 @@ async function launch() {
 
 <template>
   <div class="home">
-    <div class="home-bg" aria-hidden="true" :style="bgStyle" />
+    <div class="home-bg" aria-hidden="true" :style="bgImageStyle" />
 
     <header>
       <div class="brand">Yue<em>Yue</em> Launcher</div>

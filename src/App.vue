@@ -20,6 +20,7 @@ import {
   loadSystemProxy,
   loadCachedMirrors,
   loadInfoBarRemote,
+  bgImageStyle,
   applyWindowSettings,
   notifyDownloadDone,
 } from './store'
@@ -67,6 +68,8 @@ watch(
 )
 
 const current = computed(() => views[store.view])
+/** 首页始终有背景图；其他页面由「个性化 → 背景图也用在其他页面」决定 */
+const showAppBg = computed(() => settings.bgAllPages && store.view !== 'home')
 const unlisteners: UnlistenFn[] = []
 
 function go(id: ViewId) {
@@ -168,6 +171,9 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="shell">
+    <!-- 背景图：首页自己那份在 HomeView 里；这里负责让「其他页面」也能用同一张图 -->
+    <div v-if="showAppBg" class="home-bg home-bg--app" aria-hidden="true" :style="bgImageStyle" />
+
     <!-- 顶部导航（navPosition=top 时显示；窄屏隐藏，由底部栏接管） -->
     <header v-if="settings.navPosition === 'top'" class="topnav">
       <div class="topnav-brand">
