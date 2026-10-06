@@ -97,6 +97,17 @@ const MIRRORS = {
   workshop: [],
 }
 
+/**
+ * 每日信息（首页底部那三条公告）。Markdown，一行一条：
+ * 行首 `**日期 · 标签**` 之后的部分是标题，客户端拆成原来的「日期行 + 标题」渲染，
+ * 所以样式仍走原本的 .news-row / .news-card。客户端渲染前会把 `<` 转义。
+ */
+const INFO_BAR = [
+  '**2026-10-03 · 公告** YueYue Launcher (YYL) V1 发布：全新二次元界面，支持 Windows 与 Linux',
+  '**2026-09-28 · 更新** 模拟启动流程上线，日志面板实时显示各阶段状态',
+  '**2026-09-20 · 社区** Mindustry 游戏管理上线：每个客户端独立存档与配置',
+].join('\n')
+
 const clean = (s, n) => String(s ?? '').trim().slice(0, n)
 const slug = (s, i) =>
   clean(s, 48).toLowerCase().replace(/[^a-z0-9一-龥]+/g, '-').replace(/^-|-$/g, '') || `item-${i}`
@@ -266,6 +277,8 @@ async function build() {
     generated: new Date().toISOString(),
     count: items.length,
     items,
+    // 每日信息：Markdown 原文，客户端自己拆行
+    infoBar: clean(INFO_BAR, 8000),
     // 镜像清单：只收 http(s) 前缀，名称/地址都裁长度
     mirrors: {
       workshop: (MIRRORS.workshop ?? [])

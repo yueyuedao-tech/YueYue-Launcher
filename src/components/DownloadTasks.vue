@@ -32,7 +32,8 @@ function fmtBytes(n: number): string {
   if (n >= 1 << 30) return (n / (1 << 30)).toFixed(2) + ' GB'
   if (n >= 1 << 20) return (n / (1 << 20)).toFixed(1) + ' MB'
   if (n >= 1 << 10) return (n / (1 << 10)).toFixed(0) + ' KB'
-  return n + ' B'
+  // 必须取整：速度很小时这里会打出 0.00000000 这种一长串小数
+  return Math.round(n) + ' B'
 }
 
 function fmtSpeed(bps: number): string {

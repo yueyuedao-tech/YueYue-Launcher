@@ -1,11 +1,11 @@
-export interface NewsItem {
-  date: string
-  tag: string
-  title: string
-}
-
-export const news: NewsItem[] = [
-  { date: '2026-10-03', tag: '公告', title: 'YueYue Launcher (YYL) V1 发布：全新二次元界面，支持 Windows 与 Linux' },
-  { date: '2026-09-28', tag: '更新', title: '模拟启动流程上线，日志面板实时显示各阶段状态' },
-  { date: '2026-09-20', tag: '社区', title: 'Mindustry 游戏管理上线：每个客户端独立存档与配置' },
-]
+/**
+ * 内置默认每日信息：中心化服务器没下发、本地设置里也没写时用它兜底，
+ * 内容与之前写死的三条公告一致，所以界面开箱就是原来的样子。
+ *
+ * 格式：Markdown，一行一条；行首 `**日期 · 标签**` 之后是标题。
+ */
+export const defaultInfoBar = [
+  '**2026-10-03 · 公告** YueYue Launcher (YYL) V1 发布：全新二次元界面，支持 Windows 与 Linux',
+  '**2026-09-28 · 更新** 模拟启动流程上线，日志面板实时显示各阶段状态',
+  '**2026-09-20 · 社区** Mindustry 游戏管理上线：每个客户端独立存档与配置',
+].join('\n')

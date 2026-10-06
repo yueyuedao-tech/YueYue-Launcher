@@ -5,6 +5,7 @@ import { open as openExternal } from '@tauri-apps/plugin-shell'
 import {
   centralServerUsed,
   effectiveProxyLabel,
+  infoBarText,
   instances,
   loadCachedMirrors,
   loadInstances,
@@ -215,6 +216,46 @@ onMounted(async () => {
               <option value="https://gh-proxy.com/" />
               <option value="https://mirror.ghproxy.com/" />
             </datalist>
+          </div>
+        </div>
+        <div class="set-row">
+          <div>
+            <div class="label">每日信息（首页公告）</div>
+            <div class="hint" style="font-size: 12px">
+              Markdown，<b>一行一条</b>；行首 <code>**日期 · 标签**</code> 之后是标题。
+              留空则使用中心化服务器下发的内容
+            </div>
+          </div>
+          <div class="ctrl" style="flex: 1; max-width: 560px; flex-direction: column; align-items: stretch; gap: 8px">
+            <textarea
+              v-model="settings.infoBarMd"
+              class="field infobar-editor"
+              rows="4"
+              :placeholder="infoBarText || '（中心未下发内容，可在这里自己写）'"
+            />
+            <div style="display: flex; gap: 8px; align-items: center; justify-content: space-between">
+              <span class="meta" style="font-size: 12px">
+                {{ settings.infoBarMd.trim() ? '当前：使用上面自定义的内容' : '当前：使用中心化服务器下发的内容' }}
+              </span>
+              <span style="display: flex; gap: 8px">
+                <button
+                  class="btn-ghost"
+                  style="font-size: 12px"
+                  :disabled="!settings.infoBarMd"
+                  @click="settings.infoBarMd = ''"
+                >
+                  清空（改用中心下发）
+                </button>
+                <button
+                  class="btn-ghost"
+                  style="font-size: 12px"
+                  :disabled="!infoBarText"
+                  @click="settings.infoBarMd = infoBarText"
+                >
+                  载入中心内容
+                </button>
+              </span>
+            </div>
           </div>
         </div>
         <div class="set-row">

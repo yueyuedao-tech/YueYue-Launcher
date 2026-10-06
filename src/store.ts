@@ -10,6 +10,7 @@ import type {
   InstanceList,
   VersionIndex,
 } from './types'
+import { defaultInfoBar } from './data/mock'
 
 export type ViewId = 'home' | 'instances' | 'downloads' | 'mod' | 'settings'
 export type LaunchStatus = 'running' | 'done' | 'failed' | 'stopped'
@@ -222,6 +223,7 @@ export async function loadCentralIndex(force = false): Promise<void> {
       centralMeta.value = { source: 'remote', note: '' }
       centralServerUsed.value = hit.base
       if (hit.result.mirrors?.workshop?.length) workshopMirrors.value = hit.result.mirrors.workshop
+      if (hit.result.infoBar) infoBarText.value = hit.result.infoBar
     } else {
       // 列表为空，或全都连不上 → 内置索引兜底
       const r = (await invoke('fetch_central_index', {
@@ -286,6 +288,7 @@ export async function syncCentralVersions(force = false): Promise<void> {
     if (centralVersions.value?.mirrors?.workshop?.length) {
       workshopMirrors.value = centralVersions.value.mirrors.workshop
     }
+    if (centralVersions.value?.infoBar) infoBarText.value = centralVersions.value.infoBar
   } catch (e) {
     console.error('syncCentralVersions failed', e)
   } finally {
@@ -533,6 +536,8 @@ export interface Settings {
   animations: boolean
   /** 启动器打开时停在哪个页面 */
   startView: ViewId
+  /** 每日信息：自己写的 Markdown。非空就用它，留空则用中心化服务器下发的 */
+  infoBarMd: string
 }
 
 const defaults: Settings = {
@@ -564,6 +569,7 @@ const defaults: Settings = {
   bgBlur: 0,
   animations: true,
   startView: 'home',
+  infoBarMd: '',
 }
 
 function loadSettings(): Settings {
@@ -656,10 +662,22 @@ export interface MirrorItem {
 
 export const workshopMirrors = ref<MirrorItem[]>([])
 
-/** 从本地版本缓存里取上次下发的镜像（中心服务器临时不可达时设置页也不空） */
+/** 每日信息：中心化服务器下发的 Markdown 原文 */
+export const infoBarText = ref('')
+
+/**
+ * 每日信息最终生效的内容，优先级：
+ *   设置里自己写的 → 中心化服务器下发的 → 内置默认（原来写死的三条）
+ */
+export const effectiveInfoBar = computed(
+  () => settings.infoBarMd.trim() || infoBarText.value || defaultInfoBar,
+)
+
+/** 从本地版本缓存里取上次下发的镜像与每日信息（中心服务器临时不可达时也不会空） */
 export async function loadCachedMirrors(): Promise<void> {
   const idx = centralVersions.value
   if (idx?.mirrors?.workshop?.length) workshopMirrors.value = idx.mirrors.workshop
+  if (idx?.infoBar) infoBarText.value = idx.infoBar
 }
 
 /* ---------- 窗口相关设置：必须在窗口就绪后再应用 ---------- */

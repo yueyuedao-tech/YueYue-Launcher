@@ -105,6 +105,9 @@ pub struct VersionIndex {
     /// 中心下发的镜像清单：跟着缓存一起留着，中心服务器临时不可达时设置页也不会空
     #[serde(default)]
     pub mirrors: Mirrors,
+    /// 每日信息 Markdown 原文：跟着缓存留一份，中心临时不可达时公告不会突然消失
+    #[serde(default)]
+    pub info_bar: String,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -118,6 +121,9 @@ pub struct CentralIndex {
     /// 中心下发的镜像清单（工坊镜像等），客户端不再手填地址
     #[serde(default)]
     pub mirrors: Mirrors,
+    /// 每日信息：Markdown 原文（首页底部公告）
+    #[serde(default)]
+    pub info_bar: String,
 }
 
 /// 工坊镜像条目：名称 + 前缀地址
@@ -139,11 +145,15 @@ pub struct Mirrors {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct IndexFile {
     #[serde(default)]
     items: Vec<CentralItem>,
     #[serde(default)]
     mirrors: Mirrors,
+    /// 每日信息 Markdown 原文
+    #[serde(default)]
+    info_bar: String,
 }
 
 /// 镜像清单裁剪：只留 http(s)、名称与地址都非空，条数与长度封顶
@@ -389,6 +399,7 @@ fn fetch_sync_with(base: &str, proxy: &str, timeout: u32) -> Result<CentralIndex
             note: String::new(),
             items: sanitize(builtin_items()),
             mirrors: Mirrors::default(),
+            info_bar: String::new(),
         });
     }
     if !(base.starts_with("https://") || base.starts_with("http://")) {
@@ -400,26 +411,35 @@ fn fetch_sync_with(base: &str, proxy: &str, timeout: u32) -> Result<CentralIndex
         .and_then(|text| {
             serde_json::from_str::<IndexFile>(&text).map_err(|e| format!("索引 JSON 解析失败: {e}"))
         })
-        .map(|f| (sanitize(f.items), sanitize_mirrors(f.mirrors)))
+        .map(|f| {
+            (
+                sanitize(f.items),
+                sanitize_mirrors(f.mirrors),
+                f.info_bar.chars().take(8000).collect::<String>(),
+            )
+        })
     {
-        Ok((items, mirrors)) if !items.is_empty() => Ok(CentralIndex {
+        Ok((items, mirrors, info_bar)) if !items.is_empty() => Ok(CentralIndex {
             source: "remote".into(),
             note: String::new(),
             items,
             mirrors,
+            info_bar,
         }),
         Ok(_) => Ok(CentralIndex {
             source: "builtin".into(),
             note: "中心化服务器返回空索引，已用内置索引".into(),
             items: sanitize(builtin_items()),
             mirrors: Mirrors::default(),
+            info_bar: String::new(),
         }),
         Err(e) => Ok(CentralIndex {
             source: "builtin".into(),
             note: format!("中心化服务器不可达：{e}；已用内置索引"),
             items: sanitize(builtin_items()),
-            // 内置索引没有镜像清单；但工坊镜像不能因此消失，保留上次下发的
+            // 内置索引没有镜像清单与每日信息；但都不能因此消失，保留上次下发的
             mirrors: Mirrors::default(),
+            info_bar: String::new(),
         }),
     }
 }
@@ -980,10 +1000,11 @@ fn sync_blocking(base: &str, proxy: &str, force: bool) -> Result<VersionIndex, S
         // 否则它的 id 不在缓存里，用户要等满 15 分钟 TTL 才看得到（实测踩到）。
         // 探不通就用缓存，不为一次探测把启动拖到 15s。
         match fetch_sync_with(base, proxy, 5) {
-            // 源没变、镜像清单也没变，才继续用缓存
+            // 源、镜像清单、每日信息都没变，才继续用缓存
             Ok(idx)
                 if idx.items.iter().all(|it| base_idx.sources.contains_key(&it.id))
-                    && idx.mirrors.workshop == base_idx.mirrors.workshop =>
+                    && idx.mirrors.workshop == base_idx.mirrors.workshop
+                    && idx.info_bar == base_idx.info_bar =>
             {
                 return Ok(base_idx);
             }
@@ -995,6 +1016,7 @@ fn sync_blocking(base: &str, proxy: &str, force: bool) -> Result<VersionIndex, S
     };
     let items = index.items;
     let mirrors = index.mirrors;
+    let info_bar = index.info_bar;
     let total = items.len();
 
     // 代理串先降为 &str（Copy），才能被多个线程闭包同时捕获
@@ -1036,6 +1058,7 @@ fn sync_blocking(base: &str, proxy: &str, force: bool) -> Result<VersionIndex, S
     }
     idx.rules = RULES_VERSION;
     idx.mirrors = mirrors;
+    idx.info_bar = info_bar;
     idx.ok = ok;
     idx.total = total;
     idx.sync_ms = t0.elapsed().as_millis() as u64;

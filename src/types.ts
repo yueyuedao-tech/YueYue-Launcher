@@ -108,6 +108,8 @@ export interface VersionIndex {
   errors: Record<string, string>
   /** 中心下发的镜像清单（跟着缓存一起留着） */
   mirrors?: CentralMirrors
+  /** 中心下发的每日信息 Markdown（跟着缓存一起留着） */
+  infoBar?: string
 }
 
 /** 中心下发的镜像条目（工坊镜像等） */
@@ -128,6 +130,8 @@ export interface CentralIndex {
   items: CentralItem[]
   /** 中心下发的镜像清单 */
   mirrors: CentralMirrors
+  /** 每日信息：Markdown 原文（首页底部公告） */
+  infoBar?: string
 }
 
 export interface DownloadProgressPayload {

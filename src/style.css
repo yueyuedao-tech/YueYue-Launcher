@@ -444,6 +444,25 @@ select.field option { background: #171722; color: var(--ink); }
 }
 .news-card .date { font-size: 11px; color: var(--ink-dim); margin-bottom: 6px; }
 .news-card .title { font-size: 14px; font-weight: 600; line-height: 1.5; }
+.news-card .title a { color: var(--cyan); text-decoration: none; }
+.news-card .title a:hover { text-decoration: underline; }
+.news-card .title code {
+  font-family: 'Cascadia Mono', Consolas, monospace;
+  font-size: 12.5px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, .07);
+}
+
+/* 每日信息 Markdown 编辑框（设置 → 镜像与网络） */
+.infobar-editor {
+  width: 100%;
+  min-height: 84px;
+  resize: vertical;
+  font-family: 'Cascadia Mono', Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.7;
+}
 
 /* ---------- 版本 / 下载列表 ---------- */
 .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; }

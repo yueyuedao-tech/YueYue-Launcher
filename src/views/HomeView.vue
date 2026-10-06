@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
-import { news } from '../data/mock'
+import { marked } from 'marked'
 import {
   autoCollapseLaunch,
   currentInstance,
+  effectiveInfoBar,
   instances,
   loadInstances,
   markLaunchFailed,
@@ -14,6 +15,26 @@ import {
   settings,
   store,
 } from '../store'
+
+/**
+ * 每日信息：一行一条，行首 `**日期 · 标签**` 之后是标题。
+ * 拆成 date / title 两块，仍用原本的 .news-card 结构渲染，样式不变。
+ */
+const newsCards = computed(() =>
+  effectiveInfoBar.value
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const m = line.match(/^\*\*(.+?)\*\*\s*(.*)$/)
+      return m ? { date: m[1], title: m[2] } : { date: '', title: line }
+    }),
+)
+
+/** 标题里的行内 Markdown（加粗/链接/代码）；先转义 `<` 再渲染，避免注入 */
+function inlineMd(text: string): string {
+  return marked.parseInline(text.replace(/</g, '&lt;'), { async: false }) as string
+}
 
 const inst = computed(() => currentInstance())
 /** 自定义背景图（个性化里选的）；没有则用内置 hero 图 */
@@ -78,9 +99,9 @@ async function launch() {
     </header>
 
     <section class="news-row" aria-label="公告">
-      <article v-for="n in news" :key="n.title" class="news-card">
-        <div class="date">{{ n.date }} · {{ n.tag }}</div>
-        <div class="title">{{ n.title }}</div>
+      <article v-for="(n, i) in newsCards" :key="i" class="news-card">
+        <div v-if="n.date" class="date">{{ n.date }}</div>
+        <div class="title" v-html="inlineMd(n.title)" />
       </article>
     </section>
   </div>
