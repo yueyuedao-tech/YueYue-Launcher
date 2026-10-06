@@ -548,9 +548,21 @@ mod tests {
         // 隔离实例：Mindustry 把数据写在 %AppData%/Mindustry 下，而启动器把 AppData 指到
         // <实例>/data，所以存档真实位置是 <实例>/data/Mindustry/saves。
         // 之前少了这一层 Mindustry，扫描永远是空的。
-        let got = saves_base(true, PathBuf::from(r"C:\x\data"));
-        assert_eq!(got, PathBuf::from(r"C:\x\data\Mindustry\saves"));
-        assert!(got.to_string_lossy().ends_with(r"Mindustry\saves"));
+        // 断言一律用 PathBuf 拼接：写死 `C:\...` 在 Linux 上分隔符不同会挂。
+        let data = PathBuf::from("x").join("data");
+        let isolated = saves_base(true, data.clone());
+        assert_eq!(isolated, data.join("Mindustry").join("saves"));
+
+        // 关掉隔离 = 存档共享：走启动器自己的共享目录（<数据根>/shared/data），
+        // 不再读写系统 AppData 里的 Mindustry。
+        let shared = saves_base(false, data);
+        assert_ne!(shared, isolated);
+        assert!(shared.ends_with(
+            PathBuf::from("shared")
+                .join("data")
+                .join("Mindustry")
+                .join("saves")
+        ));
     }
 
     #[test]
