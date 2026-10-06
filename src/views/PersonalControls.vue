@@ -191,8 +191,7 @@ function clearBg() {
       </div>
       <div class="set-row">
         <div>
-          <div class="label">界面动画</div>
-          <div class="hint" style="font-size: 12px">关掉后过渡与呼吸圈等动效全部停用</div>
+          <div class="label">界面动画</div>          <div class="hint" style="font-size: 12px">关掉后过渡与呼吸圈等动效全部停用</div>
         </div>
         <div class="ctrl">
           <label class="switch">
@@ -214,18 +213,6 @@ function clearBg() {
         <div class="ctrl">
           <label class="switch">
             <input v-model="settings.downloadNotify" type="checkbox" @change="onNotifyToggle" />
-            <span class="track" />
-            <span class="thumb" />
-          </label>
-        </div>
-      </div>
-      <div class="set-row">
-        <div>
-          <div class="label">游戏退出时自动弹日志</div>
-        </div>
-        <div class="ctrl">
-          <label class="switch">
-            <input v-model="settings.autoOpenLogOnExit" type="checkbox" />
             <span class="track" />
             <span class="thumb" />
           </label>

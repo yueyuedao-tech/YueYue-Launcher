@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
+import { open as openExternal } from '@tauri-apps/plugin-shell'
 import {
+  centralServerUsed,
   effectiveProxyLabel,
   instances,
   loadCachedMirrors,
@@ -11,10 +13,31 @@ import {
   settings,
   settingsNavPos,
   settingsTab,
-  workshopMirrors,
   type SettingsTab,
 } from '../store'
 import PersonalControls from './PersonalControls.vue'
+
+/** 中心化服务器列表：可增删，按顺序回退 */
+function addServer() {
+  settings.centralServers.push('')
+}
+
+function removeServer(i: number) {
+  settings.centralServers.splice(i, 1)
+}
+
+/** 打开当前生效的下载目录（没设自定义目录时打开默认目录） */
+async function openDownloadDir() {
+  saveError.value = ''
+  try {
+    const dir = (await invoke('downloads_dir', {
+      downloadDir: settings.downloadDir,
+    })) as string
+    await openExternal(dir)
+  } catch (e) {
+    saveError.value = String(e)
+  }
+}
 
 const tabs: { id: SettingsTab; label: string }[] = [
   { id: 'download', label: '下载' },
@@ -91,9 +114,13 @@ onMounted(async () => {
         <div class="set-row">
           <div>
             <div class="label">下载目录</div>
+            <div class="hint" style="font-size: 12px">留空 = 用默认目录</div>
           </div>
           <div class="ctrl" style="flex: 1; max-width: 420px">
             <input v-model="settings.downloadDir" class="field" style="width: 100%" placeholder="D:\Mindustry下载" />
+            <button class="btn-ghost" style="flex: none; font-size: 12px" @click="openDownloadDir">
+              打开下载目录
+            </button>
           </div>
         </div>
         <div class="set-row">
@@ -140,16 +167,35 @@ onMounted(async () => {
           <div>
             <div class="label">中心化服务器</div>
             <div class="hint" style="font-size: 12px">
-              源索引与镜像清单都从它下发（留空 = 用内置索引）
+              源索引与版本都从它下发；按顺序尝试，前面连不上自动用后面的（空 = 内置索引）
+              <template v-if="centralServerUsed">
+                <br />当前在用：<b>{{ centralServerUsed }}</b>
+              </template>
             </div>
           </div>
-          <div class="ctrl" style="flex: 1; max-width: 420px">
-            <input
-              v-model="settings.centralServer"
-              class="field"
-              style="width: 100%"
-              placeholder="http://127.0.0.1:8787"
-            />
+          <div class="ctrl" style="flex: 1; max-width: 520px; flex-direction: column; align-items: stretch; gap: 8px">
+            <div
+              v-for="(s, i) in settings.centralServers"
+              :key="'srv-' + i"
+              style="display: flex; gap: 8px; align-items: center"
+            >
+              <span class="srv-index">{{ i + 1 }}</span>
+              <input
+                v-model="settings.centralServers[i]"
+                class="field"
+                style="flex: 1; min-width: 160px"
+                placeholder="http://127.0.0.1:8787"
+              />
+              <button class="btn-ghost" style="flex: none; font-size: 12px" @click="removeServer(i)">
+                删除
+              </button>
+            </div>
+            <div v-if="!settings.centralServers.length" class="meta" style="font-size: 12px">
+              未配置（使用内置索引）
+            </div>
+            <button class="btn-ghost" style="align-self: flex-start; font-size: 12px" @click="addServer">
+              + 添加服务器
+            </button>
           </div>
         </div>
         <div class="set-row">
@@ -169,30 +215,6 @@ onMounted(async () => {
               <option value="https://gh-proxy.com/" />
               <option value="https://mirror.ghproxy.com/" />
             </datalist>
-          </div>
-        </div>
-        <div class="set-row">
-          <div>
-            <div class="label">工坊镜像</div>
-            <div class="hint" style="font-size: 12px">
-              列表由中心化服务器下发（在 server/central.mjs 的 MIRRORS 里配置）
-            </div>
-          </div>
-          <div class="ctrl" style="flex: 1; max-width: 420px">
-            <select
-              v-model="settings.workshopMirror"
-              class="field"
-              style="width: 100%"
-              :disabled="!workshopMirrors.length"
-            >
-              <option value="">不使用镜像（走代理 / 直连）</option>
-              <option v-for="m in workshopMirrors" :key="m.url" :value="m.url">
-                {{ m.name }} · {{ m.url }}
-              </option>
-            </select>
-            <span v-if="!workshopMirrors.length" class="meta" style="font-size: 12px">
-              中心未下发镜像
-            </span>
           </div>
         </div>
         <div class="set-row">

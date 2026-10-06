@@ -47,6 +47,8 @@ export const launchRecords = reactive<Record<string, LaunchRecord>>({})
 export const logPanelOpen = ref(false)
 /** 面板里当前查看哪个实例的日志 */
 export const logFocusId = ref('')
+/** 玩家已经看过这次启动的日志：看过之后圆圈就收起来，下次启动游戏再出现 */
+export const logSeen = ref(false)
 
 /** 一条日志最多留多少行：长时间挂机的实例不该把内存吃满 */
 const MAX_LOG_LINES = 5000
@@ -55,8 +57,17 @@ export const runningLaunchCount = computed(
   () => Object.values(launchRecords).filter((r) => r.status === 'running').length,
 )
 
-/** 有记录就显示左下角圆圈（归档入口） */
-export const launchDockVisible = computed(() => Object.keys(launchRecords).length > 0)
+/** 有记录、且玩家还没看过这次日志 → 显示左下角圆圈（归档入口） */
+export const launchDockVisible = computed(
+  () => Object.keys(launchRecords).length > 0 && !logSeen.value,
+)
+
+/** 收起日志面板：看过一次就标记，圆圈随之隐藏 */
+export function closeLogPanel(): void {
+  if (!logPanelOpen.value) return
+  logPanelOpen.value = false
+  logSeen.value = true
+}
 
 export function launchRecordOf(id: string): LaunchRecord | undefined {
   return launchRecords[id]
@@ -67,6 +78,8 @@ export function resetLaunch(instanceId: string, name = ''): void {
   store.launch.open = true
   store.launch.instanceId = instanceId
   logFocusId.value = instanceId
+  // 新一次启动 → 圆圈重新出现
+  logSeen.value = false
   launchRecords[instanceId] = {
     instanceId,
     name: name || info?.name || instanceId,
@@ -163,23 +176,66 @@ export const versionSyncing = ref(false)
 export const centralItems = ref<CentralItem[]>([])
 export const centralMeta = ref({ source: '', note: '' })
 export const centralLoading = ref(false)
+/** 本次实际用上的中心化服务器（列表里第一个可用的） */
+export const centralServerUsed = ref('')
 let centralLoadedFor: string | null = null
 
-/** 拉中心索引。默认「同一个服务器地址只拉一次」；force=true 强制重拉。 */
+/** 设置里配的服务器列表（去空、去首尾空格） */
+export function centralServerList(): string[] {
+  return (settings.centralServers ?? []).map((s) => s.trim()).filter(Boolean)
+}
+
+/** 依次尝试列表里的每个服务器，返回第一个满足 ok 的结果；都不行返回 null */
+async function pickCentralServer<T>(
+  run: (base: string) => Promise<T>,
+  ok: (r: T) => boolean,
+): Promise<{ base: string; result: T } | null> {
+  for (const base of centralServerList()) {
+    try {
+      const result = await run(base)
+      if (ok(result)) return { base, result }
+    } catch {
+      /* 这个不行，换下一个 */
+    }
+  }
+  return null
+}
+
+/** 拉中心索引。默认「同一份服务器列表只拉一次」；force=true 强制重拉。 */
 export async function loadCentralIndex(force = false): Promise<void> {
   if (centralLoading.value) return
-  const base = settings.centralServer.trim()
-  if (!force && centralLoadedFor === base && centralItems.value.length) return
+  const list = centralServerList()
+  const key = list.join('|')
+  if (!force && centralLoadedFor === key && centralItems.value.length) return
   centralLoading.value = true
   try {
-    const r = (await invoke('fetch_central_index', {
-      base,
-      proxy: effectiveProxy.value,
-    })) as CentralIndex
-    centralItems.value = r.items
-    centralMeta.value = { source: r.source, note: r.note }
-    if (r.mirrors?.workshop?.length) workshopMirrors.value = r.mirrors.workshop
-    centralLoadedFor = base
+    const hit = await pickCentralServer(
+      (base) =>
+        invoke('fetch_central_index', {
+          base,
+          proxy: effectiveProxy.value,
+        }) as Promise<CentralIndex>,
+      (r) => r.source === 'remote' && r.items.length > 0,
+    )
+    if (hit) {
+      centralItems.value = hit.result.items
+      centralMeta.value = { source: 'remote', note: '' }
+      centralServerUsed.value = hit.base
+      if (hit.result.mirrors?.workshop?.length) workshopMirrors.value = hit.result.mirrors.workshop
+    } else {
+      // 列表为空，或全都连不上 → 内置索引兜底
+      const r = (await invoke('fetch_central_index', {
+        base: '',
+        proxy: effectiveProxy.value,
+      })) as CentralIndex
+      centralItems.value = r.items
+      centralMeta.value = {
+        source: 'builtin',
+        note: list.length ? '所有中心化服务器都不可达；已用内置索引' : r.note,
+      }
+      centralServerUsed.value = ''
+    }
+    centralLoadedFor = key
   } catch (e) {
     centralMeta.value = { source: 'builtin', note: String(e) }
     centralItems.value = []
@@ -207,11 +263,26 @@ export async function syncCentralVersions(force = false): Promise<void> {
   if (versionSyncing.value) return
   versionSyncing.value = true
   try {
-    centralVersions.value = (await invoke('sync_central_versions', {
-      base: settings.centralServer.trim(),
-      proxy: effectiveProxy.value,
-      force,
-    })) as VersionIndex
+    // 服务器列表按顺序回退：第一个能给出 ok>0 的就用它
+    const hit = await pickCentralServer(
+      (base) =>
+        invoke('sync_central_versions', {
+          base,
+          proxy: effectiveProxy.value,
+          force,
+        }) as Promise<VersionIndex>,
+      (r) => r.ok > 0,
+    )
+    if (hit) {
+      centralVersions.value = hit.result
+      centralServerUsed.value = hit.base
+    } else {
+      centralVersions.value = (await invoke('sync_central_versions', {
+        base: '',
+        proxy: effectiveProxy.value,
+        force,
+      })) as VersionIndex
+    }
     if (centralVersions.value?.mirrors?.workshop?.length) {
       workshopMirrors.value = centralVersions.value.mirrors.workshop
     }
@@ -439,8 +510,10 @@ export interface Settings {
   /** 设置页分类导航位置；不填 = 跟随主导航 */
   settingsNavPosition?: 'left' | 'top'
   navMigrated?: boolean
-  /** 中心化服务器地址（留空 = 用内置索引） */
-  centralServer: string
+  /** 中心化服务器列表：按顺序尝试，前面的连不上就自动用后面的（空 = 用内置索引） */
+  centralServers: string[]
+  /** 旧字段（单个地址），只在迁移时读一次 */
+  centralServer?: string
   workshopMirror: string
   /** 下载线程数：1 = 单连接（服务器不支持分段时自动降为 1） */
   downloadThreads: number
@@ -458,8 +531,6 @@ export interface Settings {
   bgBlur: number
   /** 界面动画开关 */
   animations: boolean
-  /** 游戏进程退出时自动弹出该实例的日志 */
-  autoOpenLogOnExit: boolean
   /** 启动器打开时停在哪个页面 */
   startView: ViewId
 }
@@ -482,7 +553,7 @@ const defaults: Settings = {
   updateCheck: true,
   lastSeenTag: '',
   navPosition: 'top',
-  centralServer: '',
+  centralServers: [],
   workshopMirror: '',
   downloadThreads: 4,
   devMode: false,
@@ -492,7 +563,6 @@ const defaults: Settings = {
   downloadNotify: true,
   bgBlur: 0,
   animations: true,
-  autoOpenLogOnExit: true,
   startView: 'home',
 }
 
@@ -500,11 +570,18 @@ function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
     if (raw) {
-      const parsed = { ...defaults, ...(JSON.parse(raw) as Partial<Settings>) } as Settings
+      const stored = JSON.parse(raw) as Partial<Settings>
+      const parsed = { ...defaults, ...stored } as Settings
       // 一次性迁移：老配置升级后默认改为顶部导航
       if (!parsed.navMigrated) {
         parsed.navPosition = 'top'
         parsed.navMigrated = true
+      }
+      // 一次性迁移：单个「中心化服务器」→ 服务器列表。
+      // 必须看**原始**对象：合并 defaults 之后 centralServers 永远是个数组，判断会失效。
+      if (!Array.isArray(stored.centralServers)) {
+        const old = (stored.centralServer ?? '').trim()
+        parsed.centralServers = old ? [old] : []
       }
       return parsed
     }

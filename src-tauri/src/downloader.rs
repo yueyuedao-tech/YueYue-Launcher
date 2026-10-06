@@ -635,6 +635,12 @@ pub async fn clear_finished_downloads() -> usize {
     before - t.len()
 }
 
+/// 设置里「打开下载目录」用：返回当前真正生效的下载目录（与落盘同一口径）
+#[tauri::command]
+pub async fn downloads_dir(download_dir: String) -> String {
+    resolve_dir(&download_dir).to_string_lossy().into_owned()
+}
+
 /// 设置里「下载代理 = 系统代理」时，前端用这个值去填下载与索引请求
 #[tauri::command]
 pub async fn get_system_proxy() -> String {

@@ -130,6 +130,7 @@ fn main() {
             downloader::clear_download,
             downloader::clear_finished_downloads,
             downloader::get_system_proxy,
+            downloader::downloads_dir,
             set_close_behavior,
         ])
         .setup(|app| {

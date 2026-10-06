@@ -251,6 +251,17 @@ select.field option { background: #171722; color: var(--ink); }
   animation: dock-in .16s ease-out;
 }
 .dock-panel--left { left: 18px; }
+.dock-overlay { position: fixed; inset: 0; z-index: 70; }
+
+/* 中心化服务器列表里的序号 */
+.srv-index {
+  flex: none;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .07);
+  color: var(--ink-dim);
+  font-size: 11.5px; line-height: 20px; text-align: center;
+}
 @keyframes dock-in {
   from { transform: translateY(14px); opacity: .5; }
   to { transform: translateY(0); opacity: 1; }

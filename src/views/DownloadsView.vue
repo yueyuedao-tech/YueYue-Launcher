@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { open as openExternal } from '@tauri-apps/plugin-shell'
@@ -262,7 +262,12 @@ async function loadSources() {
  *  索引在开机时（App.vue）已经拉过一次，这里通常直接命中，不再等网络。 */
 async function loadCentral() {
   await loadCentralIndex()
+  prefetchFolders()
 }
+
+// 版本索引可能晚于挂载才到（开机同步是后台跑的），到了就补预取，
+// 否则文件站目录永远是冷的，点下载就得现等好几秒
+watch([centralItems, centralVersions], () => prefetchFolders(), { immediate: true })
 
 async function persist(): Promise<boolean> {
   try {
@@ -429,15 +434,56 @@ async function createInstanceFrom(fileName: string, suggested: string, errKey: s
   }
 }
 
-/** 文件站目录缓存：同一个 源+版本 只拉一次 */
+/** 文件站目录缓存：同一个 源+版本 只拉一次（含在途请求） */
 const folderFiles = reactive<
   Record<string, { loading: boolean; error: string; items: CentralAsset[] }>
 >({})
+const folderPending: Record<string, Promise<CentralAsset[]> | undefined> = {}
 /** 正在为哪一条「下载」读取目录（按钮转圈用） */
 const mirrorPicking = reactive<Record<string, boolean>>({})
 
 function folderKey(c: CentralItem, v: CentralVersion): string {
   return `${c.id}:${v.tag}`
+}
+
+/** 取某个文件站目录的文件清单：命中缓存就直接返回，在途请求复用同一个 Promise */
+function loadFolder(c: CentralItem, v: CentralVersion): Promise<CentralAsset[]> {
+  const k = folderKey(c, v)
+  const cached = folderFiles[k]
+  if (cached?.items.length) return Promise.resolve(cached.items)
+  if (folderPending[k]) return folderPending[k]
+  folderFiles[k] = { loading: true, error: '', items: [] }
+  const p = (async () => {
+    try {
+      const items = (await invoke('list_folder_files', {
+        url: v.pageUrl,
+        proxy: effectiveProxy.value,
+      })) as CentralAsset[]
+      folderFiles[k] = { loading: false, error: '', items }
+      return items
+    } catch (e) {
+      folderFiles[k] = { loading: false, error: String(e), items: [] }
+      throw e
+    } finally {
+      delete folderPending[k]
+    }
+  })()
+  folderPending[k] = p
+  return p
+}
+
+/** 后台预取文件站最新版的目录内容：点「下载」时就能立刻弹面板，不用干等网络 */
+function prefetchFolders() {
+  for (const c of centralItems.value) {
+    if (c.kind !== 'file-list') continue
+    const v = centralVersionsOf(c.id)[0]
+    if (!v?.folder) continue
+    const k = folderKey(c, v)
+    if (folderFiles[k]?.items.length || folderPending[k]) continue
+    loadFolder(c, v).catch(() => {
+      /* 预取失败不打扰用户，点下载时会再试一次 */
+    })
+  }
 }
 
 /** 自动挑客户端 jar：优先 Mindustry.jar，其次第一个 jar（服务端包已由后端过滤掉） */
@@ -446,21 +492,14 @@ function pickClientJar(items: CentralAsset[]): CentralAsset | undefined {
   return jars.find((a) => /^mindustry\.jar$/i.test(a.name)) ?? jars[0]
 }
 
-/** 文件站的「下载」：先读目录挑出客户端 jar，再走和其他源一样的「下载并创建」面板 */
+/** 文件站的「下载」：目录已预取时立即弹面板，没有才现拉 */
 async function downloadFromFolder(c: CentralItem, v: CentralVersion) {
   const k = folderKey(c, v)
   if (mirrorPicking[k]) return
   mirrorPicking[k] = true
   cardErrors[c.id] = ''
   try {
-    let items = folderFiles[k]?.items ?? []
-    if (!items.length) {
-      items = (await invoke('list_folder_files', {
-        url: v.pageUrl,
-        proxy: effectiveProxy.value,
-      })) as CentralAsset[]
-      folderFiles[k] = { loading: false, error: '', items }
-    }
+    const items = await loadFolder(c, v)
     const pick = pickClientJar(items)
     if (!pick) {
       cardErrors[c.id] = '这个目录里没有可下载的客户端 jar'
@@ -472,11 +511,6 @@ async function downloadFromFolder(c: CentralItem, v: CentralVersion) {
   } finally {
     mirrorPicking[k] = false
   }
-}
-
-/** 检查更新：强制重新向中心化服务器同步（忽略 15 分钟缓存） */
-async function checkUpdates() {
-  await syncCentralVersions(true)
 }
 
 async function openPage(url: string) {
@@ -619,11 +653,18 @@ async function confirmDownload() {
 async function createFromPanel(fileName: string, path: string) {
   const p = pendingCreates[fileName]
   if (!p) return
+  const name = p.name.trim()
+  // 名字重复就不建（面板里也会红字提示，这里兜住「下载期间名字被别人占了」）
+  if (instances.value.some((i) => i.name === name)) {
+    p.state = 'error'
+    p.error = `游戏名「${name}」已存在，请换一个名字`
+    return
+  }
   p.state = 'creating'
   p.error = ''
   try {
     await invoke('create_instance', {
-      name: p.name,
+      name: p.name.trim(),
       jarPath: path,
       javaPath: p.javaPath.trim() || 'java',
       jvmArgs: p.jvmArgs.split(/\s+/).filter(Boolean),
@@ -647,6 +688,14 @@ async function createFromPanel(fileName: string, path: string) {
 }
 
 const unlisteners: UnlistenFn[] = []
+
+/** 游戏名不能重复：重名时红字提示并禁止创建 */
+const dlNameTaken = computed(() => {
+  const p = dlPanel.value
+  if (!p) return false
+  const n = p.name.trim()
+  return !!n && instances.value.some((i) => i.name === n)
+})
 
 onMounted(async () => {
   void loadCentral()
@@ -712,15 +761,7 @@ onBeforeUnmount(() => {
               <span v-for="t in c.tags" :key="t" class="tag" style="margin-left: 6px">{{ t }}</span>
             </div>
           </div>
-          <!-- 检查更新：忽略缓存，重新向中心化服务器同步所有源的版本 -->
-          <button
-            class="btn-ghost src-refresh"
-            :disabled="versionSyncing"
-            title="重新向中心化服务器同步版本"
-            @click="checkUpdates"
-          >
-            {{ versionSyncing ? '同步中…' : '检查更新' }}
-          </button>
+          <!-- 检查更新按钮已按用户要求移除 -->
         </div>
 
         <div class="vlist">
@@ -1057,7 +1098,16 @@ onBeforeUnmount(() => {
         <div class="set-row">
           <div class="label">游戏名称</div>
           <div class="ctrl" style="flex: 1; max-width: 340px">
-            <input v-model="dlPanel.name" class="field" style="width: 100%" :disabled="dlPanel.state !== 'form'" />
+            <input
+              v-model="dlPanel.name"
+              class="field"
+              style="width: 100%"
+              :disabled="dlPanel.state !== 'form'"
+              :style="dlNameTaken ? { borderColor: '#ff8f8f', color: '#ff8f8f' } : undefined"
+            />
+            <div v-if="dlNameTaken" class="meta" style="color: #ff8f8f; font-size: 12px">
+              已存在同名游戏，请换一个名字
+            </div>
           </div>
         </div>
 
@@ -1157,7 +1207,12 @@ onBeforeUnmount(() => {
         <div class="set-row" style="justify-content: flex-end; gap: 10px">
           <template v-if="dlPanel.state === 'form'">
             <button class="btn-ghost" @click="closePanel">取消</button>
-            <button class="btn-grad" style="font-size: 14px; padding: 9px 26px" @click="confirmDownload">
+            <button
+              class="btn-grad"
+              style="font-size: 14px; padding: 9px 26px"
+              :disabled="dlNameTaken || !dlPanel.name.trim()"
+              @click="confirmDownload"
+            >
               下载并创建
             </button>
           </template>

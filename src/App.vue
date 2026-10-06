@@ -96,12 +96,8 @@ onMounted(async () => {
   )
   unlisteners.push(
     await listen<LaunchExitPayload>('launch-exit', (e) => {
+      // 不自动弹日志：只收进左下角圆圈（玩家看过一次后圆圈自己收起）
       setLaunchExit(e.payload.id, e.payload.code)
-      // 按设置自动弹出该实例的日志（多开时能第一时间看到哪个退出了）
-      if (settings.autoOpenLogOnExit) {
-        store.launch.instanceId = e.payload.id
-        store.launch.open = true
-      }
       loadInstances()
     }),
   )

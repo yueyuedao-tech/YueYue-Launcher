@@ -4,6 +4,7 @@ import { invoke } from '@tauri-apps/api/core'
 import {
   clearFinishedLaunches,
   closeLaunch,
+  closeLogPanel,
   launchDockVisible,
   launchRecords,
   loadInstances,
@@ -91,8 +92,15 @@ async function stop(id: string) {
 }
 
 function close() {
-  logPanelOpen.value = false
+  // 收起面板即视为「看过了」：圆圈随之隐藏，下次启动游戏再出现
+  closeLogPanel()
   closeLaunch()
+}
+
+/** 点圆圈：展开/收起。收起要走 closeLogPanel，才会标记「已看过」 */
+function togglePanel() {
+  if (logPanelOpen.value) closeLogPanel()
+  else logPanelOpen.value = true
 }
 
 function forget(id: string) {
@@ -109,7 +117,7 @@ function forget(id: string) {
     :class="{ active: logPanelOpen, live: runningLaunchCount > 0 }"
     title="启动日志"
     aria-label="启动日志"
-    @click="logPanelOpen = !logPanelOpen"
+    @click="togglePanel"
   >
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <path d="M5 4h11l3 3v13H5z" />
@@ -117,6 +125,9 @@ function forget(id: string) {
     </svg>
     <i v-if="runningLaunchCount" class="dock-badge">{{ runningLaunchCount }}</i>
   </button>
+
+  <!-- 点面板以外的任何地方都关掉（和下载任务面板一致） -->
+  <div v-if="logPanelOpen" class="dock-overlay" @click="closeLogPanel()"></div>
 
   <div v-if="logPanelOpen" class="dock-panel dock-panel--left" role="dialog" aria-label="启动日志归档">
     <header class="dock-head">

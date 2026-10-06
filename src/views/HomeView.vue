@@ -61,7 +61,6 @@ async function launch() {
 
     <header>
       <div class="brand">Yue<em>Yue</em> Launcher</div>
-      <div class="brand-sub">YYL · Windows / Linux · Mindustry 游戏启动</div>
 
       <div class="launch-zone">
         <div class="version-pick">

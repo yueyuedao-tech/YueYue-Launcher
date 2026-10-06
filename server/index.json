@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "app": "yueyue-launcher",
-  "generated": "2026-10-06T09:22:08.037Z",
+  "generated": "2026-10-06T09:59:19.610Z",
   "count": 3,
   "items": [
     {
@@ -2212,6 +2212,26 @@
       "scope": "client",
       "versions": [
         {
+          "tag": "prerelease-2026.10.06.B506",
+          "title": "2026.10.06.B506",
+          "date": "2026-10-06",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/prerelease-2026.10.06.B506",
+          "assets": [
+            {
+              "name": "MindustryX-2026.10.06.B506-Desktop-SDL3.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/prerelease-2026.10.06.B506/MindustryX-2026.10.06.B506-Desktop-SDL3.jar",
+              "size": 100155135
+            },
+            {
+              "name": "MindustryX-2026.10.06.B506-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/prerelease-2026.10.06.B506/MindustryX-2026.10.06.B506-Desktop.jar",
+              "size": 91528043
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
           "tag": "prerelease-2026.10.06.B505",
           "title": "2026.10.06.B505",
           "date": "2026-10-06",
@@ -2246,26 +2266,6 @@
               "name": "MindustryX-2026.10.06.B504-Desktop.jar",
               "url": "https://github.com/TinyLake/MindustryX/releases/download/prerelease-2026.10.06.B504/MindustryX-2026.10.06.B504-Desktop.jar",
               "size": 91526165
-            }
-          ],
-          "dropped": 3,
-          "folder": false
-        },
-        {
-          "tag": "prerelease-2026.10.06.B503",
-          "title": "2026.10.06.B503",
-          "date": "2026-10-06",
-          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/prerelease-2026.10.06.B503",
-          "assets": [
-            {
-              "name": "MindustryX-2026.10.06.B503-Desktop-SDL3.jar",
-              "url": "https://github.com/TinyLake/MindustryX/releases/download/prerelease-2026.10.06.B503/MindustryX-2026.10.06.B503-Desktop-SDL3.jar",
-              "size": 100153250
-            },
-            {
-              "name": "MindustryX-2026.10.06.B503-Desktop.jar",
-              "url": "https://github.com/TinyLake/MindustryX/releases/download/prerelease-2026.10.06.B503/MindustryX-2026.10.06.B503-Desktop.jar",
-              "size": 91526158
             }
           ],
           "dropped": 3,

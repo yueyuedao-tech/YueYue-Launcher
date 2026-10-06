@@ -79,7 +79,18 @@ async function rescan() {
   }
 }
 
+/** 游戏名不能重复：重名红字提示并禁止提交（编辑自己时排除自己） */
+const nameTaken = computed(() => {
+  const n = form.name.trim()
+  if (!n) return false
+  return instances.value.some((i) => i.name === n && i.id !== editingId.value)
+})
+
 async function submit() {
+  if (nameTaken.value) {
+    formError.value = `已存在同名游戏「${form.name.trim()}」，请换一个名字`
+    return
+  }
   busy.value = true
   formError.value = ''
   const args = {
@@ -245,7 +256,17 @@ onMounted(async () => {
       <div class="set-row">
         <div class="label">游戏名称</div>
         <div class="ctrl">
-          <input v-model="form.name" class="field" style="width: 220px" :disabled="!!editingId" placeholder="如：主线服-测试" />
+          <input
+            v-model="form.name"
+            class="field"
+            style="width: 220px"
+            :disabled="!!editingId"
+            :style="nameTaken ? { borderColor: '#ff8f8f', color: '#ff8f8f' } : undefined"
+            placeholder="如：主线服-测试"
+          />
+          <span v-if="nameTaken" class="meta" style="color: #ff8f8f; font-size: 12px">
+            已存在同名游戏
+          </span>
         </div>
       </div>
       <div class="set-row">
