@@ -4,7 +4,6 @@ import { invoke } from '@tauri-apps/api/core'
 import { marked } from 'marked'
 import {
   autoCollapseLaunch,
-  bgImageStyle,
   currentInstance,
   effectiveInfoBar,
   instances,
@@ -69,8 +68,6 @@ async function launch() {
 
 <template>
   <div class="home">
-    <div class="home-bg" aria-hidden="true" :style="bgImageStyle" />
-
     <header>
       <div class="brand">Yue<em>Yue</em> Launcher</div>
 

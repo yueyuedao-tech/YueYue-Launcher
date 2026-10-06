@@ -380,17 +380,16 @@ select.field option { background: #171722; color: var(--ink); }
   padding: 40px 44px 30px;
 }
 .home-bg {
-  position: absolute; inset: 0;
+  /* 整窗固定：导航栏压在图上，而不是把图截在导航栏以下（截了会让 cover 重新缩放） */
+  position: fixed; inset: 0;
   background: var(--bg) url('./assets/hero.jpg') center 40% / cover no-repeat;
   z-index: 0;
   /* 背景模糊（个性化里可调）：放大一点，避免模糊后边缘透出底色 */
   filter: blur(var(--bg-blur, 0px));
   transform: scale(calc(1 + var(--bg-blur, 0px) / 300));
 }
-/* 其他页面用的背景层：整窗固定，内容整体压在它上面（见 .shell 的 z-index）。
-   首页那套左右渐变压暗是按 hero 排版调的，直接套到列表页会让中间过亮、
-   卡片文字看不清，所以这里换成整体均匀压暗。 */
-.home-bg--app { position: fixed; }
+/* 非首页：整体均匀压暗。首页那套左右渐变压暗是按 hero 排版调的，
+   直接套到列表页会中间过亮、卡片文字看不清。 */
 .home-bg--app::after {
   background:
     linear-gradient(
@@ -400,9 +399,8 @@ select.field option { background: #171722; color: var(--ink); }
       rgba(18, 18, 28, calc(var(--veil) * 0.94)) 100%
     );
 }
-.home-bg::after {
-  content: '';
-  position: absolute; inset: 0;
+/* 首页：沿用原来的左右 + 底部渐变压暗 */
+.home-bg--hero::after {
   background:
     linear-gradient(
       90deg,
@@ -415,6 +413,11 @@ select.field option { background: #171722; color: var(--ink); }
       rgba(18, 18, 28, calc(var(--veil) * 0.95)) 0%,
       rgba(18, 18, 28, 0) 48%
     );
+}
+/* 遮罩层本体（颜色由上面的 --app / --hero 决定） */
+.home-bg::after {
+  content: '';
+  position: absolute; inset: 0;
   filter: none;
 }
 .home > :not(.home-bg) { position: relative; z-index: 1; }

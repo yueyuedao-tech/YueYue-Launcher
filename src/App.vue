@@ -69,7 +69,7 @@ watch(
 
 const current = computed(() => views[store.view])
 /** 首页始终有背景图；其他页面由「个性化 → 背景图也用在其他页面」决定 */
-const showAppBg = computed(() => settings.bgAllPages && store.view !== 'home')
+const showAppBg = computed(() => store.view === 'home' || settings.bgAllPages)
 const unlisteners: UnlistenFn[] = []
 
 function go(id: ViewId) {
@@ -171,8 +171,15 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="shell">
-    <!-- 背景图：首页自己那份在 HomeView 里；这里负责让「其他页面」也能用同一张图 -->
-    <div v-if="showAppBg" class="home-bg home-bg--app" aria-hidden="true" :style="bgImageStyle" />
+    <!-- 背景图：整窗固定，导航栏压在图上而不是把图截断（首页以前放在 .home 里，
+         只占导航栏以下那块，图片按更矮的区域 cover 会被“放大”，所以统一挪到这里） -->
+    <div
+      v-if="showAppBg"
+      class="home-bg home-bg--app"
+      :class="{ 'home-bg--hero': store.view === 'home' }"
+      aria-hidden="true"
+      :style="bgImageStyle"
+    />
 
     <!-- 顶部导航（navPosition=top 时显示；窄屏隐藏，由底部栏接管） -->
     <header v-if="settings.navPosition === 'top'" class="topnav">
