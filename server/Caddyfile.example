@@ -1,0 +1,13 @@
+# 用 Caddy 在 1020 上自动申请/续期证书（需要 80 或 443 能通到这台机器做 ACME 校验）
+#
+#   docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d
+#
+# 已经在别处有 mindustry.wiki 证书时，不要用这个文件，直接参考 README 的 nginx 写法。
+{
+  email admin@mindustry.wiki
+}
+
+mindustry.wiki:1020 {
+  encode zstd gzip
+  reverse_proxy central:1020
+}

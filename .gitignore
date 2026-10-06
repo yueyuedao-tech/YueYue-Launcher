@@ -25,3 +25,5 @@ scripts/inst-overlay*
 scripts/*.jar
 
 server/.cache/
+# docker-compose 里挂给容器的缓存卷
+server/data/

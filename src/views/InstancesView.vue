@@ -233,9 +233,6 @@ onMounted(async () => {
     <div class="toolbar" style="justify-content: space-between">
       <div>
         <h1 class="page-title">游戏</h1>
-        <p class="page-sub" style="margin-bottom: 0">
-          每个游戏独立文件夹（instance.json + launch.config.json + data/），存档互相隔离
-        </p>
       </div>
       <div style="display: flex; gap: 10px; align-items: center">
         <button class="btn-ghost" :disabled="rescanning" @click="rescan">

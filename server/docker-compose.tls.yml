@@ -1,0 +1,29 @@
+# 可选：让 Caddy 在 1020 上终止 TLS（自动申请 Let's Encrypt 证书）
+#
+#   docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d
+#
+# 前提：80 或 443 端口能从公网访问到这台机器（ACME 校验用）。
+# 如果 mindustry.wiki 的证书已经在别的反向代理上，跳过这个文件，用 README 里的 nginx 写法。
+services:
+  central:
+    # Caddy 反代进来，不必再对外暴露容器端口
+    ports: []
+    expose:
+      - "1020"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: yyl-central-caddy
+    restart: unless-stopped
+    depends_on:
+      - central
+    ports:
+      - "1020:1020"
+    volumes:
+      - ./Caddyfile.example:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

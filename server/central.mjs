@@ -304,40 +304,72 @@ function summarize(items) {
   }
 }
 
+const CORS = {
+  'access-control-allow-origin': '*',
+  'cache-control': 'no-store',
+}
+
 async function serve(port) {
-  const first = JSON.parse(await emit())
-  console.log(`YYL 中心化服务器已启动: http://127.0.0.1:${port}/index.json`)
-  summarize(first.items)
-  console.log('在客户端「设置 → 下载 → 中心化服务器」填入该地址即可')
+  console.log(`YYL 中心化服务器启动中，监听 0.0.0.0:${port}`)
+  console.log(`  · 中心化索引  GET /index.json`)
+  console.log(`  · 信息服务器  GET /info.md   （每日信息 Markdown，可直接填进设置的「每日信息」链接）`)
+  console.log(`  · 健康检查    GET /health`)
+  console.log('在客户端「设置 → 镜像与网络 → 中心化服务器」填入本服务地址即可')
 
   const server = createServer((req, res) => {
     const url = (req.url || '/').split('?')[0]
-    if (url !== '/' && url !== '/index.json') {
-      res.writeHead(404).end('not found')
+    // 访问日志：便于确认「客户端是开机拉还是进页面才拉」
+    console.log(`[${new Date().toISOString()}] ${req.method} ${url} ${req.headers['user-agent'] || ''}`.trim())
+
+    // 信息服务器：把每日信息以 Markdown 原文吐出去，
+    // 客户端「每日信息」那一行可以直接填 http(s)://<本服务>/info.md
+    if (url === '/info.md' || url === '/info') {
+      res.writeHead(200, { 'content-type': 'text/markdown; charset=utf-8', ...CORS })
+      res.end(INFO_BAR + '\n')
       return
     }
-    // 打一行访问日志：便于确认「客户端是开机拉还是进页面才拉」
-    console.log(`[${new Date().toISOString()}] GET ${url} ${req.headers['user-agent'] || ''}`.trim())
+
+    if (url === '/health') {
+      res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', ...CORS })
+      res.end('ok\n')
+      return
+    }
+
+    if (url !== '/' && url !== '/index.json') {
+      res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8', ...CORS }).end('not found')
+      return
+    }
+
     emit().then(
       (body) => {
-        res.writeHead(200, {
-          'content-type': 'application/json; charset=utf-8',
-          'access-control-allow-origin': '*',
-          'cache-control': 'no-store',
-        })
+        res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', ...CORS })
         res.end(body)
       },
       (e) => {
-        res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' }).end(String(e))
+        res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8', ...CORS }).end(String(e))
       },
     )
   })
-  server.listen(port, '0.0.0.0')
+
+  // 先监听再建索引：GitHub 索引可能要几十秒，若放在 listen 之前，
+  // 容器启动期 /health 会连不上（实测踩过），编排会误判成起不来。
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`已监听，首次索引在后台构建…`)
+    emit().then(
+      (body) => {
+        const idx = JSON.parse(body)
+        console.log(`首次索引完成（schema ${idx.schema}，${idx.count} 条源）`)
+        summarize(idx.items)
+      },
+      (e) => console.error('首次索引失败（收到请求时会自动重试）:', e),
+    )
+  })
 }
 
 const [, , cmd = 'build', arg] = process.argv
 if (cmd === 'serve') {
-  await serve(Number(arg) || 8787)
+  // 端口优先级：命令行参数 > 环境变量 PORT > 8787（容器里用 PORT 便于 docker-compose 配置）
+  await serve(Number(arg) || Number(process.env.PORT) || 8787)
 } else {
   const idx = JSON.parse(await emit())
   console.log(`已生成 ${OUT}（schema ${idx.schema}，${idx.count} 条源）`)

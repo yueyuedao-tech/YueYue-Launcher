@@ -367,6 +367,18 @@ pub async fn fetch_text(url: String, proxy: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || http_get(&url, &proxy, &[], 15))
         .await
         .map_err(|e| format!("任务执行失败: {e}"))?
+        // 把 curl 的退出码翻译成人话，设置页直接显示这条
+        .map_err(|e| {
+            if e.contains("退出码 28") {
+                "链接读取超时（服务不可达或响应过慢）".to_string()
+            } else if e.contains("退出码 6") || e.contains("Could not resolve") {
+                "域名解析失败".to_string()
+            } else if e.contains("退出码 7") {
+                "连接被拒绝".to_string()
+            } else {
+                e
+            }
+        })
 }
 
 fn http_get(url: &str, proxy: &str, headers: &[&str], timeout: u32) -> Result<String, String> {
