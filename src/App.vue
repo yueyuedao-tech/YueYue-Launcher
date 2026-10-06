@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount } from 'vue'
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import {
   store,
@@ -12,12 +12,22 @@ import {
   settings,
   loadCentralVersions,
   syncCentralVersions,
+  loadCentralIndex,
+  refreshDownloadTasks,
+  patchDownloadTask,
+  appendLaunchLog,
+  setLaunchExit,
+  loadSystemProxy,
+  loadCachedMirrors,
+  applyWindowSettings,
+  notifyDownloadDone,
 } from './store'
 import type {
   DownloadDonePayload,
   DownloadErrorPayload,
   DownloadProgressPayload,
   LaunchExitPayload,
+  LaunchLogPayload,
 } from './types'
 import HomeView from './views/HomeView.vue'
 import InstancesView from './views/InstancesView.vue'
@@ -25,6 +35,8 @@ import DownloadsView from './views/DownloadsView.vue'
 import ModView from './views/ModView.vue'
 import SettingsView from './views/SettingsView.vue'
 import LaunchOverlay from './components/LaunchOverlay.vue'
+import DownloadTasks from './components/DownloadTasks.vue'
+import LaunchDock from './components/LaunchDock.vue'
 
 const views = {
   home: HomeView,
@@ -34,13 +46,24 @@ const views = {
   settings: SettingsView,
 } as const
 
-const nav: { id: ViewId; label: string; path: string }[] = [
+const ALL_NAV: { id: ViewId; label: string; path: string; devOnly?: boolean }[] = [
   { id: 'home', label: '首页', path: 'M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z' },
   { id: 'instances', label: '游戏', path: 'M4 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z' },
   { id: 'downloads', label: '下载', path: 'M12 4v10m0 0 4-4m-4 4-4-4M5 19h14' },
-  { id: 'mod', label: 'Mod', path: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' },
+  // Mod 页还没写完：默认隐藏，只有设置里打开「开发者模式」才出现
+  { id: 'mod', label: 'Mod', devOnly: true, path: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' },
   { id: 'settings', label: '设置', path: 'M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7zm7.4-2.6.1-1-.1-1 2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L15 3.4h-4l-.3 2.5c-.6.2-1.2.6-1.7 1l-2.4-1-2 3.4 2 1.6-.1 1 .1 1-2 1.6 2 3.4 2.4-1c.5.4 1.1.8 1.7 1l.3 2.5h4l.3-2.5c.6-.2 1.2-.6 1.7-1l2.4 1 2-3.4z' },
 ]
+
+const nav = computed(() => ALL_NAV.filter((n) => !n.devOnly || settings.devMode))
+
+// 开发者模式关掉时若正停在 Mod 页，退回首页，避免留下一个进不去的页面
+watch(
+  () => settings.devMode,
+  (on) => {
+    if (!on && store.view === 'mod') store.view = 'home'
+  },
+)
 
 const current = computed(() => views[store.view])
 const unlisteners: UnlistenFn[] = []
@@ -51,38 +74,87 @@ function go(id: ViewId) {
 }
 
 onMounted(async () => {
+  // 启动页可在设置里选（首页/游戏/下载/设置）
+  if (settings.startView) store.view = settings.startView
   loadInstances()
-  // 开机即读本地版本缓存（立刻可渲染），随后后台向服务器索引并按需覆盖
+  // 开机即读本地版本缓存（立刻可渲染），随后后台向服务器索引并按需覆盖；
+  // 中心源清单也在这里拉：进下载页时直接有内容，不用再等一次索引。
   void loadCentralVersions().then(() => syncCentralVersions())
+  void loadCentralIndex()
+  // 后端任务表可能与界面不同步（例如 WebView 刚重载），开机对齐一次
+  void refreshDownloadTasks()
+  // 窗口/代理/镜像这些依赖窗口与系统状态的，等挂载后再落一次
+  void loadSystemProxy()
+  void loadCachedMirrors()
+  void applyWindowSettings()
+  // 启动日志在 App 层统一收：浮层收起后仍需继续写入归档，否则关掉浮层就丢日志
   unlisteners.push(
-    await listen<LaunchExitPayload>('launch-exit', () => {
+    await listen<LaunchLogPayload>('launch-log', (e) => {
+      const prefix = e.payload.stream === 'err' ? '[err] ' : ''
+      appendLaunchLog(e.payload.id, prefix + e.payload.line, e.payload.stream === 'err' ? 'warn' : '')
+    }),
+  )
+  unlisteners.push(
+    await listen<LaunchExitPayload>('launch-exit', (e) => {
+      setLaunchExit(e.payload.id, e.payload.code)
+      // 按设置自动弹出该实例的日志（多开时能第一时间看到哪个退出了）
+      if (settings.autoOpenLogOnExit) {
+        store.launch.instanceId = e.payload.id
+        store.launch.open = true
+      }
       loadInstances()
     }),
   )
   unlisteners.push(
     await listen<DownloadProgressPayload>('download-progress', (e) => {
-      const s = downloadStates[e.payload.fileName]
-      if (!s) return
-      s.percent = e.payload.percent
-      s.received = e.payload.received
-      s.total = e.payload.total
+      const p = e.payload
+      const s = downloadStates[p.fileName]
+      if (s) {
+        s.percent = p.percent
+        s.received = p.received
+        s.total = p.total
+        s.speed = p.speed
+        s.threads = p.threads
+      }
+      patchDownloadTask(p.fileName, {
+        status: 'downloading',
+        percent: p.percent,
+        received: p.received,
+        total: p.total,
+        speed: p.speed,
+        threads: p.threads,
+      })
     }),
   )
   unlisteners.push(
     await listen<DownloadDonePayload>('download-done', (e) => {
       const s = downloadStates[e.payload.fileName]
-      if (!s) return
-      s.status = 'done'
-      s.percent = 100
-      s.path = e.payload.path
+      if (s) {
+        s.status = 'done'
+        s.percent = 100
+        s.path = e.payload.path
+      }
+      patchDownloadTask(e.payload.fileName, {
+        status: 'done',
+        percent: 100,
+        speed: 0,
+        path: e.payload.path,
+      })
+      void notifyDownloadDone(e.payload.fileName)
     }),
   )
   unlisteners.push(
     await listen<DownloadErrorPayload>('download-error', (e) => {
       const s = downloadStates[e.payload.fileName]
-      if (!s) return
-      s.status = 'error'
-      s.code = e.payload.code
+      if (s) {
+        s.status = 'error'
+        s.code = e.payload.code
+      }
+      patchDownloadTask(e.payload.fileName, {
+        status: 'error',
+        code: e.payload.code,
+        speed: 0,
+      })
     }),
   )
   setTimeout(() => {
@@ -117,7 +189,6 @@ onBeforeUnmount(() => {
           <span>{{ item.label }}</span>
         </button>
       </nav>
-      <div class="topnav-spacer" aria-hidden="true" />
     </header>
 
     <div class="shell-body">
@@ -149,5 +220,7 @@ onBeforeUnmount(() => {
     </div>
 
     <LaunchOverlay v-if="store.launch.open" />
+    <DownloadTasks />
+    <LaunchDock />
   </div>
 </template>

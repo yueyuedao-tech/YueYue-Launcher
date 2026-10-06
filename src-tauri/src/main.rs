@@ -107,7 +107,7 @@ fn main() {
             instances::delete_instance,
             instances::list_hidden_instances,
             instances::restore_instance,
-            instances::create_save,
+            instances::sharing_jar,
             instances::list_saves,
             instances::scan_jars,
             instances::scan_javas,
@@ -118,6 +118,7 @@ fn main() {
             central::fetch_central_index,
             central::list_central_versions,
             central::sync_central_versions,
+            central::list_folder_files,
             github::fetch_repo_versions,
             mods::search_workshop,
             mods::list_mods,
@@ -125,6 +126,10 @@ fn main() {
             mods::delete_mod,
             downloader::start_download,
             downloader::stop_download,
+            downloader::list_downloads,
+            downloader::clear_download,
+            downloader::clear_finished_downloads,
+            downloader::get_system_proxy,
             set_close_behavior,
         ])
         .setup(|app| {

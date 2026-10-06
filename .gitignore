@@ -23,3 +23,5 @@ scripts/cdp-eval*
 scripts/inst-overlay*
 
 scripts/*.jar
+
+server/.cache/

@@ -53,7 +53,7 @@ export interface GithubVersion {
   jarUrl: string
 }
 
-/** 中心化服务器索引的单条内容（标签/logo 由服务端下发，客户端不参与打标） */
+/** 中心化服务器索引的单条内容（标签/logo/标语/版本均由服务端下发，客户端只读） */
 export interface CentralItem {
   id: string
   name: string
@@ -67,8 +67,14 @@ export interface CentralItem {
   size: number
   /** 由中心列表服务器下发，用于识别游戏；为空时前端用首字母兜底 */
   logo: string
+  /** 标语：一句话说明这个游戏端是什么；服务端优先，客户端有兜底文案 */
+  slogan: string
   /** client = 仅客户端；server 待后续接入 */
   scope: string
+  /** 服务端标注好的版本快照；非空时客户端不再直连 GitHub（403 消失的落点） */
+  versions?: CentralVersion[]
+  /** 服务端标注版本失败的原因 */
+  versionsError?: string
 }
 
 export interface CentralAsset {
@@ -100,6 +106,18 @@ export interface VersionIndex {
   hashes: Record<string, string>
   /** 源 id → 本次拉取失败原因（成功时清除） */
   errors: Record<string, string>
+  /** 中心下发的镜像清单（跟着缓存一起留着） */
+  mirrors?: CentralMirrors
+}
+
+/** 中心下发的镜像条目（工坊镜像等） */
+export interface MirrorItem {
+  name: string
+  url: string
+}
+
+export interface CentralMirrors {
+  workshop: MirrorItem[]
 }
 
 export interface CentralIndex {
@@ -108,6 +126,8 @@ export interface CentralIndex {
   /** 非空表示远程失败原因 */
   note: string
   items: CentralItem[]
+  /** 中心下发的镜像清单 */
+  mirrors: CentralMirrors
 }
 
 export interface DownloadProgressPayload {
@@ -115,6 +135,26 @@ export interface DownloadProgressPayload {
   received: number
   total: number
   percent: number
+  /** 字节/秒（指数平滑） */
+  speed: number
+  /** 实际使用的连接数（服务器不支持分段时为 1） */
+  threads: number
+}
+
+/** 下载任务快照（来自后端 list_downloads，抽屉面板的唯一真相） */
+export interface DownloadTask {
+  fileName: string
+  name: string
+  url: string
+  status: 'downloading' | 'done' | 'error'
+  received: number
+  total: number
+  percent: number
+  speed: number
+  threads: number
+  path: string
+  code: number
+  startedAt: number
 }
 
 export interface DownloadDonePayload {

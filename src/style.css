@@ -185,6 +185,165 @@ input, select { font: inherit; color: var(--ink); }
   transition: border-color .15s;
 }
 .field:focus { border-color: rgba(255,125,176,.6); }
+select.field { cursor: pointer; }
+select.field option { background: #171722; color: var(--ink); }
+
+/* ---------- 下载任务：顶栏入口 + 右侧抽屉 ---------- */
+.task-entry { position: relative; }
+.nav-badge {
+  position: absolute;
+  top: 2px; right: 6px;
+  min-width: 17px; height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--pink);
+  color: #1a0f16;
+  font-size: 11px; font-style: normal; font-weight: 700;
+  line-height: 17px; text-align: center;
+}
+.nav-badge--dot { top: 4px; right: 4px; }
+
+/* ---------- 悬浮圆圈：左下角启动日志 / 右下角下载任务 ---------- */
+.dock-circle {
+  position: fixed; bottom: 18px; z-index: 60;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(18, 18, 30, .92);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
+  transition: transform .15s, border-color .15s, background .15s;
+}
+.dock-circle--left { left: 18px; }
+.dock-circle--right { right: 18px; }
+.dock-circle:hover { transform: translateY(-2px); background: var(--card-hover); }
+.dock-circle.active { border-color: rgba(255, 125, 176, .6); color: var(--pink); }
+.dock-circle svg { width: 22px; height: 22px; }
+.dock-circle.live { border-color: rgba(110, 231, 249, .5); }
+.dock-circle.live::after {
+  content: ''; position: absolute; inset: -3px;
+  border-radius: 50%; border: 1px solid rgba(110, 231, 249, .45);
+  animation: dock-pulse 1.8s ease-out infinite;
+}
+@keyframes dock-pulse {
+  0% { transform: scale(.92); opacity: .9; }
+  100% { transform: scale(1.18); opacity: 0; }
+}
+.dock-badge {
+  position: absolute; top: -3px; right: -3px;
+  min-width: 19px; height: 19px; padding: 0 5px;
+  border-radius: 999px;
+  background: var(--pink); color: #1a0f16;
+  font-size: 11px; font-style: normal; font-weight: 700;
+  line-height: 19px; text-align: center;
+}
+
+.dock-panel {
+  position: fixed; bottom: 82px; z-index: 75;
+  width: min(560px, 92vw); max-height: min(62vh, 520px);
+  display: flex; flex-direction: column;
+  padding: 16px;
+  background: rgba(14, 14, 22, .97);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .5);
+  animation: dock-in .16s ease-out;
+}
+.dock-panel--left { left: 18px; }
+@keyframes dock-in {
+  from { transform: translateY(14px); opacity: .5; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.dock-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line);
+}
+.dock-title { font-size: 15px; font-weight: 600; }
+.dock-body { flex: 1; min-height: 0; display: flex; gap: 12px; padding-top: 12px; }
+.dock-list {
+  flex: none; width: 168px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.dock-item {
+  text-align: left; width: 100%;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  transition: background .15s, border-color .15s;
+}
+.dock-item:hover { background: var(--card-hover); }
+.dock-item.active { border-color: rgba(255, 125, 176, .55); }
+.dock-item-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.dock-item-name {
+  font-size: 13px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dock-log-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.dock-log { flex: 1; height: auto; min-height: 150px; max-height: 38vh; margin: 0; }
+.dock-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 10px; }
+
+/* 下载创建弹窗：要盖在任务抽屉（z-index 80）之上。
+   必须写成两个类：.edit-overlay 的 z-index:70 在样式表里更靠后，
+   同等特异性下会赢，只写 .dl-overlay 是盖不住的。 */
+.edit-overlay.dl-overlay { z-index: 95; }
+.dl-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.dl-head h3 { margin: 0; }
+.dl-close {
+  flex: none;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .04);
+  color: var(--ink-dim);
+  font-size: 14px; line-height: 1;
+  transition: background .15s, color .15s;
+}
+.dl-close:hover { background: rgba(255, 120, 120, .18); color: #ff8f8f; }
+
+.task-overlay {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(8, 8, 14, .55);
+  backdrop-filter: blur(2px);
+}
+.task-drawer {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: min(420px, 92vw);
+  display: flex; flex-direction: column;
+  padding: 18px 18px 22px;
+  background: rgba(14, 14, 22, .97);
+  border-left: 1px solid var(--line);
+  box-shadow: -18px 0 40px rgba(0, 0, 0, .45);
+  animation: drawer-in .18s ease-out;
+}
+@keyframes drawer-in {
+  from { transform: translateX(24px); opacity: .4; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.task-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--line);
+}
+.task-title { font-size: 16px; font-weight: 600; }
+.task-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-top: 14px; }
+.task-row {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.task-row-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.task-name {
+  font-size: 13.5px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.task-row .dl-progress { margin-top: 9px; }
+.task-stats {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  margin-top: 7px; font-size: 12px; color: var(--ink-dim);
+}
+.task-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 
 .tag {
   display: inline-block;
@@ -213,6 +372,9 @@ input, select { font: inherit; color: var(--ink); }
   position: absolute; inset: 0;
   background: var(--bg) url('./assets/hero.jpg') center 40% / cover no-repeat;
   z-index: 0;
+  /* 背景模糊（个性化里可调）：放大一点，避免模糊后边缘透出底色 */
+  filter: blur(var(--bg-blur, 0px));
+  transform: scale(calc(1 + var(--bg-blur, 0px) / 300));
 }
 .home-bg::after {
   content: '';
@@ -319,6 +481,49 @@ input, select { font: inherit; color: var(--ink); }
 .old-toggle:hover { background: var(--card-hover); color: var(--ink); }
 .old-list { display: flex; flex-direction: column; gap: 8px; }
 
+/* 旧版本归档分组：默认收起，鼠标滑到组头才显出方向键 */
+.ver-group { display: flex; flex-direction: column; gap: 8px; }
+.ver-group-head {
+  display: flex; align-items: center; gap: 8px;
+  align-self: flex-start;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 12.5px;
+  color: var(--ink-dim);
+  transition: background .15s, color .15s;
+}
+.ver-group-head:hover { background: var(--card-hover); color: var(--ink); }
+.vg-arrow {
+  width: 12px;
+  opacity: 0;                     /* 平时不显示方向键，滑上去才出现 */
+  transition: opacity .15s;
+}
+.ver-group-head:hover .vg-arrow,
+.ver-group-head:focus-visible .vg-arrow { opacity: 1; }
+.vg-title { font-weight: 600; }
+.vg-count { opacity: .7; }
+
+/* 源卡片右上角的「检查更新」 */
+.src-refresh { flex: none; font-size: 12px; padding: 6px 12px; }
+
+/* 下载中心内搜索：一行输入 + 清空 + 命中计数（窄屏换行） */
+.search-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.search-bar .field { flex: 1 1 220px; max-width: 420px; }
+.search-bar .meta { color: var(--ink-dim); font-size: 12px; }
+
+/* 中心源标语：一句话说明这个默认游戏端是什么 */
+.row-main .slogan {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink);
+  opacity: .78;
+  margin-top: 4px;
+}
+
 /* 游戏：编辑 / 删除用的独立面板，视觉上等同新开窗口 */
 .edit-overlay {
   position: fixed; inset: 0; z-index: 70;
@@ -338,6 +543,57 @@ input, select { font: inherit; color: var(--ink); }
 .delete-opt .ic { font-size: 20px; line-height: 1.2; }
 .delete-opt .ot { font-weight: 700; font-size: 14.5px; }
 .delete-opt .od { font-size: 12.5px; color: var(--ink-dim); margin-top: 3px; }
+
+/* 删除确认里的「共用本体」提示 */
+.shared-warn {
+  border: 1px solid rgba(255, 209, 102, .45);
+  background: rgba(255, 209, 102, .08);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+.shared-warn .sw-title { color: var(--amber); font-weight: 600; font-size: 13.5px; }
+.shared-warn .sw-body { font-size: 13px; margin-top: 4px; word-break: break-all; }
+.shared-warn .sw-note { font-size: 12px; color: var(--ink-dim); margin-top: 6px; line-height: 1.6; }
+
+/* 关于页 */
+.about-hero { display: flex; align-items: center; gap: 14px; padding: 6px 0 16px; }
+.about-hero .logo { width: 56px; height: 56px; border-radius: 14px; object-fit: cover; }
+.about-name { font-size: 17px; font-weight: 700; }
+.about-sub { font-size: 12.5px; color: var(--ink-dim); margin-top: 3px; }
+.about-maker { font-size: 12.5px; color: var(--pink); margin-top: 3px; font-weight: 600; }
+.about-h {
+  font-size: 13px; font-weight: 600; letter-spacing: 1px;
+  color: var(--ink-dim); margin: 18px 0 10px;
+}
+.about-arch { display: flex; flex-direction: column; gap: 10px; }
+.arch-row {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 10px 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.arch-key {
+  flex: none; width: 84px;
+  font-size: 12.5px; font-weight: 600; color: var(--cyan);
+}
+.arch-val { font-size: 12.5px; line-height: 1.75; color: var(--ink); }
+.arch-val code {
+  font-family: 'Cascadia Mono', Consolas, monospace;
+  font-size: 11.5px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, .07);
+}
+
+/* 动画总开关：关掉后所有过渡/动画停用（含悬浮圆圈的呼吸圈） */
+.no-anim *,
+.no-anim *::before,
+.no-anim *::after {
+  transition: none !important;
+  animation: none !important;
+}
 
 .dl-progress { width: 160px; }
 .dl-progress .bar {

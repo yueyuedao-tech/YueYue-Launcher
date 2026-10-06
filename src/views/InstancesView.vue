@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import {
+  autoCollapseLaunch,
   ensureScanned,
   hiddenInstances,
   instances,
@@ -9,6 +10,9 @@ import {
   javaScan,
   loadHidden,
   loadInstances,
+  markLaunchFailed,
+  markLaunchStopped,
+  openLaunchLog,
   resetLaunch,
   selectedInstanceId,
   settings,
@@ -57,7 +61,8 @@ function resetForm(info?: InstanceInfo) {
     form.name = ''
     form.jarPath = scannedJars.value[0] ?? ''
     form.javaPath = 'java'
-    form.jvmArgs = ''
+    // 新建游戏带入「个性化 → 新建游戏默认值」里的 JVM 参数
+    form.jvmArgs = settings.defaultJvmArgs
     form.memoryMb = settings.memory
     // 新建游戏的隔离默认值跟随「设置 → 启动」的开关
     form.isolate = settings.saveIsolation
@@ -109,11 +114,20 @@ async function submit() {
   }
 }
 
-/** 待删除的游戏：弹出两种删除方式，默认高亮取自设置（避免误删） */
 const pendingDelete = ref<InstanceInfo | null>(null)
+/** 与本实例共用同一个 jar 的其它游戏（删除确认里提示） */
+const sharedWith = ref<string[]>([])
 
-function askDelete(info: InstanceInfo) {
+/** 待删除的游戏：弹出两种删除方式，默认高亮取自设置（避免误删） */
+async function askDelete(info: InstanceInfo) {
   pendingDelete.value = info
+  sharedWith.value = []
+  try {
+    // 多个实例共用一个本体时提示一下：本实现不删 jar，但用户需要知道自己删的是哪一个
+    sharedWith.value = (await invoke('sharing_jar', { id: info.id })) as string[]
+  } catch {
+    sharedWith.value = []
+  }
 }
 
 async function doDelete(mode: 'keep' | 'purge') {
@@ -158,15 +172,19 @@ async function purgeHidden(info: InstanceInfo) {
 
 async function start(info: InstanceInfo) {
   if (startingId.value) return // 防重入
+  if (info.running) {
+    // 已在运行：打开已有日志归档，不清空
+    openLaunchLog(info.id)
+    return
+  }
   startingId.value = info.id
   selectedInstanceId.value = info.id
   resetLaunch(info.id)
-  await sleep(60) // 等浮层挂载并注册日志监听
   try {
     await invoke('launch_instance', { id: info.id })
+    autoCollapseLaunch(info.id)
   } catch (e) {
-    store.launch.logs.push({ text: `[错误] ${e}`, cls: 'warn' })
-    store.launch.status = 'failed'
+    markLaunchFailed(info.id, String(e))
   } finally {
     startingId.value = null
   }
@@ -176,6 +194,8 @@ async function start(info: InstanceInfo) {
 async function stop(info: InstanceInfo) {
   try {
     await invoke('stop_instance', { id: info.id })
+    // 后端对被 stop 的实例不发 launch-exit，归档状态要在这里落定
+    markLaunchStopped(info.id)
   } catch (e) {
     console.error(e)
   }
@@ -283,6 +303,15 @@ onMounted(async () => {
     <div v-if="pendingDelete" class="edit-overlay" @click.self="pendingDelete = null">
       <div class="set-group" style="max-width: 620px; margin: 40px auto">
         <h3>删除「{{ pendingDelete.name }}」</h3>
+        <!-- 共用本体提示：多个实例引用同一个 jar 时先说清楚 -->
+        <div v-if="sharedWith.length" class="shared-warn">
+          <div class="sw-title">⚠ 还有 {{ sharedWith.length }} 个游戏在用同一个本体</div>
+          <div class="sw-body">{{ sharedWith.join('、') }}</div>
+          <div class="sw-note">
+            「删本体留存档」只把这个游戏从列表移到隐藏区，<b>不会删磁盘上的 jar</b>，
+            所以其它游戏不受影响；若要彻底删 jar，请先确认没有别的实例还在用它。
+          </div>
+        </div>
         <div
           class="delete-opt"
           :class="{ sel: settings.defaultDelete === 'keep' }"
@@ -291,7 +320,7 @@ onMounted(async () => {
           <div class="ic">🗂</div>
           <div>
             <div class="ot">删除游戏本体 · 保留存档</div>
-            <div class="od">从列表中隐藏（真实环境中隐藏该目录），元数据与存档全部保留，可随时恢复</div>
+            <div class="od">从列表中隐藏（目录移到隐藏区），元数据与存档全部保留，可随时恢复；jar 不动</div>
           </div>
         </div>
         <div

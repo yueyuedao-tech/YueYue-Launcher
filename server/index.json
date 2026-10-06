@@ -1,11 +1,11 @@
 {
-  "schema": 1,
+  "schema": 2,
   "app": "yueyue-launcher",
-  "generated": "2026-10-05T17:14:26.717Z",
+  "generated": "2026-10-06T09:00:36.645Z",
   "count": 3,
   "items": [
     {
-      "id": "mindustry-官方",
+      "id": "src-mindustry-official",
       "name": "Mindustry 官方",
       "kind": "github-repo",
       "url": "https://github.com/Anuken/Mindustry/releases",
@@ -19,11 +19,2160 @@
         "官方"
       ],
       "size": 0,
-      "logo": "",
-      "scope": "client"
+      "logo": "https://github.com/Anuken.png?size=96",
+      "slogan": "Anuken 官方原版 · 紧跟上游 stable",
+      "scope": "client",
+      "versions": [
+        {
+          "tag": "v160.5",
+          "title": "v8 Build 160.5",
+          "date": "2026-09-20",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v160.5",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v160.5/Mindustry.jar",
+              "size": 88902250
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v160.4",
+          "title": "v8 Build 160.4",
+          "date": "2026-09-14",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v160.4",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v160.4/Mindustry.jar",
+              "size": 87044493
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v160.3",
+          "title": "v8 Build 160.3",
+          "date": "2026-09-13",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v160.3",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v160.3/Mindustry.jar",
+              "size": 87031418
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v160.2",
+          "title": "v8 Build 160.2",
+          "date": "2026-09-12",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v160.2",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v160.2/Mindustry.jar",
+              "size": 87022576
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v160.1",
+          "title": "v8 Build 160.1",
+          "date": "2026-09-11",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v160.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v160.1/Mindustry.jar",
+              "size": 87033822
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v160",
+          "title": "v8 Build 160",
+          "date": "2026-09-11",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v160",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v160/Mindustry.jar",
+              "size": 87039071
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v159.7",
+          "title": "v8 Build 159.7",
+          "date": "2026-07-19",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v159.7",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v159.7/Mindustry.jar",
+              "size": 86634761
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v159.6",
+          "title": "v8 Build 159.6",
+          "date": "2026-07-15",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v159.6",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v159.6/Mindustry.jar",
+              "size": 86624922
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v159.5",
+          "title": "v8 Build 159.5",
+          "date": "2026-07-13",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v159.5",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v159.5/Mindustry.jar",
+              "size": 86629111
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v159.3",
+          "title": "v8 Build 159.3",
+          "date": "2026-07-11",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v159.3",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v159.3/Mindustry.jar",
+              "size": 86230982
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v159.2",
+          "title": "v8 Build 159.2",
+          "date": "2026-07-08",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v159.2",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v159.2/Mindustry.jar",
+              "size": 85177108
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v159.1",
+          "title": "v8 Build 159.1",
+          "date": "2026-07-07",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v159.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v159.1/Mindustry.jar",
+              "size": 85168963
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v159",
+          "title": "v8 Build 159",
+          "date": "2026-07-06",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v159",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v159/Mindustry.jar",
+              "size": 85175278
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v158.1",
+          "title": "v8 Build 158.1",
+          "date": "2026-05-25",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v158.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v158.1/Mindustry.jar",
+              "size": 84728358
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v158",
+          "title": "v8 Build 158",
+          "date": "2026-05-23",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v158",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v158/Mindustry.jar",
+              "size": 84728229
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v157.4",
+          "title": "v8 Build 157.4",
+          "date": "2026-04-22",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v157.4",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v157.4/Mindustry.jar",
+              "size": 84587299
+            }
+          ],
+          "dropped": 2,
+          "folder": false
+        },
+        {
+          "tag": "v157.3",
+          "title": "v8 Build 157.3",
+          "date": "2026-04-18",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v157.3",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v157.3/Mindustry.jar",
+              "size": 84583655
+            }
+          ],
+          "dropped": 2,
+          "folder": false
+        },
+        {
+          "tag": "v157.2",
+          "title": "v8 Build 157.2",
+          "date": "2026-04-15",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v157.2",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v157.2/Mindustry.jar",
+              "size": 84565544
+            }
+          ],
+          "dropped": 2,
+          "folder": false
+        },
+        {
+          "tag": "v157.1",
+          "title": "v8 Build 157.1",
+          "date": "2026-04-14",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v157.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v157.1/Mindustry.jar",
+              "size": 84579673
+            }
+          ],
+          "dropped": 2,
+          "folder": false
+        },
+        {
+          "tag": "v157",
+          "title": "v8 Build 157 - Beta",
+          "date": "2026-04-09",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v157",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v157/Mindustry.jar",
+              "size": 84540141
+            }
+          ],
+          "dropped": 2,
+          "folder": false
+        },
+        {
+          "tag": "v156.2",
+          "title": "v8 Build 156.2 - Beta",
+          "date": "2026-03-27",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v156.2",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v156.2/Mindustry.jar",
+              "size": 84151616
+            }
+          ],
+          "dropped": 2,
+          "folder": false
+        },
+        {
+          "tag": "v156.1",
+          "title": "v8 Build 156.1 - Beta",
+          "date": "2026-03-25",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v156.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v156.1/Mindustry.jar",
+              "size": 84143021
+            }
+          ],
+          "dropped": 2,
+          "folder": false
+        },
+        {
+          "tag": "v156",
+          "title": "v8 Build 156 - Beta",
+          "date": "2026-03-23",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v156",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v156/Mindustry.jar",
+              "size": 83878114
+            }
+          ],
+          "dropped": 2,
+          "folder": false
+        },
+        {
+          "tag": "v155.4",
+          "title": "v8 Build 155.4 - Beta",
+          "date": "2026-02-16",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v155.4",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v155.4/Mindustry.jar",
+              "size": 80412995
+            }
+          ],
+          "dropped": 2,
+          "folder": false
+        },
+        {
+          "tag": "v155.3",
+          "title": "v8 Build 155.3 - Beta",
+          "date": "2026-02-13",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v155.3",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v155.3/Mindustry.jar",
+              "size": 89286073
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v155.2",
+          "title": "v8 Build 155.2 - Beta",
+          "date": "2026-02-12",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v155.2",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v155.2/Mindustry.jar",
+              "size": 89302480
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v155.1",
+          "title": "v8 Build 155.1 - Beta",
+          "date": "2026-02-10",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v155.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v155.1/Mindustry.jar",
+              "size": 89271191
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v155",
+          "title": "v8 Build 155 - Beta",
+          "date": "2026-02-09",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v155",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v155/Mindustry.jar",
+              "size": 89232650
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v154.3",
+          "title": "v8 Build 154.3 - Beta",
+          "date": "2025-12-21",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v154.3",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v154.3/Mindustry.jar",
+              "size": 79795238
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v154.2",
+          "title": "v8 Build 154.2 - Beta",
+          "date": "2025-12-18",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v154.2",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v154.2/Mindustry.jar",
+              "size": 79793092
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v154",
+          "title": "v8 Build 154 - Beta",
+          "date": "2025-12-16",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v154",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v154/Mindustry.jar",
+              "size": 79789816
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v153",
+          "title": "v8 Build 153 - Beta",
+          "date": "2025-10-30",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v153",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v153/Mindustry.jar",
+              "size": 75807478
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v152.2",
+          "title": "v8 Build 152.2 - Beta",
+          "date": "2025-09-29",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v152.2",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v152.2/Mindustry.jar",
+              "size": 75276003
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v152.1",
+          "title": "v8 Build 152.1 - Beta",
+          "date": "2025-09-28",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v152.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v152.1/Mindustry.jar",
+              "size": 75260353
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v152",
+          "title": "v8 Build 152 - Beta",
+          "date": "2025-09-27",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v152",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v152/Mindustry.jar",
+              "size": 75271068
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v151.1",
+          "title": "v8 Build 151.1 - Beta",
+          "date": "2025-08-25",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v151.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v151.1/Mindustry.jar",
+              "size": 73323684
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v151",
+          "title": "v8 Build 151 - Beta",
+          "date": "2025-08-25",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v151",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v151/Mindustry.jar",
+              "size": 73325399
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v150.1",
+          "title": "v8 Build 150.1 - Beta",
+          "date": "2025-07-25",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v150.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v150.1/Mindustry.jar",
+              "size": 73073561
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v150",
+          "title": "v8 Build 150 - Beta",
+          "date": "2025-07-23",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v150",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v150/Mindustry.jar",
+              "size": 73073317
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v149",
+          "title": "v8 Build 149 - Beta",
+          "date": "2025-04-30",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v149",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v149/Mindustry.jar",
+              "size": 73836093
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v148",
+          "title": "v8 Build 148 - Beta",
+          "date": "2025-04-21",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v148",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v148/Mindustry.jar",
+              "size": 73811172
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v147.1",
+          "title": "v8 Build 147.1 - Beta",
+          "date": "2025-04-14",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v147.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v147.1/Mindustry.jar",
+              "size": 73764709
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v147",
+          "title": "v8 Build 147 - Beta",
+          "date": "2025-04-11",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v147",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v147/Mindustry.jar",
+              "size": 73870562
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v146",
+          "title": "7.0 Build 146",
+          "date": "2023-09-04",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v146",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v146/Mindustry.jar",
+              "size": 72939318
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v145.1",
+          "title": "7.0 Build 145.1",
+          "date": "2023-06-19",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v145.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v145.1/Mindustry.jar",
+              "size": 72965386
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v145",
+          "title": "7.0 Build 145",
+          "date": "2023-06-17",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v145",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v145/Mindustry.jar",
+              "size": 72954870
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v144.3",
+          "title": "7.0 Build 144.3",
+          "date": "2023-05-23",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v144.3",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v144.3/Mindustry.jar",
+              "size": 72914126
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v144.2",
+          "title": "7.0 Build 144.2",
+          "date": "2023-05-22",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v144.2",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v144.2/Mindustry.jar",
+              "size": 72929217
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v144.1",
+          "title": "7.0 Build 144.1",
+          "date": "2023-05-12",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v144.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v144.1/Mindustry.jar",
+              "size": 72519307
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v144",
+          "title": "7.0 Build 144",
+          "date": "2023-05-11",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v144",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v144/Mindustry.jar",
+              "size": 72586186
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v143.1",
+          "title": "7.0 Build 143.1",
+          "date": "2023-04-08",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v143.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v143.1/Mindustry.jar",
+              "size": 72508063
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v143",
+          "title": "7.0 Build 143",
+          "date": "2023-04-01",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v143",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v143/Mindustry.jar",
+              "size": 72455606
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v142",
+          "title": "7.0 Build 142",
+          "date": "2023-02-21",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v142",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v142/Mindustry.jar",
+              "size": 72441599
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v141.3",
+          "title": "7.0 Build 141.3",
+          "date": "2023-01-22",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v141.3",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v141.3/Mindustry.jar",
+              "size": 72434229
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v141.2",
+          "title": "7.0 Build 141.2",
+          "date": "2023-01-13",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v141.2",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v141.2/Mindustry.jar",
+              "size": 72444986
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v141.1",
+          "title": "7.0 Build 141.1",
+          "date": "2023-01-12",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v141.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v141.1/Mindustry.jar",
+              "size": 72443121
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v141",
+          "title": "7.0 Build 141",
+          "date": "2023-01-12",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v141",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v141/Mindustry.jar",
+              "size": 72453233
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v140.4",
+          "title": "7.0 Build 140.4",
+          "date": "2022-11-13",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v140.4",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v140.4/Mindustry.jar",
+              "size": 72365822
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v140.3",
+          "title": "7.0 Build 140.3",
+          "date": "2022-11-11",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v140.3",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v140.3/Mindustry.jar",
+              "size": 72341517
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v140.2",
+          "title": "7.0 Build 140.2 - Beta",
+          "date": "2022-11-09",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v140.2",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v140.2/Mindustry.jar",
+              "size": 72458051
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v140.1",
+          "title": "7.0 Build 140.1 - Beta",
+          "date": "2022-11-03",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v140.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v140.1/Mindustry.jar",
+              "size": 72443717
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v140",
+          "title": "7.0 Build 140 - Beta",
+          "date": "2022-11-01",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v140",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v140/Mindustry.jar",
+              "size": 72430911
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v139",
+          "title": "7.0 Build 139 - Beta",
+          "date": "2022-10-04",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v139",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v139/Mindustry.jar",
+              "size": 71976520
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v138",
+          "title": "7.0 Build 138 - Alpha",
+          "date": "2022-08-29",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v138",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v138/Mindustry.jar",
+              "size": 71754351
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v137",
+          "title": "7.0 Build 137 - Alpha",
+          "date": "2022-08-04",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v137",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v137/Mindustry.jar",
+              "size": 70762064
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v136.1",
+          "title": "7.0 Build 136.1 - Alpha",
+          "date": "2022-07-19",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v136.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v136.1/Mindustry.jar",
+              "size": 70520024
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v136",
+          "title": "7.0 Build 136 - Alpha",
+          "date": "2022-07-16",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v136",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v136/Mindustry.jar",
+              "size": 70458429
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v135.2",
+          "title": "7.0 Build 135.2 - Pre-Alpha",
+          "date": "2022-04-03",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v135.2",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v135.2/Mindustry.jar",
+              "size": 60093826
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v135.1",
+          "title": "7.0 Build 135.1 - Pre-Alpha",
+          "date": "2022-04-01",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v135.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v135.1/Mindustry.jar",
+              "size": 102530128
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v135",
+          "title": "7.0 Build 135 - Pre-Alpha",
+          "date": "2021-11-25",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v135",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v135/Mindustry.jar",
+              "size": 60093826
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v134.1",
+          "title": "7.0 Build 134.1 - Pre-Alpha",
+          "date": "2021-11-01",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v134.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v134.1/Mindustry.jar",
+              "size": 60004285
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v134",
+          "title": "7.0 Build 134 - Pre-Alpha",
+          "date": "2021-10-27",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v134",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v134/Mindustry.jar",
+              "size": 59993345
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v133",
+          "title": "7.0 Build 133 - Pre-Alpha",
+          "date": "2021-10-17",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v133",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v133/Mindustry.jar",
+              "size": 61228527
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v132",
+          "title": "7.0 Build 132 - Pre-Alpha",
+          "date": "2021-10-16",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v132",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v132/Mindustry.jar",
+              "size": 59971689
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v131",
+          "title": "7.0 Build 131 - Pre-Alpha",
+          "date": "2021-09-13",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v131",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v131/Mindustry.jar",
+              "size": 67321973
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v130.1",
+          "title": "7.0 Build 130.1 - Pre-Alpha",
+          "date": "2021-08-23",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v130.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v130.1/Mindustry.jar",
+              "size": 66014284
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v130",
+          "title": "7.0 Build 130 - Pre-Alpha",
+          "date": "2021-08-16",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v130",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v130/Mindustry.jar",
+              "size": 65975624
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v129.2",
+          "title": "7.0 Build 129.2 - Pre-Alpha",
+          "date": "2021-08-04",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v129.2",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v129.2/Mindustry.jar",
+              "size": 66054068
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v129.1",
+          "title": "7.0 Build 129.1 - Pre-Alpha",
+          "date": "2021-07-28",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v129.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v129.1/Mindustry.jar",
+              "size": 66489034
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v129",
+          "title": "7.0 Build 129 - Pre-Alpha",
+          "date": "2021-07-28",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v129",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v129/Mindustry.jar",
+              "size": 65324533
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v128.1",
+          "title": "7.0 Build 128.1 - Pre-Alpha",
+          "date": "2021-07-17",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v128.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v128.1/Mindustry.jar",
+              "size": 65172209
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v128",
+          "title": "7.0 Build 128 - Pre-Alpha",
+          "date": "2021-07-12",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v128",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v128/Mindustry.jar",
+              "size": 65132810
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v127.2",
+          "title": "7.0 Build 127.2 - Pre-Alpha",
+          "date": "2021-06-30",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v127.2",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v127.2/Mindustry.jar",
+              "size": 66010474
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v127.1",
+          "title": "7.0 Build 127.1 - Pre-Alpha",
+          "date": "2021-06-26",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v127.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v127.1/Mindustry.jar",
+              "size": 66012783
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v127",
+          "title": "7.0 Build 127 - Pre-Alpha",
+          "date": "2021-06-25",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v127",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v127/Mindustry.jar",
+              "size": 67205433
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v126.2",
+          "title": "6.0 Build 126.2",
+          "date": "2021-03-29",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v126.2",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v126.2/Mindustry.jar",
+              "size": 72294357
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v126.1",
+          "title": "6.0 Build 126.1",
+          "date": "2021-03-06",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v126.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v126.1/Mindustry.jar",
+              "size": 72153744
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v126",
+          "title": "6.0 Build 126",
+          "date": "2021-03-05",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v126",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v126/Mindustry.jar",
+              "size": 72138413
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v125.1",
+          "title": "6.0 Build 125.1",
+          "date": "2021-02-19",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v125.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v125.1/Mindustry.jar",
+              "size": 72111057
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v125",
+          "title": "6.0 Build 125",
+          "date": "2021-02-16",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v125",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v125/Mindustry.jar",
+              "size": 72075190
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v124.1",
+          "title": "6.0 Build 124.1",
+          "date": "2021-02-08",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v124.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v124.1/Mindustry.jar",
+              "size": 72071523
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v124",
+          "title": "6.0 Build 124",
+          "date": "2021-02-07",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v124",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v124/Mindustry.jar",
+              "size": 72072224
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v123.1",
+          "title": "6.0 Build 123.1",
+          "date": "2021-01-21",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v123.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v123.1/Mindustry.jar",
+              "size": 72019955
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v123",
+          "title": "6.0 Build 123",
+          "date": "2021-01-20",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v123",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v123/Mindustry.jar",
+              "size": 72021162
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v122.1",
+          "title": "6.0 Build 122.1",
+          "date": "2020-12-30",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v122.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v122.1/Mindustry.jar",
+              "size": 72089947
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v122",
+          "title": "6.0 Build 122",
+          "date": "2020-12-23",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v122",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v122/Mindustry.jar",
+              "size": 72039702
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v121.4",
+          "title": "6.0 Build 121.4",
+          "date": "2020-12-15",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v121.4",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v121.4/Mindustry.jar",
+              "size": 72448248
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v121.3",
+          "title": "6.0 Build 121.3",
+          "date": "2020-12-15",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v121.3",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v121.3/Mindustry.jar",
+              "size": 72447734
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v121.2",
+          "title": "6.0 Build 121.2",
+          "date": "2020-12-09",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v121.2",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v121.2/Mindustry.jar",
+              "size": 72438194
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v121.1",
+          "title": "6.0 Build 121.1",
+          "date": "2020-12-09",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v121.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v121.1/Mindustry.jar",
+              "size": 72438523
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v121",
+          "title": "6.0 Build 121",
+          "date": "2020-12-06",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v121",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v121/Mindustry.jar",
+              "size": 72292965
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v120.5",
+          "title": "6.0 Build 120.5",
+          "date": "2020-12-05",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v120.5",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v120.5/Mindustry.jar",
+              "size": 72288616
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v120.4",
+          "title": "6.0 Build 120.4",
+          "date": "2020-12-04",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v120.4",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v120.4/Mindustry.jar",
+              "size": 72287816
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v120.3",
+          "title": "6.0 Build 120.3",
+          "date": "2020-12-02",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v120.3",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v120.3/Mindustry.jar",
+              "size": 72277513
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v120.2",
+          "title": "6.0 Build 120.2",
+          "date": "2020-12-02",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v120.2",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v120.2/Mindustry.jar",
+              "size": 72275102
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v120.1",
+          "title": "6.0 Build 120.1",
+          "date": "2020-12-01",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v120.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v120.1/Mindustry.jar",
+              "size": 72274568
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v120",
+          "title": "6.0 Build 120",
+          "date": "2020-12-01",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v120",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v120/Mindustry.jar",
+              "size": 72247748
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v119",
+          "title": "6.0 Build 119 - Beta",
+          "date": "2020-11-29",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v119",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v119/Mindustry.jar",
+              "size": 72232496
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v118",
+          "title": "6.0 Build 118 - Beta",
+          "date": "2020-11-27",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v118",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v118/Mindustry.jar",
+              "size": 72251847
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v117.1",
+          "title": "6.0 Build 117.1 - Beta",
+          "date": "2020-11-25",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v117.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v117.1/Mindustry.jar",
+              "size": 72219826
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v116",
+          "title": "6.0 Build 116 - Beta",
+          "date": "2020-11-22",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v116",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v116/Mindustry.jar",
+              "size": 72122757
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v115",
+          "title": "6.0 Build 115 - Beta",
+          "date": "2020-11-19",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v115",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v115/Mindustry.jar",
+              "size": 72115395
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v114.2",
+          "title": "6.0 Build 114.2 - Beta",
+          "date": "2020-11-17",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v114.2",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v114.2/Mindustry.jar",
+              "size": 71802087
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v114.1",
+          "title": "6.0 Build 114.1 - Beta",
+          "date": "2020-11-17",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v114.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v114.1/Mindustry.jar",
+              "size": 71798310
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v114",
+          "title": "6.0 Build 114 - Beta",
+          "date": "2020-11-16",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v114",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v114/Mindustry.jar",
+              "size": 71805161
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v113.2",
+          "title": "6.0 Build 113.2 - Beta",
+          "date": "2020-11-11",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v113.2",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v113.2/Mindustry.jar",
+              "size": 71902245
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v112.1",
+          "title": "6.0 Build 112.1 - Beta",
+          "date": "2020-11-03",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v112.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v112.1/Mindustry.jar",
+              "size": 62747665
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v112",
+          "title": "6.0 Build 112 - Beta",
+          "date": "2020-11-02",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v112",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v112/Mindustry.jar",
+              "size": 62747316
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v111",
+          "title": "6.0 Build 111 - Beta",
+          "date": "2020-10-25",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v111",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v111/Mindustry.jar",
+              "size": 62602418
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v110",
+          "title": "6.0 Build 110 - Beta",
+          "date": "2020-10-23",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v110",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v110/Mindustry.jar",
+              "size": 62616412
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v109",
+          "title": "6.0 Build 109 - Beta",
+          "date": "2020-10-18",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v109",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v109/Mindustry.jar",
+              "size": 62442496
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v108",
+          "title": "6.0 Build 108 - Beta",
+          "date": "2020-10-13",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v108",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v108/Mindustry.jar",
+              "size": 62413410
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v107",
+          "title": "6.0 Build 107 - Alpha",
+          "date": "2020-09-28",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v107",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v107/Mindustry.jar",
+              "size": 59014002
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v106",
+          "title": "6.0 Build 106 - Alpha",
+          "date": "2020-09-23",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v106",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v106/Mindustry.jar",
+              "size": 59405252
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v105",
+          "title": "6.0 Build 105 - Alpha",
+          "date": "2020-09-15",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v105",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v105/Mindustry.jar",
+              "size": 57609086
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v104.6",
+          "title": "5.0 Build 104.6",
+          "date": "2020-03-27",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v104.6",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v104.6/Mindustry.jar",
+              "size": 48910370
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v104.1",
+          "title": "5.0 Build 104.1 [Hotfix]",
+          "date": "2020-02-12",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v104.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v104.1/Mindustry.jar",
+              "size": 48709161
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v104",
+          "title": "5.0 Build 104",
+          "date": "2020-02-11",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v104",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v104/Mindustry.jar",
+              "size": 48709157
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v103",
+          "title": "5.0 Build 103",
+          "date": "2020-01-24",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v103",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v103/Mindustry.jar",
+              "size": 44834268
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v102",
+          "title": "5.0 Build 102",
+          "date": "2019-12-30",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v102",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v102/Mindustry.jar",
+              "size": 45330939
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v101.1",
+          "title": "5.0 Build 101.1",
+          "date": "2019-12-17",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v101.1",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v101.1/Mindustry.jar",
+              "size": 44879853
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v101",
+          "title": "5.0 Build 101",
+          "date": "2019-12-12",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v101",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v101/Mindustry.jar",
+              "size": 44865655
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v100",
+          "title": "5.0 Build 100",
+          "date": "2019-11-20",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v100",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v100/Mindustry.jar",
+              "size": 43974484
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v99",
+          "title": "5.0 Build 99",
+          "date": "2019-10-28",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v99",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v99/Mindustry.jar",
+              "size": 44040407
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v98",
+          "title": "5.0 Build 98",
+          "date": "2019-10-25",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v98",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v98/Mindustry.jar",
+              "size": 43519129
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v97",
+          "title": "5.0 Build 97",
+          "date": "2019-10-25",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v97",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v97/Mindustry.jar",
+              "size": 43518585
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v96",
+          "title": "4.0 Build 96",
+          "date": "2019-09-26",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v96",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v96/Mindustry.jar",
+              "size": 42893205
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v95",
+          "title": "4.0 Build 95",
+          "date": "2019-09-25",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v95",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v95/Mindustry.jar",
+              "size": 42880271
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v94",
+          "title": "4.0 Build 94",
+          "date": "2019-09-17",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v94",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v94/Mindustry.jar",
+              "size": 42843011
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v93",
+          "title": "4.0 Build 93",
+          "date": "2019-09-16",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v93",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v93/Mindustry.jar",
+              "size": 42842900
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v92",
+          "title": "4.0 Build 92",
+          "date": "2019-08-31",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v92",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v92/Mindustry.jar",
+              "size": 41591104
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v91",
+          "title": "4.0 Build 91",
+          "date": "2019-08-25",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v91",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v91/Mindustry.jar",
+              "size": 41618775
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        },
+        {
+          "tag": "v90",
+          "title": "4.0 Build 90",
+          "date": "2019-08-23",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v90",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v90/Mindustry.jar",
+              "size": 40629399
+            }
+          ],
+          "dropped": 1,
+          "folder": false
+        }
+      ],
+      "versionsError": ""
     },
     {
-      "id": "mindustry-v8",
+      "id": "src-mdtbbs-v8",
       "name": "Mindustry v8",
       "kind": "file-list",
       "url": "https://file.mdtbbs.cn/category/Mindustry/v8",
@@ -37,11 +2186,14 @@
         "v8"
       ],
       "size": 0,
-      "logo": "",
-      "scope": "client"
+      "logo": "https://file.mdtbbs.cn/favicon.svg",
+      "slogan": "mdtbbs 文件站 · 国内直连目录",
+      "scope": "client",
+      "versions": [],
+      "versionsError": ""
     },
     {
-      "id": "mindustryx",
+      "id": "src-minedx",
       "name": "MindustryX",
       "kind": "github-repo",
       "url": "https://github.com/TinyLake/MindustryX/releases",
@@ -55,8 +2207,605 @@
         "GitHub"
       ],
       "size": 0,
-      "logo": "",
-      "scope": "client"
+      "logo": "https://github.com/TinyLake.png?size=96",
+      "slogan": "TinyLake 分支 · 桌面端增强整合",
+      "scope": "client",
+      "versions": [
+        {
+          "tag": "prerelease-2026.10.06.B505",
+          "title": "2026.10.06.B505",
+          "date": "2026-10-06",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/prerelease-2026.10.06.B505",
+          "assets": [
+            {
+              "name": "MindustryX-2026.10.06.B505-Desktop-SDL3.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/prerelease-2026.10.06.B505/MindustryX-2026.10.06.B505-Desktop-SDL3.jar",
+              "size": 100153256
+            },
+            {
+              "name": "MindustryX-2026.10.06.B505-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/prerelease-2026.10.06.B505/MindustryX-2026.10.06.B505-Desktop.jar",
+              "size": 91526164
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "prerelease-2026.10.06.B504",
+          "title": "2026.10.06.B504",
+          "date": "2026-10-06",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/prerelease-2026.10.06.B504",
+          "assets": [
+            {
+              "name": "MindustryX-2026.10.06.B504-Desktop-SDL3.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/prerelease-2026.10.06.B504/MindustryX-2026.10.06.B504-Desktop-SDL3.jar",
+              "size": 100153257
+            },
+            {
+              "name": "MindustryX-2026.10.06.B504-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/prerelease-2026.10.06.B504/MindustryX-2026.10.06.B504-Desktop.jar",
+              "size": 91526165
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "prerelease-2026.10.06.B503",
+          "title": "2026.10.06.B503",
+          "date": "2026-10-06",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/prerelease-2026.10.06.B503",
+          "assets": [
+            {
+              "name": "MindustryX-2026.10.06.B503-Desktop-SDL3.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/prerelease-2026.10.06.B503/MindustryX-2026.10.06.B503-Desktop-SDL3.jar",
+              "size": 100153250
+            },
+            {
+              "name": "MindustryX-2026.10.06.B503-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/prerelease-2026.10.06.B503/MindustryX-2026.10.06.B503-Desktop.jar",
+              "size": 91526158
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2026.09.X37",
+          "title": "2026.09.X37",
+          "date": "2026-09-12",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2026.09.X37",
+          "assets": [
+            {
+              "name": "MindustryX-2026.09.X37-Desktop-SDL3.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2026.09.X37/MindustryX-2026.09.X37-Desktop-SDL3.jar",
+              "size": 98272831
+            },
+            {
+              "name": "MindustryX-2026.09.X37-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2026.09.X37/MindustryX-2026.09.X37-Desktop.jar",
+              "size": 89645739
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2026.07.X36",
+          "title": "2026.07.X36",
+          "date": "2026-07-29",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2026.07.X36",
+          "assets": [
+            {
+              "name": "MindustryX-2026.07.X36-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2026.07.X36/MindustryX-2026.07.X36-Desktop.jar",
+              "size": 89205995
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2026.05.X35",
+          "title": "2026.05.X35",
+          "date": "2026-05-29",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2026.05.X35",
+          "assets": [
+            {
+              "name": "MindustryX-2026.05.X35-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2026.05.X35/MindustryX-2026.05.X35-Desktop.jar",
+              "size": 87272595
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2026.05.X34",
+          "title": "2026.05.X34",
+          "date": "2026-05-05",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2026.05.X34",
+          "assets": [
+            {
+              "name": "MindustryX-2026.05.X34-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2026.05.X34/MindustryX-2026.05.X34-Desktop.jar",
+              "size": 87157299
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2026.04.X33",
+          "title": "2026.04.X33",
+          "date": "2026-04-18",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2026.04.X33",
+          "assets": [
+            {
+              "name": "MindustryX-2026.04.X33-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2026.04.X33/MindustryX-2026.04.X33-Desktop.jar",
+              "size": 87152799
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2026.04.X32",
+          "title": "2026.04.X32",
+          "date": "2026-04-15",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2026.04.X32",
+          "assets": [
+            {
+              "name": "MindustryX-2026.04.X32-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2026.04.X32/MindustryX-2026.04.X32-Desktop.jar",
+              "size": 87131519
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2026.04.X31",
+          "title": "2026.04.X31",
+          "date": "2026-04-12",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2026.04.X31",
+          "assets": [
+            {
+              "name": "MindustryX-2026.04.X31-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2026.04.X31/MindustryX-2026.04.X31-Desktop.jar",
+              "size": 87143462
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2026.03.X30",
+          "title": "2026.03.X30",
+          "date": "2026-03-31",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2026.03.X30",
+          "assets": [
+            {
+              "name": "MindustryX-2026.03.X30-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2026.03.X30/MindustryX-2026.03.X30-Desktop.jar",
+              "size": 86714972
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2026.03.X29",
+          "title": "2026.03.X29",
+          "date": "2026-03-26",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2026.03.X29",
+          "assets": [
+            {
+              "name": "MindustryX-2026.03.X29-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2026.03.X29/MindustryX-2026.03.X29-Desktop.jar",
+              "size": 86696793
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2026.02.X28",
+          "title": "2026.02.X28",
+          "date": "2026-02-20",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2026.02.X28",
+          "assets": [
+            {
+              "name": "MindustryX-2026.02.X28-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2026.02.X28/MindustryX-2026.02.X28-Desktop.jar",
+              "size": 82827094
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2026.02.X27",
+          "title": "2026.02.X27",
+          "date": "2026-02-12",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2026.02.X27",
+          "assets": [
+            {
+              "name": "MindustryX-2026.02.X27-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2026.02.X27/MindustryX-2026.02.X27-Desktop.jar",
+              "size": 91641316
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2026.01.X26",
+          "title": "2026.01.X26",
+          "date": "2026-01-15",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2026.01.X26",
+          "assets": [
+            {
+              "name": "MindustryX-2026.01.X26-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2026.01.X26/MindustryX-2026.01.X26-Desktop.jar",
+              "size": 82186995
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.12.X25",
+          "title": "2025.12.X25",
+          "date": "2025-12-27",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.12.X25",
+          "assets": [
+            {
+              "name": "MindustryX-2025.12.X25-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.12.X25/MindustryX-2025.12.X25-Desktop.jar",
+              "size": 82155483
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.12.X24",
+          "title": "2025.12.X24",
+          "date": "2025-12-20",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.12.X24",
+          "assets": [
+            {
+              "name": "MindustryX-2025.12.X24-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.12.X24/MindustryX-2025.12.X24-Desktop.jar",
+              "size": 82134155
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.12.X23",
+          "title": "2025.12.X23",
+          "date": "2025-12-17",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.12.X23",
+          "assets": [
+            {
+              "name": "MindustryX-2025.12.X23-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.12.X23/MindustryX-2025.12.X23-Desktop.jar",
+              "size": 82134508
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.11.X22",
+          "title": "2025.11.X22",
+          "date": "2025-11-06",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.11.X22",
+          "assets": [
+            {
+              "name": "MindustryX-2025.11.X22-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.11.X22/MindustryX-2025.11.X22-Desktop.jar",
+              "size": 78147094
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.10.X21",
+          "title": "2025.10.X21",
+          "date": "2025-10-31",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.10.X21",
+          "assets": [
+            {
+              "name": "MindustryX-2025.10.X21-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.10.X21/MindustryX-2025.10.X21-Desktop.jar",
+              "size": 78145429
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.10.X20",
+          "title": "2025.10.X20",
+          "date": "2025-10-01",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.10.X20",
+          "assets": [
+            {
+              "name": "MindustryX-2025.10.X20-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.10.X20/MindustryX-2025.10.X20-Desktop.jar",
+              "size": 77576171
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.09.X19",
+          "title": "2025.09.X19",
+          "date": "2025-09-29",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.09.X19",
+          "assets": [
+            {
+              "name": "MindustryX-2025.09.X19-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.09.X19/MindustryX-2025.09.X19-Desktop.jar",
+              "size": 77575954
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.09.X18",
+          "title": "2025.09.X18",
+          "date": "2025-09-27",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.09.X18",
+          "assets": [
+            {
+              "name": "MindustryX-2025.09.X18-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.09.X18/MindustryX-2025.09.X18-Desktop.jar",
+              "size": 77566338
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.09.X17",
+          "title": "2025.09.X17",
+          "date": "2025-09-07",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.09.X17",
+          "assets": [
+            {
+              "name": "MindustryX-2025.09.X17-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.09.X17/MindustryX-2025.09.X17-Desktop.jar",
+              "size": 75639009
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.08.X16",
+          "title": "2025.08.X16",
+          "date": "2025-08-26",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.08.X16",
+          "assets": [
+            {
+              "name": "MindustryX-2025.08.X16-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.08.X16/MindustryX-2025.08.X16-Desktop.jar",
+              "size": 75637386
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.08.X15",
+          "title": "2025.08.X15",
+          "date": "2025-08-22",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.08.X15",
+          "assets": [
+            {
+              "name": "MindustryX-2025.08.X15-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.08.X15/MindustryX-2025.08.X15-Desktop.jar",
+              "size": 75385133
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.08.X14",
+          "title": "2025.08.X14",
+          "date": "2025-08-16",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.08.X14",
+          "assets": [
+            {
+              "name": "MindustryX-2025.08.X14-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.08.X14/MindustryX-2025.08.X14-Desktop.jar",
+              "size": 75384142
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.07.X13",
+          "title": "2025.07.X13",
+          "date": "2025-07-26",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.07.X13",
+          "assets": [
+            {
+              "name": "MindustryX-2025.07.X13-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.07.X13/MindustryX-2025.07.X13-Desktop.jar",
+              "size": 75378159
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.07.X12",
+          "title": "2025.07.X12",
+          "date": "2025-07-24",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.07.X12",
+          "assets": [
+            {
+              "name": "MindustryX-2025.07.X12-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.07.X12/MindustryX-2025.07.X12-Desktop.jar",
+              "size": 75393649
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.07.X11",
+          "title": "2025.07.X11",
+          "date": "2025-07-04",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.07.X11",
+          "assets": [
+            {
+              "name": "MindustryX-2025.07.X11-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.07.X11/MindustryX-2025.07.X11-Desktop.jar",
+              "size": 76099796
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.06.X10",
+          "title": "2025.06.X10",
+          "date": "2025-06-15",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.06.X10",
+          "assets": [
+            {
+              "name": "MindustryX-2025.06.X10-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.06.X10/MindustryX-2025.06.X10-Desktop.jar",
+              "size": 76081482
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.05.X9",
+          "title": "2025.05.X9",
+          "date": "2025-05-12",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.05.X9",
+          "assets": [
+            {
+              "name": "MindustryX-2025.05.X9-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.05.X9/MindustryX-2025.05.X9-Desktop.jar",
+              "size": 76072163
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.05.X8",
+          "title": "2025.05.X8",
+          "date": "2025-05-11",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.05.X8",
+          "assets": [
+            {
+              "name": "MindustryX-2025.05.X8-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.05.X8/MindustryX-2025.05.X8-Desktop.jar",
+              "size": 76072832
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.05.X6",
+          "title": "2025.05.X6",
+          "date": "2025-05-08",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.05.X6",
+          "assets": [
+            {
+              "name": "MindustryX-2025.05.X6-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.05.X6/MindustryX-2025.05.X6-Desktop.jar",
+              "size": 76071064
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.05.X5",
+          "title": "2025.05.X5",
+          "date": "2025-05-01",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.05.X5",
+          "assets": [
+            {
+              "name": "MindustryX-2025.05.X5-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.05.X5/MindustryX-2025.05.X5-Desktop.jar",
+              "size": 76051425
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.04.X4",
+          "title": "2025.04.X4",
+          "date": "2025-04-21",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.04.X4",
+          "assets": [
+            {
+              "name": "MindustryX-2025.04.X4-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.04.X4/MindustryX-2025.04.X4-Desktop.jar",
+              "size": 75986308
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.04.X3",
+          "title": "2025.04.X3",
+          "date": "2025-04-14",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.04.X3",
+          "assets": [
+            {
+              "name": "MindustryX-2025.04.X3-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.04.X3/MindustryX-2025.04.X3-Desktop.jar",
+              "size": 75955772
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
+          "tag": "v2025.04.X2",
+          "title": "2025.04.X2",
+          "date": "2025-04-11",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2025.04.X2",
+          "assets": [
+            {
+              "name": "MindustryX-2025.04.X2-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2025.04.X2/MindustryX-2025.04.X2-Desktop.jar",
+              "size": 76021040
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        }
+      ],
+      "versionsError": ""
     }
-  ]
+  ],
+  "mirrors": {
+    "workshop": []
+  }
 }

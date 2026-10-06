@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { open as openExternal } from '@tauri-apps/plugin-shell'
-import { instances, selectedInstanceId, settings } from '../store'
+import { effectiveProxy, instances, selectedInstanceId, settings } from '../store'
 import type { ModFile, WorkshopItem } from '../types'
 
 const query = ref('')
@@ -39,7 +39,7 @@ async function search() {
   try {
     results.value = (await invoke('search_workshop', {
       query: query.value.trim(),
-      proxy: settings.proxy,
+      proxy: effectiveProxy.value,
       mirror: settings.workshopMirror,
     })) as WorkshopItem[]
     if (!results.value.length) searchError.value = '没有结果'
@@ -93,7 +93,7 @@ watch(currentId, refreshMods)
         <h1 class="page-title">Mod 管理</h1>
         <p class="page-sub" style="margin-bottom: 0">
           工坊搜索（可浏览）· 游戏 Mod 本地管理
-          <template v-if="settings.proxy"> · 代理 {{ settings.proxy }}</template>
+          <template v-if="effectiveProxy"> · 代理 {{ effectiveProxy }}</template>
           <template v-if="settings.workshopMirror"> · 工坊镜像已配</template>
         </p>
       </div>

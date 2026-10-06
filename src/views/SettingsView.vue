@@ -2,12 +2,16 @@
 import { computed, onMounted, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import {
+  effectiveProxyLabel,
   instances,
+  loadCachedMirrors,
   loadInstances,
+  loadSystemProxy,
   selectedInstanceId,
   settings,
   settingsNavPos,
   settingsTab,
+  workshopMirrors,
   type SettingsTab,
 } from '../store'
 import PersonalControls from './PersonalControls.vue'
@@ -18,6 +22,8 @@ const tabs: { id: SettingsTab; label: string }[] = [
   { id: 'launch', label: '启动' },
   { id: 'game', label: '游戏' },
   { id: 'personal', label: '个性化' },
+  { id: 'dev', label: '开发者' },
+  { id: 'about', label: '关于' },
 ]
 
 function pick(id: SettingsTab) {
@@ -30,7 +36,6 @@ const targetName = computed(
   () => instances.value.find((i) => i.id === targetId.value)?.name ?? '',
 )
 const saves = ref<string[]>([])
-const newSaveName = ref('')
 const saveError = ref('')
 
 async function refreshSaves() {
@@ -47,21 +52,11 @@ async function refreshSaves() {
   }
 }
 
-async function createSave() {
-  const name = newSaveName.value.trim()
-  if (!name || !targetId.value) return
-  try {
-    saves.value = (await invoke('create_save', { id: targetId.value, name })) as string[]
-    newSaveName.value = ''
-    saveError.value = ''
-  } catch (e) {
-    saveError.value = String(e)
-  }
-}
-
 onMounted(async () => {
   await loadInstances()
   await refreshSaves()
+  void loadSystemProxy()
+  void loadCachedMirrors()
 })
 </script>
 
@@ -103,23 +98,58 @@ onMounted(async () => {
         </div>
         <div class="set-row">
           <div>
-            <div class="label">中心化服务器</div>
+            <div class="label">下载线程数</div>
           </div>
           <div class="ctrl" style="flex: 1; max-width: 420px">
-            <input v-model="settings.centralServer" class="field" style="width: 100%" placeholder="http://127.0.0.1:8787" />
+            <select v-model.number="settings.downloadThreads" class="field" style="width: 100%">
+              <option :value="1">1（单连接）</option>
+              <option :value="2">2</option>
+              <option :value="4">4</option>
+              <option :value="8">8</option>
+            </select>
+            <span class="meta" style="font-size: 12px">
+              分段并发下载；服务器不支持 Range 时自动降为单连接
+            </span>
           </div>
         </div>
       </div>
 
-      <!-- 镜像与网络：地址用镜像前缀、连接用代理，可叠加 -->
+      <!-- 镜像与网络：代理来源可选，镜像地址由中心服务器下发 -->
       <div v-show="settingsTab === 'mirror'" class="set-group">
         <h3>镜像与网络</h3>
         <div class="set-row">
           <div>
             <div class="label">下载代理</div>
+            <div class="hint" style="font-size: 12px">{{ effectiveProxyLabel }}</div>
           </div>
-          <div class="ctrl" style="flex: 1; max-width: 320px">
-            <input v-model="settings.proxy" class="field" style="width: 100%" placeholder="127.0.0.1:7897" />
+          <div class="ctrl" style="flex: 1; max-width: 460px; gap: 10px; flex-wrap: wrap">
+            <select v-model="settings.proxyMode" class="field" style="flex: none">
+              <option value="system">使用系统代理</option>
+              <option value="custom">自定义</option>
+            </select>
+            <input
+              v-if="settings.proxyMode === 'custom'"
+              v-model="settings.proxy"
+              class="field"
+              style="flex: 1; min-width: 180px"
+              placeholder="127.0.0.1:7897（留空 = 直连）"
+            />
+          </div>
+        </div>
+        <div class="set-row">
+          <div>
+            <div class="label">中心化服务器</div>
+            <div class="hint" style="font-size: 12px">
+              源索引与镜像清单都从它下发（留空 = 用内置索引）
+            </div>
+          </div>
+          <div class="ctrl" style="flex: 1; max-width: 420px">
+            <input
+              v-model="settings.centralServer"
+              class="field"
+              style="width: 100%"
+              placeholder="http://127.0.0.1:8787"
+            />
           </div>
         </div>
         <div class="set-row">
@@ -144,9 +174,25 @@ onMounted(async () => {
         <div class="set-row">
           <div>
             <div class="label">工坊镜像</div>
+            <div class="hint" style="font-size: 12px">
+              列表由中心化服务器下发（在 server/central.mjs 的 MIRRORS 里配置）
+            </div>
           </div>
           <div class="ctrl" style="flex: 1; max-width: 420px">
-            <input v-model="settings.workshopMirror" class="field" style="width: 100%" placeholder="https://your-steam-mirror/" />
+            <select
+              v-model="settings.workshopMirror"
+              class="field"
+              style="width: 100%"
+              :disabled="!workshopMirrors.length"
+            >
+              <option value="">不使用镜像（走代理 / 直连）</option>
+              <option v-for="m in workshopMirrors" :key="m.url" :value="m.url">
+                {{ m.name }} · {{ m.url }}
+              </option>
+            </select>
+            <span v-if="!workshopMirrors.length" class="meta" style="font-size: 12px">
+              中心未下发镜像
+            </span>
           </div>
         </div>
         <div class="set-row">
@@ -207,19 +253,43 @@ onMounted(async () => {
       </div>
 
       <div v-show="settingsTab === 'game'" class="set-group">
-        <h3>存档{{ targetName ? ` · ${targetName}` : '' }}</h3>
+        <h3>新建游戏默认值</h3>
         <div class="set-row">
           <div>
-            <div class="label">新开存档</div>
+            <div class="label">JVM 参数</div>
           </div>
-          <div class="ctrl" style="flex: 1; max-width: 420px; gap: 8px">
-            <input v-model="newSaveName" class="field" style="width: 100%" placeholder="存档名称" :disabled="!targetId" @keyup.enter="createSave" />
-            <button class="btn-ghost" style="flex: none" :disabled="!targetId || !newSaveName.trim()" @click="createSave">新建</button>
+          <div class="ctrl" style="flex: 1; max-width: 420px">
+            <input
+              v-model="settings.defaultJvmArgs"
+              class="field"
+              style="width: 100%"
+              placeholder="留空 = 不加，如 -XX:+UseG1GC"
+            />
           </div>
         </div>
         <div class="set-row">
           <div>
+            <div class="label">游戏参数</div>
+          </div>
+          <div class="ctrl" style="flex: 1; max-width: 420px">
+            <input
+              v-model="settings.defaultGameArgs"
+              class="field"
+              style="width: 100%"
+              placeholder="留空 = 不加"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div v-show="settingsTab === 'game'" class="set-group">
+        <h3>存档{{ targetName ? ` · ${targetName}` : '' }}</h3>
+        <div class="set-row">
+          <div>
             <div class="label">扫描存档</div>
+            <div class="hint" style="font-size: 12px">
+              {{ settings.saveIsolation ? '隔离实例：读 <实例>/data/Mindustry/saves' : '共享实例：读系统 AppData/Mindustry/saves' }}
+            </div>
           </div>
           <div class="ctrl">
             <button class="btn-ghost" :disabled="!targetId" @click="refreshSaves">扫描</button>
@@ -245,6 +315,58 @@ onMounted(async () => {
 
       <!-- 个性化（原独立页已归档至此，数据同源） -->
       <PersonalControls v-show="settingsTab === 'personal'" />
+
+      <!-- 开发者：没写完的功能默认藏起来，在这里放开预览 -->
+      <div v-show="settingsTab === 'dev'" class="set-group">
+        <h3>开发者</h3>
+        <div class="set-row">
+          <div>
+            <div class="label">开发者模式</div>
+            <div class="hint" style="font-size: 12px">
+              打开后会显示导航里的「Mod」——该页面尚未完成，仅作预览
+            </div>
+          </div>
+          <div class="ctrl">
+            <label class="switch">
+              <input v-model="settings.devMode" type="checkbox" />
+              <span class="track" />
+              <span class="thumb" />
+            </label>
+          </div>
+        </div>
+        <div class="set-row">
+          <div>
+            <div class="label">未完成功能</div>
+            <div class="hint" style="font-size: 12px">
+              Mod 页：{{ settings.devMode ? '已在导航中显示' : '已隐藏' }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 关于 -->
+      <div v-show="settingsTab === 'about'" class="set-group">
+        <h3>关于</h3>
+        <div class="about-hero">
+          <img class="logo" src="../assets/logo.png" alt="YueYue Launcher logo" />
+          <div>
+            <div class="about-name">YueYue Launcher</div>
+            <div class="about-sub">YYL · Mindustry 实例启动器</div>
+            <div class="about-maker">月月岛科技</div>
+          </div>
+        </div>
+
+        <div class="set-row">
+          <div class="label">版本</div>
+          <div class="ctrl"><span class="val">0.1.0</span></div>
+        </div>
+
+        <div class="set-row">
+          <div class="hint" style="font-size: 12px">
+            © 2026 月月岛科技 · YueYue Launcher (YYL)
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 </template>

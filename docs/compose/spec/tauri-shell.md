@@ -18,7 +18,7 @@ commits: 882521b..ceb4a24
 - 本机无 MSVC：winget 路线被用户改为「装 VS BuildTools（WinSDK 26100）+ rustup」，rustc 链接冒烟 `link-ok` 后才开工。
 - Tauri 2 的 `webviewInstallMode` 合法值是 `"skip"`（v1 的 `skipInstaller` 会被 schema 拒绝）。
 - NSIS 工具下载 GitHub 超时——挂用户代理 `127.0.0.1:7897`（HTTPS_PROXY）后成功。
-- MiMo 宿主 Node 的 argv 怪癖会弄坏 tauri CLI，须用系统 Node 跑；Read 工具本会话持续串图，一切图像结论以像素统计为准。
+- 该宿主环境 Node 的 argv 怪癖会弄坏 tauri CLI，须用系统 Node 跑；图像结论一律以像素统计为准。
 - 窗口自动化：后台进程抢不到前台（用户全屏游戏在顶层），最终用 PostMessage 投给 `Chrome_RenderWidgetHostHWND` 实现免焦点点击。
 
 ## [S1] Problem

@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { computed, nextTick } from 'vue'
+import { computed } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { news } from '../data/mock'
 import {
+  autoCollapseLaunch,
   currentInstance,
   instances,
   loadInstances,
+  markLaunchFailed,
+  openLaunchLog,
   resetLaunch,
   selectedInstanceId,
   settings,
@@ -32,19 +35,19 @@ async function launch() {
     return
   }
   if (target.running) {
-    // 已在运行：直接打开浮层看日志（不重复拉起）
-    resetLaunch(target.id)
+    // 已在运行：直接打开它的日志（有归档就复用，别把之前跑的日志清掉）
+    openLaunchLog(target.id)
     return
   }
   if (starting) return
   starting = true
   resetLaunch(target.id)
-  await nextTick() // 等浮层挂载并注册事件监听
   try {
     await invoke('launch_instance', { id: target.id })
+    // 启动完成 → 浮层自动收起，日志归到左下角圆圈（多开时各实例一份）
+    autoCollapseLaunch(target.id)
   } catch (e) {
-    store.launch.logs.push({ text: `[错误] ${e}`, cls: 'warn' })
-    store.launch.status = 'failed'
+    markLaunchFailed(target.id, String(e))
   } finally {
     starting = false
     loadInstances()

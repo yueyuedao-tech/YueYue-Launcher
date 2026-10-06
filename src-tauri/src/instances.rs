@@ -367,36 +367,68 @@ fn hidden_root() -> PathBuf {
 
 /* ---------- 存档 ---------- */
 
+/// 存档目录。
+/// 隔离实例：启动器把 `AppData` 指到 `<实例>/data`，Mindustry 在 Windows 下用的是
+/// `%AppData%/Mindustry/...`，所以真实存档在 `<实例>/data/Mindustry/saves`
+/// —— 以前这里写的是 `<实例>/data/saves`，永远扫不到东西，这正是「扫描存档点了没用」的原因。
+/// 非隔离实例：游戏直接用系统 `%AppData%/Mindustry`，扫描要指向那里才看得到。
+fn saves_base(isolate: bool, data_abs: PathBuf) -> PathBuf {
+    if isolate {
+        data_abs.join("Mindustry").join("saves")
+    } else if cfg!(windows) {
+        let appdata = std::env::var("APPDATA").unwrap_or_else(|_| ".".into());
+        PathBuf::from(appdata).join("Mindustry").join("saves")
+    } else {
+        let base = std::env::var("XDG_DATA_HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| {
+                let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
+                PathBuf::from(home).join(".local").join("share")
+            });
+        base.join("Mindustry").join("saves")
+    }
+}
+
 fn saves_dir(id: &str) -> Result<PathBuf, String> {
     let info = read_instance(id)?;
-    let dir = data_dir_abs(&info).join("saves");
+    let dir = saves_base(info.isolate, data_dir_abs(&info));
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     Ok(dir)
 }
 
-/// 在设置里新开一个存档：建目录并写入最小 metadata，游戏内可直接看到
+/// 还有哪些游戏在用同一个本体（jar）。
+/// 用户场景：多个实例引用同一个 jar，「删本体留存档」时如果真把 jar 删了，别的实例就起不来。
+/// 返回其它实例的显示名（含已隐藏的），供删除确认弹窗提示。
 #[tauri::command]
-pub async fn create_save(id: String, name: String) -> Result<Vec<String>, String> {
-    let name = name.trim();
-    if name.is_empty() || name.chars().count() > 40 {
-        return Err("存档名需为 1-40 字符".into());
-    }
-    if name.contains(['\\', '/', ':', '*', '?', '"', '<', '>', '|']) {
-        return Err("存档名包含非法字符".into());
-    }
-    let dir = saves_dir(&id)?;
-    let slot = dir.join(name);
-    if slot.exists() {
-        return Err(format!("存档已存在: {name}"));
-    }
-    fs::create_dir_all(&slot).map_err(|e| e.to_string())?;
-    let meta = serde_json::json!({ "name": name, "description": "" });
-    fs::write(slot.join("metadata.json"), serde_json::to_string_pretty(&meta).unwrap())
-        .map_err(|e| e.to_string())?;
-    list_saves(id).await
+pub async fn sharing_jar(id: String) -> Vec<String> {
+    let id = match validate_id(&id) {
+        Ok(v) => v,
+        Err(_) => return Vec::new(),
+    };
+    let mine = read_instance(&id).ok().map(|i| i.jar_path);
+    let Some(mine) = mine else { return Vec::new() };
+    let mut out = Vec::new();
+    let mut scan = |root: PathBuf| {
+        if let Ok(rd) = fs::read_dir(&root) {
+            for entry in rd.flatten() {
+                let path = entry.path();
+                if !path.is_dir() {
+                    continue;
+                }
+                if let Some(info) = load_instance_dir(&path) {
+                    if info.id != id && info.jar_path == mine {
+                        out.push(info.name);
+                    }
+                }
+            }
+        }
+    };
+    scan(instances_root());
+    scan(hidden_root());
+    out
 }
 
-/// 扫描某游戏目录下现有的存档
+/// 扫描某游戏目录下现有的存档（按用户要求，已移除「新开存档」）
 #[tauri::command]
 pub async fn list_saves(id: String) -> Result<Vec<String>, String> {
     let dir = saves_dir(&id)?;
@@ -510,6 +542,16 @@ fn chrono_lite_now() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn saves_are_looked_up_under_mindustry_subdir() {
+        // 隔离实例：Mindustry 把数据写在 %AppData%/Mindustry 下，而启动器把 AppData 指到
+        // <实例>/data，所以存档真实位置是 <实例>/data/Mindustry/saves。
+        // 之前少了这一层 Mindustry，扫描永远是空的。
+        let got = saves_base(true, PathBuf::from(r"C:\x\data"));
+        assert_eq!(got, PathBuf::from(r"C:\x\data\Mindustry\saves"));
+        assert!(got.to_string_lossy().ends_with(r"Mindustry\saves"));
+    }
 
     #[test]
     fn sanitize_rejects_illegal_and_empty() {

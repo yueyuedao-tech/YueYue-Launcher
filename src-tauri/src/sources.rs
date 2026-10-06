@@ -184,11 +184,19 @@ fn write_sources_to(path: &std::path::Path, items: &[SourceItem]) -> Result<(), 
         .map_err(|e| e.to_string())
 }
 
+/// 去掉 UTF-8 BOM 再解析。
+/// serde_json 不接受开头的 BOM，而 PowerShell 的 `Set-Content -Encoding utf8`、
+/// 部分编辑器默认会写 BOM —— 用户手改 sources.json 时会整张表被判成空，
+/// 界面只显示「本地源表为空」，非常难查。
+fn strip_bom(s: &str) -> &str {
+    s.strip_prefix('\u{feff}').unwrap_or(s)
+}
+
 /// 读取已有源表并清掉已下线的预置源，发生变化则回写一次
 fn load_existing(path: &std::path::Path) -> Vec<SourceItem> {
     let loaded = fs::read_to_string(path)
         .ok()
-        .and_then(|s| serde_json::from_str::<SourcesFile>(&s).ok())
+        .and_then(|s| serde_json::from_str::<SourcesFile>(strip_bom(&s)).ok())
         .map(|f| f.sources)
         .unwrap_or_default();
     let (items, changed) = drop_retired(loaded);
@@ -239,8 +247,20 @@ mod tests {
     }
 
     #[test]
-    fn validation_rules() {
-        assert!(validate_source(&direct()).is_ok());
+    fn strip_bom_makes_hand_edited_json_readable() {
+        assert_eq!(strip_bom("\u{feff}{}"), "{}");
+        assert_eq!(strip_bom("{}"), "{}");
+        // 带 BOM 的手改文件必须仍能解析（PowerShell Set-Content / 部分编辑器会写 BOM）
+        let with_bom = "\u{feff}{\"sources\":[]}";
+        assert!(serde_json::from_str::<SourcesFile>(strip_bom(with_bom)).is_ok());
+        assert!(
+            serde_json::from_str::<SourcesFile>(with_bom).is_err(),
+            "不剥 BOM 就是解析失败——这正是界面显示「本地源表为空」的原因"
+        );
+    }
+
+    #[test]
+    fn validation_rules() {        assert!(validate_source(&direct()).is_ok());
         let mut bad = direct();
         bad.url = "ftp://x".into();
         assert!(validate_source(&bad).is_err());

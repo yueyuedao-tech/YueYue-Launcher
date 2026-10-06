@@ -13,3 +13,106 @@ pub fn no_console(program: impl AsRef<OsStr>) -> Command {
     }
     cmd
 }
+
+/// 读系统代理（设置里的「下载代理 = 系统代理」用）。
+/// 顺序：环境变量 → Windows 注册表 WinINET 设置。
+/// 用 `reg query` 而不是引入 winreg crate：本工程体积优先，且只要读两个值。
+pub fn system_proxy() -> String {
+    for key in [
+        "HTTPS_PROXY",
+        "https_proxy",
+        "HTTP_PROXY",
+        "http_proxy",
+        "ALL_PROXY",
+        "all_proxy",
+    ] {
+        if let Ok(v) = std::env::var(key) {
+            let v = v.trim();
+            if !v.is_empty() {
+                return v.to_string();
+            }
+        }
+    }
+    #[cfg(windows)]
+    {
+        const KEY: &str = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings";
+        let query = |name: &str| -> String {
+            let out = no_console("reg")
+                .args(["query", KEY, "/v", name])
+                .output();
+            let Ok(out) = out else { return String::new() };
+            parse_reg_value(&String::from_utf8_lossy(&out.stdout), name)
+        };
+        // ProxyEnable 是 REG_DWORD（0x1），ProxyServer 是 REG_SZ —— 两种类型都要认
+        if query("ProxyEnable").eq_ignore_ascii_case("0x1") {
+            let server = query("ProxyServer");
+            // 形如 `http=1.2.3.4:8080;https=...` 时取 https/http 那段
+            if server.contains('=') {
+                for part in server.split(';') {
+                    let part = part.trim();
+                    for key in ["https=", "http="] {
+                        if let Some(v) = part.strip_prefix(key) {
+                            if !v.is_empty() {
+                                return v.to_string();
+                            }
+                        }
+                    }
+                }
+            }
+            if !server.is_empty() {
+                return server;
+            }
+        }
+    }
+    String::new()
+}
+
+/// 解析 `reg query` 的输出里某个值。行形如：
+/// `    ProxyServer    REG_SZ    127.0.0.1:7897`
+/// `    ProxyEnable    REG_DWORD    0x1`
+/// 注意 ProxyEnable 是 REG_DWORD：只认 REG_SZ 的话永远读不到「系统代理已启用」。
+fn parse_reg_value(text: &str, name: &str) -> String {
+    for line in text.lines() {
+        let l = line.trim();
+        let Some(rest) = l.strip_prefix(name) else {
+            continue;
+        };
+        // 名字后面必须是空白，避免 ProxyEnableFoo 被当成 ProxyEnable
+        if !rest.starts_with(|c: char| c.is_whitespace()) {
+            continue;
+        }
+        for ty in ["REG_EXPAND_SZ", "REG_SZ", "REG_DWORD"] {
+            if let Some(idx) = rest.find(ty) {
+                return rest[idx + ty.len()..].trim().to_string();
+            }
+        }
+    }
+    String::new()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_reg_sz_and_dword_values() {
+        let out = "\r\nHKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings\r\n    ProxyEnable    REG_DWORD    0x1\r\n    ProxyServer    REG_SZ    127.0.0.1:7897\r\n\r\n";
+        assert_eq!(parse_reg_value(out, "ProxyEnable"), "0x1");
+        assert_eq!(parse_reg_value(out, "ProxyServer"), "127.0.0.1:7897");
+        // 名字前缀相近的不能误命中
+        assert_eq!(parse_reg_value(out, "Proxy"), "");
+        assert_eq!(parse_reg_value(out, "ProxyEnableX"), "");
+        assert_eq!(parse_reg_value("", "ProxyServer"), "");
+    }
+
+    #[test]
+    fn parses_expand_sz_and_spaced_values() {
+        let out = "    AutoConfigURL    REG_SZ    http://x/proxy.pac\r\n    ProxyServer    REG_SZ    http=1.2.3.4:80;https=5.6.7.8:443\r\n    Foo    REG_EXPAND_SZ    %USERPROFILE%\\a\r\n";
+        assert_eq!(parse_reg_value(out, "AutoConfigURL"), "http://x/proxy.pac");
+        assert_eq!(
+            parse_reg_value(out, "ProxyServer"),
+            "http=1.2.3.4:80;https=5.6.7.8:443"
+        );
+        assert_eq!(parse_reg_value(out, "Foo"), "%USERPROFILE%\\a");
+    }
+}

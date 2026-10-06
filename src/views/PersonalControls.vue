@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ACCENT_PAIRS, settings, settingsNavPos } from '../store'
+import { ACCENT_PAIRS, ensureNotifyPermission, settings, settingsNavPos } from '../store'
+
+/** 打开提醒开关时顺便申请通知权限（拒绝了也不影响任务栏闪烁） */
+function onNotifyToggle(e: Event) {
+  if ((e.target as HTMLInputElement).checked) void ensureNotifyPermission()
+}
 
 /** 设置页分类导航位置：读取时给默认值（跟随主导航），写入时才落盘为独立设置 */
 const settingsNav = computed<'left' | 'top'>({
@@ -69,6 +74,20 @@ function clearBg() {
           </label>
         </div>
       </div>
+      <div class="set-row">
+        <div>
+          <div class="label">启动页</div>
+          <div class="hint" style="font-size: 12px">启动器打开时停在哪个页面</div>
+        </div>
+        <div class="ctrl">
+          <select v-model="settings.startView" class="field">
+            <option value="home">首页</option>
+            <option value="instances">游戏</option>
+            <option value="downloads">下载</option>
+            <option value="settings">设置</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <div class="set-group">
@@ -134,12 +153,82 @@ function clearBg() {
       <div class="set-row">
         <div>
           <div class="label">关闭按钮行为</div>
+          <div class="hint" style="font-size: 12px">选「最小化到托盘」后可从托盘图标恢复</div>
         </div>
         <div class="ctrl">
           <select v-model="settings.closeBehavior" class="field">
             <option value="exit">直接退出</option>
             <option value="minimize">最小化到托盘</option>
           </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="set-group">
+      <h3>界面</h3>
+      <div class="set-row">
+        <div>
+          <div class="label">界面缩放</div>
+        </div>
+        <div class="ctrl">
+          <select v-model.number="settings.uiScale" class="field">
+            <option :value="90">90%</option>
+            <option :value="100">100%</option>
+            <option :value="110">110%</option>
+            <option :value="125">125%</option>
+            <option :value="150">150%</option>
+          </select>
+        </div>
+      </div>
+      <div class="set-row">
+        <div>
+          <div class="label">背景模糊</div>
+        </div>
+        <div class="ctrl">
+          <input v-model.number="settings.bgBlur" type="range" min="0" max="30" step="1" />
+          <span class="val">{{ settings.bgBlur }} px</span>
+        </div>
+      </div>
+      <div class="set-row">
+        <div>
+          <div class="label">界面动画</div>
+          <div class="hint" style="font-size: 12px">关掉后过渡与呼吸圈等动效全部停用</div>
+        </div>
+        <div class="ctrl">
+          <label class="switch">
+            <input v-model="settings.animations" type="checkbox" />
+            <span class="track" />
+            <span class="thumb" />
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="set-group">
+      <h3>提醒与日志</h3>
+      <div class="set-row">
+        <div>
+          <div class="label">下载完成提醒</div>
+          <div class="hint" style="font-size: 12px">任务栏闪烁 +（允许时）系统通知</div>
+        </div>
+        <div class="ctrl">
+          <label class="switch">
+            <input v-model="settings.downloadNotify" type="checkbox" @change="onNotifyToggle" />
+            <span class="track" />
+            <span class="thumb" />
+          </label>
+        </div>
+      </div>
+      <div class="set-row">
+        <div>
+          <div class="label">游戏退出时自动弹日志</div>
+        </div>
+        <div class="ctrl">
+          <label class="switch">
+            <input v-model="settings.autoOpenLogOnExit" type="checkbox" />
+            <span class="track" />
+            <span class="thumb" />
+          </label>
         </div>
       </div>
     </div>
