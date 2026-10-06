@@ -98,7 +98,7 @@ async function launch() {
       </div>
     </header>
 
-    <section class="news-row" aria-label="公告">
+    <section v-if="newsCards.length" class="news-row" aria-label="公告">
       <article v-for="(n, i) in newsCards" :key="i" class="news-card">
         <div v-if="n.date" class="date">{{ n.date }}</div>
         <div class="title" v-html="inlineMd(n.title)" />

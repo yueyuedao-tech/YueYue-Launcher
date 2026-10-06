@@ -536,8 +536,10 @@ export interface Settings {
   animations: boolean
   /** 启动器打开时停在哪个页面 */
   startView: ViewId
-  /** 每日信息：自己写的 Markdown。非空就用它，留空则用中心化服务器下发的 */
-  infoBarMd: string
+  /** 每日信息（首页公告）：开关，默认开启 */
+  infoBarEnabled: boolean
+  /** 每日信息的来源链接；留空则用中心化服务器下发的内容 */
+  infoBarUrl: string
 }
 
 const defaults: Settings = {
@@ -569,7 +571,8 @@ const defaults: Settings = {
   bgBlur: 0,
   animations: true,
   startView: 'home',
-  infoBarMd: '',
+  infoBarEnabled: true,
+  infoBarUrl: '',
 }
 
 function loadSettings(): Settings {
@@ -664,13 +667,50 @@ export const workshopMirrors = ref<MirrorItem[]>([])
 
 /** 每日信息：中心化服务器下发的 Markdown 原文 */
 export const infoBarText = ref('')
+/** 每日信息：按设置里那个链接拉到的 Markdown 原文 */
+export const infoBarRemote = ref('')
+export const infoBarLoading = ref(false)
+export const infoBarError = ref('')
 
 /**
  * 每日信息最终生效的内容，优先级：
- *   设置里自己写的 → 中心化服务器下发的 → 内置默认（原来写死的三条）
+ *   设置里那个链接拉到的 → 中心化服务器下发的 → 内置默认（原来写死的三条）
+ * 开关关掉则整块不显示。
  */
-export const effectiveInfoBar = computed(
-  () => settings.infoBarMd.trim() || infoBarText.value || defaultInfoBar,
+export const effectiveInfoBar = computed(() => {
+  if (!settings.infoBarEnabled) return ''
+  return infoBarRemote.value || infoBarText.value || defaultInfoBar
+})
+
+/** 按设置里的链接拉每日信息；开关关掉或没填链接则清空 */
+export async function loadInfoBarRemote(): Promise<void> {
+  const url = settings.infoBarUrl.trim()
+  if (!settings.infoBarEnabled || !url) {
+    infoBarRemote.value = ''
+    infoBarError.value = ''
+    return
+  }
+  infoBarLoading.value = true
+  infoBarError.value = ''
+  try {
+    infoBarRemote.value = (await invoke('fetch_text', {
+      url,
+      proxy: effectiveProxy.value,
+    })) as string
+  } catch (e) {
+    infoBarRemote.value = ''
+    infoBarError.value = String(e)
+  } finally {
+    infoBarLoading.value = false
+  }
+}
+
+// 链接或开关一变就重新拉：开关重新打开即刻生效
+watch(
+  [() => settings.infoBarEnabled, () => settings.infoBarUrl],
+  () => {
+    void loadInfoBarRemote()
+  },
 )
 
 /** 从本地版本缓存里取上次下发的镜像与每日信息（中心服务器临时不可达时也不会空） */

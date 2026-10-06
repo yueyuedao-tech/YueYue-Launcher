@@ -454,16 +454,6 @@ select.field option { background: #171722; color: var(--ink); }
   background: rgba(255, 255, 255, .07);
 }
 
-/* 每日信息 Markdown 编辑框（设置 → 镜像与网络） */
-.infobar-editor {
-  width: 100%;
-  min-height: 84px;
-  resize: vertical;
-  font-family: 'Cascadia Mono', Consolas, 'Courier New', monospace;
-  font-size: 12px;
-  line-height: 1.7;
-}
-
 /* ---------- 版本 / 下载列表 ---------- */
 .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; }
 .toolbar .field { width: 260px; }

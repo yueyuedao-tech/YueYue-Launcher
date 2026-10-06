@@ -5,7 +5,8 @@ import { open as openExternal } from '@tauri-apps/plugin-shell'
 import {
   centralServerUsed,
   effectiveProxyLabel,
-  infoBarText,
+  infoBarError,
+  infoBarLoading,
   instances,
   loadCachedMirrors,
   loadInstances,
@@ -222,40 +223,38 @@ onMounted(async () => {
           <div>
             <div class="label">每日信息（首页公告）</div>
             <div class="hint" style="font-size: 12px">
-              Markdown，<b>一行一条</b>；行首 <code>**日期 · 标签**</code> 之后是标题。
-              留空则使用中心化服务器下发的内容
+              从下面的链接索引内容（Markdown，一行一条；行首 <code>**日期 · 标签**</code> 之后是标题）。
+              留空则用中心化服务器下发的内容；关掉开关即整块不显示
             </div>
           </div>
-          <div class="ctrl" style="flex: 1; max-width: 560px; flex-direction: column; align-items: stretch; gap: 8px">
-            <textarea
-              v-model="settings.infoBarMd"
-              class="field infobar-editor"
-              rows="4"
-              :placeholder="infoBarText || '（中心未下发内容，可在这里自己写）'"
+          <div class="ctrl" style="flex: 1; max-width: 560px; gap: 10px; flex-wrap: wrap">
+            <label class="switch" style="flex: none">
+              <input v-model="settings.infoBarEnabled" type="checkbox" />
+              <span class="track" />
+              <span class="thumb" />
+            </label>
+            <input
+              v-model="settings.infoBarUrl"
+              class="field"
+              style="flex: 1; min-width: 200px"
+              :disabled="!settings.infoBarEnabled"
+              placeholder="https://example.com/news.md（留空 = 用中心下发）"
             />
-            <div style="display: flex; gap: 8px; align-items: center; justify-content: space-between">
-              <span class="meta" style="font-size: 12px">
-                {{ settings.infoBarMd.trim() ? '当前：使用上面自定义的内容' : '当前：使用中心化服务器下发的内容' }}
-              </span>
-              <span style="display: flex; gap: 8px">
-                <button
-                  class="btn-ghost"
-                  style="font-size: 12px"
-                  :disabled="!settings.infoBarMd"
-                  @click="settings.infoBarMd = ''"
-                >
-                  清空（改用中心下发）
-                </button>
-                <button
-                  class="btn-ghost"
-                  style="font-size: 12px"
-                  :disabled="!infoBarText"
-                  @click="settings.infoBarMd = infoBarText"
-                >
-                  载入中心内容
-                </button>
-              </span>
-            </div>
+            <span v-if="infoBarLoading" class="meta" style="font-size: 12px; flex-basis: 100%">读取中…</span>
+            <span
+              v-else-if="infoBarError"
+              class="meta"
+              style="font-size: 12px; flex-basis: 100%; color: #ff8f8f"
+            >
+              {{ infoBarError }}
+            </span>
+            <span
+              v-else-if="settings.infoBarEnabled && !settings.infoBarUrl.trim()"
+              class="meta"
+              style="font-size: 12px; flex-basis: 100%"
+            >
+              当前：使用中心化服务器下发的内容
+            </span>
           </div>
         </div>
         <div class="set-row">

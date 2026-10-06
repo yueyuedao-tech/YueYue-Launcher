@@ -356,6 +356,19 @@ fn message_of(body: &str) -> String {
 
 /// curl 默认对 4xx/5xx 也返回 0（不加 -f），所以必须把状态码单独取回来判断，
 /// 否则 rate limit 的错误 JSON 会被当成正常数据丢给解析器。
+/// 按链接拉一段文本（每日信息用）：走 curl，支持代理，只允许 http(s)。
+/// 放在 Rust 侧而不是前端 fetch：WebView 里直接请求会撞 CORS，也不走代理设置。
+#[tauri::command]
+pub async fn fetch_text(url: String, proxy: String) -> Result<String, String> {
+    let url = url.trim().to_string();
+    if !(url.starts_with("https://") || url.starts_with("http://")) {
+        return Err("链接需以 http(s):// 开头".into());
+    }
+    tauri::async_runtime::spawn_blocking(move || http_get(&url, &proxy, &[], 15))
+        .await
+        .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
 fn http_get(url: &str, proxy: &str, headers: &[&str], timeout: u32) -> Result<String, String> {
     let mut cmd = crate::cmdutil::no_console("curl");
     cmd.args(["-sSL", "--compressed", "-w", "\n%{http_code}", "--max-time", &timeout.to_string()]);

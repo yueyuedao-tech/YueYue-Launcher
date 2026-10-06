@@ -116,6 +116,7 @@ fn main() {
             sources::list_sources,
             sources::save_sources,
             central::fetch_central_index,
+            central::fetch_text,
             central::list_central_versions,
             central::sync_central_versions,
             central::list_folder_files,

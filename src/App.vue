@@ -19,6 +19,7 @@ import {
   setLaunchExit,
   loadSystemProxy,
   loadCachedMirrors,
+  loadInfoBarRemote,
   applyWindowSettings,
   notifyDownloadDone,
 } from './store'
@@ -86,6 +87,8 @@ onMounted(async () => {
   // 窗口/代理/镜像这些依赖窗口与系统状态的，等挂载后再落一次
   void loadSystemProxy()
   void loadCachedMirrors()
+  // 每日信息：按设置里那个链接拉一次（开关或链接变了会自动重拉）
+  void loadInfoBarRemote()
   void applyWindowSettings()
   // 启动日志在 App 层统一收：浮层收起后仍需继续写入归档，否则关掉浮层就丢日志
   unlisteners.push(
