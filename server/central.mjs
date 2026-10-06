@@ -30,7 +30,7 @@
  * 部署到任意静态托管时，只要能访问到 index.json 就行（build 产物自带版本快照）。
  */
 import { createServer } from 'node:http'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -98,15 +98,37 @@ const MIRRORS = {
 }
 
 /**
- * 每日信息（首页底部那三条公告）。Markdown，一行一条：
- * 行首 `**日期 · 标签**` 之后的部分是标题，客户端拆成原来的「日期行 + 标题」渲染，
- * 所以样式仍走原本的 .news-row / .news-card。客户端渲染前会把 `<` 转义。
+ * 每日信息（首页底部那三条公告）的**内置默认值**。
+ * 实际下发的内容优先取 `content/info.md`（见 readInfoBar）：那个文件可以在服务器上
+ * 随时改，改完下一次请求就生效，不用重建镜像。只有它不存在/为空时才回落到这里。
+ *
+ * 格式：Markdown，一行一条；行首 `**日期 · 标签**` 之后是标题。
  */
 const INFO_BAR = [
   '**2026-10-03 · 公告** YueYue Launcher (YYL) V1 发布：全新二次元界面，支持 Windows 与 Linux',
   '**2026-09-28 · 更新** 模拟启动流程上线，日志面板实时显示各阶段状态',
   '**2026-09-20 · 社区** Mindustry 游戏管理上线：每个客户端独立存档与配置',
 ].join('\n')
+
+/** 可编辑内容目录：compose 里会把它挂到宿主机，方便直接改公告 */
+const CONTENT_DIR = join(HERE, 'content')
+const INFO_FILE = join(CONTENT_DIR, 'info.md')
+
+/**
+ * 取当前要下发的每日信息：优先 `content/info.md`（可编辑），否则用内置默认值。
+ * 每次请求都读盘 —— 改完文件不用重启容器。
+ */
+function readInfoBar() {
+  try {
+    if (existsSync(INFO_FILE)) {
+      const text = readFileSync(INFO_FILE, 'utf8').replace(/^\uFEFF/, '').trim()
+      if (text) return text.slice(0, 8000)
+    }
+  } catch {
+    // 读不到（权限/编码等）就回落到内置内容，保证接口不会因此 500
+  }
+  return INFO_BAR
+}
 
 const clean = (s, n) => String(s ?? '').trim().slice(0, n)
 const slug = (s, i) =>
@@ -278,7 +300,7 @@ async function build() {
     count: items.length,
     items,
     // 每日信息：Markdown 原文，客户端自己拆行
-    infoBar: clean(INFO_BAR, 8000),
+    infoBar: clean(readInfoBar(), 8000),
     // 镜像清单：只收 http(s) 前缀，名称/地址都裁长度
     mirrors: {
       workshop: (MIRRORS.workshop ?? [])
@@ -325,7 +347,7 @@ async function serve(port) {
     // 客户端「每日信息」那一行可以直接填 http(s)://<本服务>/info.md
     if (url === '/info.md' || url === '/info') {
       res.writeHead(200, { 'content-type': 'text/markdown; charset=utf-8', ...CORS })
-      res.end(INFO_BAR + '\n')
+      res.end(readInfoBar() + '\n')
       return
     }
 

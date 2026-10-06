@@ -41,9 +41,6 @@ pub async fn launch_instance(app: AppHandle, id: String) -> Result<(), String> {
     }
     let cwd = jar.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| ".".into());
 
-    let data_abs = instances::data_dir_abs(&info);
-    std::fs::create_dir_all(&data_abs).map_err(|e| e.to_string())?;
-
     let mut cmd = crate::cmdutil::no_console(&info.java_path);
     cmd.arg(format!("-Xmx{}M", info.memory_mb));
     for a in &info.jvm_args {
@@ -68,13 +65,19 @@ pub async fn launch_instance(app: AppHandle, id: String) -> Result<(), String> {
         cmd.process_group(0);
     }
 
-    // 数据隔离：Arc/游戏经 AppData(Windows) 或 XDG_DATA_HOME(Linux) 决定数据目录
-    if info.isolate {
-        if cfg!(windows) {
-            cmd.env("AppData", &data_abs);
-        } else {
-            cmd.env("XDG_DATA_HOME", &data_abs);
-        }
+    // 数据隔离：Arc/游戏经 AppData(Windows) 或 XDG_DATA_HOME(Linux) 决定数据目录。
+    // 隔离 → 各实例自己的 `<实例>/data`；不隔离（存档共享）→ 启动器自己的共享目录，
+    // 这样多开共享存档，又不会去写系统的 Mindustry 数据。
+    let data_abs = if info.isolate {
+        instances::data_dir_abs(&info)
+    } else {
+        instances::shared_data()
+    };
+    std::fs::create_dir_all(&data_abs).map_err(|e| e.to_string())?;
+    if cfg!(windows) {
+        cmd.env("AppData", &data_abs);
+    } else {
+        cmd.env("XDG_DATA_HOME", &data_abs);
     }
 
     // 检查-启动-登记为一个临界区，防止双击重复拉起

@@ -13,9 +13,10 @@ ENV TZ=Asia/Shanghai \
 
 WORKDIR /app
 
-# 只拷运行需要的三个东西：服务端脚本、构建产物、以及一份可选缓存目录
+# 只拷运行需要的几个东西：服务端脚本、构建产物、以及可编辑内容目录
 COPY central.mjs ./central.mjs
 COPY index.json ./index.json
+COPY content ./content
 RUN mkdir -p /app/.cache
 
 # 非 root 运行（node 镜像自带 node 用户）

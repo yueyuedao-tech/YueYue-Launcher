@@ -1,11 +1,12 @@
 # YYL 中心化服务器 —— 真实环境部署
 #
-#   docker compose up -d            后台起服务（监听 1020）
+#   docker compose up -d            后台起服务
 #   docker compose logs -f          看访问日志
 #   docker compose up -d --build    改完配置后重建
 #
-# 对外地址： https://mindustry.wiki:1020
-#   TLS 由外层反向代理终止（见 README 的三种做法），容器本身只跑 HTTP。
+# 对外端口用 .env 里的 YYL_PORT 控制（默认 1020）：
+#   echo 'YYL_PORT=1019' > .env     容器就映射到宿主机 1019，再交给反向代理
+# TLS 由外层反向代理终止（见 README 的三种做法），容器本身只跑 HTTP。
 services:
   central:
     build: .
@@ -13,20 +14,22 @@ services:
     container_name: yyl-central
     restart: unless-stopped
     environment:
-      # 容器内监听端口；对外映射保持 1020，和 https://mindustry.wiki:1020 对齐
+      # 容器内固定监听 1020；对外端口由下面的 ports 决定
       PORT: "1020"
-      TZ: Asia/Shanghai
+      TZ: ${TZ:-Asia/Shanghai}
       # GitHub 版本缓存时长（毫秒），默认 15 分钟；0 = 每次请求都重拉
-      YYL_GH_TTL_MS: "900000"
+      YYL_GH_TTL_MS: ${YYL_GH_TTL_MS:-900000}
       # 有 token 就填，能把 GitHub 限额从 60 次/小时提高（不带 token 多仓库容易打满）
       # GITHUB_TOKEN: "ghp_xxx"
       # Node 24+ 让 fetch 走代理（服务器直连 GitHub 时一般不需要）
       # HTTPS_PROXY: "http://127.0.0.1:7897"
     ports:
-      - "1020:1020"
+      - "${YYL_PORT:-1020}:1020"
     volumes:
       # 缓存与构建产物落盘，容器重建不用重新索引
       - ./data:/app/.cache
+      # 公告等内容直接改这里，改完下一次请求就生效，不用重建镜像
+      - ./content:/app/content
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:1020/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s

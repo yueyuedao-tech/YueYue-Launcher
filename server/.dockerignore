@@ -1,8 +1,10 @@
 node_modules
 .cache
 data
+.env
 *.log
 .git
 Dockerfile
 docker-compose.yml
 README.md
+

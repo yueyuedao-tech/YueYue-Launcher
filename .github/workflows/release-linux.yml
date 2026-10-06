@@ -8,7 +8,7 @@ on:
       tag:
         description: '把产物附加到哪个 release tag'
         required: true
-        default: 'v0.1.0'
+        default: 'v0.1.1'
 
 permissions:
   contents: write
@@ -60,7 +60,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ inputs.tag }}
-          releaseName: 'YueYue Launcher (YYL) v0.1.0'
+          releaseName: 'YueYue Launcher (YYL) v0.1.1'
           releaseDraft: false
           prerelease: false
           args: --bundles deb,appimage

@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "app": "yueyue-launcher",
-  "generated": "2026-10-06T12:49:05.697Z",
+  "generated": "2026-10-06T14:08:30.967Z",
   "count": 3,
   "items": [
     {
@@ -2805,7 +2805,7 @@
       "versionsError": ""
     }
   ],
-  "infoBar": "**2026-10-03 · 公告** YueYue Launcher (YYL) V1 发布：全新二次元界面，支持 Windows 与 Linux\n**2026-09-28 · 更新** 模拟启动流程上线，日志面板实时显示各阶段状态\n**2026-09-20 · 社区** Mindustry 游戏管理上线：每个客户端独立存档与配置",
+  "infoBar": "**2099-01-01 · 测试** 这行是改文件后现场生效的\n**2099-01-02 · 第二条** 第二条内容",
   "mirrors": {
     "workshop": []
   }

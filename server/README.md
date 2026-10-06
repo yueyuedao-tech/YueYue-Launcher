@@ -79,14 +79,40 @@ mindustry.wiki 的证书，然后在 1020 上提供 HTTPS。
 
 ## 改配置
 
-源的清单、标语、logo、标签、镜像、每日信息都在 `central.mjs` 顶部：
-`SOURCES`、`MIRRORS`、`INFO_BAR`。改完：
+### 公告 / 每日信息（不用重建镜像）
+
+内容放在 **`content/info.md`**，compose 已经把它挂进容器：
+
+```bash
+vi /server/server/yyl-central/content/info.md     # 或者用 1Panel 的文件管理器
+curl -s http://127.0.0.1:1019/info.md             # 立刻就能看到新内容
+```
+
+- 格式是 Markdown，**一行一条**；行首 `**日期 · 标签**` 之后是标题
+- 服务端**每次请求都重新读这个文件**，改完下一次请求就生效，**不用重建镜像、不用重启容器**
+- `/index.json` 里的 `infoBar` 与 `/info.md` 用的是同一份内容
+- 文件不存在或为空时，回落到 `central.mjs` 里的内置默认公告
+
+### 源清单 / 标语 / logo / 镜像
+
+在 `central.mjs` 顶部：`SOURCES`、`MIRRORS`（`INFO_BAR` 只是公告的内置兜底）。改完：
 
 ```bash
 docker compose up -d --build     # 重建镜像并重启
 ```
 
 `index.json` 每次请求（受 TTL 限制）都会重新生成，所以改完代码重建即可生效。
+
+## 端口
+
+对外端口由同目录 **`.env`** 里的 `YYL_PORT` 决定（默认 1020）：
+
+```bash
+echo 'YYL_PORT=1019' > .env
+docker compose up -d
+```
+
+容器内部固定监听 1020；反向代理指向 `127.0.0.1:$YYL_PORT` 即可。
 
 ## 不用 Docker 也能跑
 

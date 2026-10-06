@@ -544,6 +544,9 @@ type DlState2 = {
   version: string
   url: string
   fileName: string
+  /** 本次下载的唯一标识：同一个文件可能被下载多次（换名字再建一个实例），
+   *  用文件名当键会互相覆盖，导致其中一次的「下载并创建」被静默丢掉 */
+  token: string
   name: string
   downloadDir: string
   memoryMb: number
@@ -568,12 +571,17 @@ function defaultFileName(sourceName: string, version: string, url: string): stri
   return (raw || 'download').slice(0, 80) + ext
 }
 
+function newToken(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}
+
 function askDownload(c: CentralItem, v: CentralVersion, a: CentralAsset) {
   const p: DlState2 = {
     sourceName: c.name,
     version: v.tag,
     url: a.url,
     fileName: defaultFileName(c.name, v.tag, a.url),
+    token: newToken(),
     name: `${c.name} ${v.tag}`.slice(0, 40),
     downloadDir: settings.downloadDir,
     memoryMb: settings.memory,
@@ -584,7 +592,7 @@ function askDownload(c: CentralItem, v: CentralVersion, a: CentralAsset) {
     state: 'form',
     error: '',
   }
-  pendingCreates[p.fileName] = p
+  pendingCreates[p.token] = p
   dlPanel.value = p
   dlPanelOpen.value = true
 }
@@ -595,7 +603,7 @@ function closePanel() {
   const p = dlPanel.value
   dlPanelOpen.value = false
   // 还没点「下载并创建」就关掉：这条意图作废，别留在待创建表里
-  if (p && p.state === 'form') delete pendingCreates[p.fileName]
+  if (p && p.state === 'form') delete pendingCreates[p.token]
 }
 
 /** 「查看下载任务」：先收起面板再开抽屉。
@@ -638,6 +646,7 @@ async function confirmDownload() {
       downloadDir: p.downloadDir,
       threads: p.threads,
       name: p.name,
+      token: p.token,
     })
     void refreshDownloadTasks()
     // 点完「下载并创建」直接回下载页面：进度与创建结果都交给右下角任务圆圈，
@@ -650,9 +659,10 @@ async function confirmDownload() {
 }
 
 /** 下载完成后自动用面板里选的隔离/内存/路径创建游戏。
- *  按文件名查待创建表：面板关掉、或用户又去下了别的，这条意图依然有效。 */
-async function createFromPanel(fileName: string, path: string) {
-  const p = pendingCreates[fileName]
+ *  按 token 查待创建表：同一个文件可能被下载多次（换名字再建一个实例），
+ *  用文件名当键会让两次下载互相覆盖，其中一次就静默不建了。 */
+async function createFromPanel(token: string, path: string) {
+  const p = pendingCreates[token]
   if (!p) return
   const name = p.name.trim()
   // 名字重复就不建（面板里也会红字提示，这里兜住「下载期间名字被别人占了」）
@@ -680,7 +690,8 @@ async function createFromPanel(fileName: string, path: string) {
         dlPanelOpen.value = false
         dlPanel.value = null
       }
-      delete pendingCreates[fileName]
+      // 只清理自己这一条：期间又下了同名的另一个版本也不能被误删
+      if (pendingCreates[token] === p) delete pendingCreates[token]
     }, 1600)
   } catch (e) {
     p.state = 'error'
@@ -704,7 +715,9 @@ onMounted(async () => {
   window.addEventListener('keydown', onKeydown)
   unlisteners.push(
     await listen<DownloadDonePayload>('download-done', (e) => {
-      void createFromPanel(e.payload.fileName, e.payload.path)
+      // 有 token 就按 token 找（同文件多次下载互不干扰）；老事件没有 token 时退回文件名
+      const token = e.payload.token ?? e.payload.fileName
+      void createFromPanel(token, e.payload.path)
     }),
     await listen<DownloadErrorPayload>('download-error', (e) => {
       const p = pendingCreates[e.payload.fileName]

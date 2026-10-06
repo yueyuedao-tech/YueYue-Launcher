@@ -1,5 +1,80 @@
 use std::ffi::OsStr;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+
+#[cfg(windows)]
+const APP_DIR_NAME: &str = "YueYue Launcher";
+#[cfg(windows)]
+const APP_DIR_LEGACY: &str = "StarlightLauncher";
+#[cfg(not(windows))]
+const APP_DIR_NAME: &str = "yueyue-launcher";
+#[cfg(not(windows))]
+const APP_DIR_LEGACY: &str = "starlight-launcher";
+
+fn raw_root(name: &str) -> PathBuf {
+    #[cfg(windows)]
+    {
+        let appdata = std::env::var("APPDATA").unwrap_or_else(|_| ".".into());
+        PathBuf::from(appdata).join(name)
+    }
+    #[cfg(not(windows))]
+    {
+        let base = std::env::var("XDG_DATA_HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| {
+                let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
+                PathBuf::from(home).join(".local").join("share")
+            });
+        base.join(name)
+    }
+}
+
+/// 启动器数据根目录（实例、下载、缓存、配置都在它下面）。
+/// Windows 是 `%APPDATA%\YueYue Launcher`，Linux 是 `$XDG_DATA_HOME/yueyue-launcher`。
+///
+/// 老版本用的是 StarlightLauncher / starlight-launcher：第一次访问时整目录搬过来，
+/// 这样改名之后用户的实例与下载不会丢。
+pub fn app_root() -> PathBuf {
+    let new = raw_root(APP_DIR_NAME);
+    migrate_legacy(&raw_root(APP_DIR_LEGACY), &new);
+    new
+}
+
+/// 老目录在、新目录不在 → 搬过去。同卷直接 rename，失败（跨卷/占用）退化为逐项复制。
+fn migrate_legacy(old: &Path, new: &Path) {
+    if new.exists() || !old.exists() {
+        return;
+    }
+    if let Some(parent) = new.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if std::fs::rename(old, new).is_ok() {
+        return;
+    }
+    if copy_tree(old, new).is_ok() {
+        let _ = std::fs::remove_dir_all(old);
+    }
+}
+
+fn copy_tree(src: &Path, dst: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(dst)?;
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let to = dst.join(entry.file_name());
+        if entry.file_type()?.is_dir() {
+            copy_tree(&entry.path(), &to)?;
+        } else {
+            std::fs::copy(entry.path(), &to)?;
+        }
+    }
+    Ok(())
+}
+
+/// 共享数据目录：实例关掉「数据隔离」时，游戏共用这一份数据（而不是系统 AppData），
+/// 这样多开之间共享存档，又不会污染系统里的 Mindustry。
+pub fn shared_data_dir() -> PathBuf {
+    app_root().join("shared").join("data")
+}
 
 /// 构造子进程命令：Windows 下加 CREATE_NO_WINDOW，避免每次调用闪出 CMD 黑窗
 /// （curl / java / taskkill / tar 等全部走这里）

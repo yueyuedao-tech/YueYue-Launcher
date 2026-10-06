@@ -83,18 +83,7 @@ fn drop_retired(items: Vec<SourceItem>) -> (Vec<SourceItem>, bool) {
 }
 
 fn app_dir() -> PathBuf {
-    if cfg!(windows) {
-        let appdata = std::env::var("APPDATA").unwrap_or_else(|_| ".".into());
-        PathBuf::from(appdata).join("StarlightLauncher")
-    } else {
-        let base = std::env::var("XDG_DATA_HOME")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| {
-                let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
-                PathBuf::from(home).join(".local").join("share")
-            });
-        base.join("starlight-launcher")
-    }
+    crate::cmdutil::app_root()
 }
 
 fn sources_path() -> PathBuf {

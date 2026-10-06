@@ -164,6 +164,8 @@ export interface DownloadTask {
 export interface DownloadDonePayload {
   fileName: string
   path: string
+  /** 发起下载时带的唯一标识，原样回传（同一个文件可能被下载多次） */
+  token?: string
 }
 
 export interface DownloadErrorPayload {

@@ -82,18 +82,7 @@ fn default_config() -> LaunchConfig {
 }
 
 pub fn instances_root() -> PathBuf {
-    if cfg!(windows) {
-        let appdata = std::env::var("APPDATA").unwrap_or_else(|_| ".".into());
-        PathBuf::from(appdata).join("StarlightLauncher").join("instances")
-    } else {
-        let base = std::env::var("XDG_DATA_HOME")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| {
-                let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
-                PathBuf::from(home).join(".local").join("share")
-            });
-        base.join("starlight-launcher").join("instances")
-    }
+    crate::cmdutil::app_root().join("instances")
 }
 
 fn sanitize_name(name: &str) -> Result<String, String> {
@@ -179,8 +168,21 @@ pub async fn list_instances() -> InstanceList {
     let running = crate::launcher::running_ids();
     for i in &mut out {
         i.running = running.contains(&i.id);
+        // 兜底补建数据目录：隔离实例给 `<实例>/data`，共享实例给共享目录。
+        // 之前「同名 jar 再建一个实例后不建数据目录、列表里加载不出来」就是这里缺的兜底。
+        ensure_data_dir(i);
     }
     InstanceList { items: out, skipped }
+}
+
+/// 保证实例的数据目录存在（幂等，每次列实例时都补一次）
+pub fn ensure_data_dir(info: &InstanceInfo) {
+    let dir = if info.isolate {
+        data_dir_abs(info)
+    } else {
+        shared_data()
+    };
+    let _ = fs::create_dir_all(dir);
 }
 
 #[tauri::command]
@@ -371,22 +373,20 @@ fn hidden_root() -> PathBuf {
 /// 隔离实例：启动器把 `AppData` 指到 `<实例>/data`，Mindustry 在 Windows 下用的是
 /// `%AppData%/Mindustry/...`，所以真实存档在 `<实例>/data/Mindustry/saves`
 /// —— 以前这里写的是 `<实例>/data/saves`，永远扫不到东西，这正是「扫描存档点了没用」的原因。
-/// 非隔离实例：游戏直接用系统 `%AppData%/Mindustry`，扫描要指向那里才看得到。
+/// 非隔离实例（= 存档共享）：共用一个启动器自己的共享数据目录
+/// `<数据根>/shared/data`，既能让多开共享存档，又不碰系统里的 Mindustry。
 fn saves_base(isolate: bool, data_abs: PathBuf) -> PathBuf {
-    if isolate {
-        data_abs.join("Mindustry").join("saves")
-    } else if cfg!(windows) {
-        let appdata = std::env::var("APPDATA").unwrap_or_else(|_| ".".into());
-        PathBuf::from(appdata).join("Mindustry").join("saves")
+    let root = if isolate {
+        data_abs
     } else {
-        let base = std::env::var("XDG_DATA_HOME")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| {
-                let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
-                PathBuf::from(home).join(".local").join("share")
-            });
-        base.join("Mindustry").join("saves")
-    }
+        crate::cmdutil::shared_data_dir()
+    };
+    root.join("Mindustry").join("saves")
+}
+
+/// 关掉隔离时，实例之间共享的数据目录
+pub fn shared_data() -> PathBuf {
+    crate::cmdutil::shared_data_dir()
 }
 
 fn saves_dir(id: &str) -> Result<PathBuf, String> {

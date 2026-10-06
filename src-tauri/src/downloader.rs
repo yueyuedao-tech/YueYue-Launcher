@@ -28,6 +28,8 @@ struct Job {
     total: AtomicU64,
     threads: AtomicUsize,
     cancelled: AtomicBool,
+    /// 发起方给的唯一标识，随 download-done 原样回传
+    token: Option<String>,
 }
 
 /// 面板要展示的任务快照
@@ -66,6 +68,11 @@ pub struct ProgressPayload {
 pub struct DonePayload {
     pub file_name: String,
     pub path: String,
+    /// 前端发起下载时带的唯一标识，原样回传。
+    /// 同一个版本可能被下载两次（换个游戏名再建一个实例），光靠文件名分不清是哪一次，
+    /// 于是新建实例的「意图」会被后一次覆盖 —— 这个 token 就是为此加的。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
 }
 
 #[derive(Serialize, Clone)]
@@ -280,13 +287,20 @@ fn remove_with_retry(path: &Path) {
     }
 }
 
-/// 删掉所有临时产物与半截目标文件
+/// 删掉所有临时产物（分段 + 暂存文件）。
+/// 注意：**绝不动最终目标文件**——重下同一个版本时，已有实例的 jar 指向的就是它，
+/// 下载失败或取消都不该把老文件删掉。
 fn cleanup_files(job: &Job) {
     let parts = std::mem::take(&mut *job.parts.lock().unwrap());
     for p in parts {
         remove_with_retry(&p);
     }
-    remove_with_retry(&job.dest);
+    remove_with_retry(&staging_path(&job.dest));
+}
+
+/// 下载暂存文件：先写它，全部成功再改名成目标文件（同名重下不会先删老文件）
+fn staging_path(dest: &Path) -> PathBuf {
+    PathBuf::from(format!("{}.downloading", dest.display()))
 }
 
 /// 按顺序把分段拼成目标文件
@@ -301,24 +315,19 @@ fn merge_parts(parts: &[PathBuf], dest: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
+/// 暂存文件改名成目标文件；Windows 上目标已存在时 rename 会失败，先删再改
+fn promote(staging: &Path, dest: &Path) -> std::io::Result<()> {
+    if dest.exists() {
+        let _ = remove_with_retry(dest);
+    }
+    std::fs::rename(staging, dest)
+}
+
 fn resolve_dir(download_dir: &str) -> PathBuf {
     if !download_dir.trim().is_empty() {
         return PathBuf::from(download_dir.trim());
     }
-    if cfg!(windows) {
-        let appdata = std::env::var("APPDATA").unwrap_or_else(|_| ".".into());
-        PathBuf::from(appdata)
-            .join("StarlightLauncher")
-            .join("downloads")
-    } else {
-        let base = std::env::var("XDG_DATA_HOME")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| {
-                let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
-                PathBuf::from(home).join(".local").join("share")
-            });
-        base.join("starlight-launcher").join("downloads")
-    }
+    crate::cmdutil::app_root().join("downloads")
 }
 
 /* ================= 任务主体 ================= */
@@ -360,7 +369,8 @@ fn run_job(app: AppHandle, id: String, url: String, proxy: String, job: Arc<Job>
     };
     let use_parts = planned.len() > 1;
 
-    // 分段 → 各自的 .partN；单连接 → 直接写目标文件
+    // 分段 → 各自的 .partN；单连接 → 直接写暂存文件（成功后再改名成目标）
+    let staging = staging_path(&job.dest);
     let mut paths: Vec<PathBuf> = Vec::new();
     let mut spec: Vec<Option<(u64, u64)>> = Vec::new();
     if use_parts {
@@ -369,7 +379,7 @@ fn run_job(app: AppHandle, id: String, url: String, proxy: String, job: Arc<Job>
             spec.push(Some(*r));
         }
     } else {
-        paths.push(job.dest.clone());
+        paths.push(staging.clone());
         spec.push(None);
     }
     *job.parts.lock().unwrap() = paths.clone();
@@ -500,13 +510,22 @@ fn run_job(app: AppHandle, id: String, url: String, proxy: String, job: Arc<Job>
             return;
         }
         if use_parts {
-            if let Err(_e) = merge_parts(&paths, &job.dest) {
+            // 分段先拼到暂存文件，成功后再整体改名过去
+            if let Err(_e) = merge_parts(&paths, &staging) {
                 finish_error(&app, &id, &job, -3);
                 return;
             }
             for p in &paths {
                 remove_with_retry(p);
             }
+        }
+        if !staging.exists() {
+            finish_error(&app, &id, &job, -4);
+            return;
+        }
+        if let Err(_e) = promote(&staging, &job.dest) {
+            finish_error(&app, &id, &job, -5);
+            return;
         }
         job.parts.lock().unwrap().clear();
         let path = job.dest.to_string_lossy().into_owned();
@@ -523,6 +542,7 @@ fn run_job(app: AppHandle, id: String, url: String, proxy: String, job: Arc<Job>
             DonePayload {
                 file_name: id.clone(),
                 path,
+                token: job.token.clone(),
             },
         );
         return;
@@ -538,6 +558,7 @@ pub async fn start_download(
     download_dir: String,
     threads: Option<u32>,
     name: Option<String>,
+    token: Option<String>,
 ) -> Result<(), String> {
     let id = crate::instances::validate_id(&file_name)?;
     if !(url.starts_with("https://") || url.starts_with("http://")) {
@@ -550,9 +571,9 @@ pub async fn start_download(
     let dir = resolve_dir(&download_dir);
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let dest = dir.join(&id);
-    if dest.exists() {
-        std::fs::remove_file(&dest).map_err(|e| e.to_string())?;
-    }
+    // 只清上一次留下的暂存文件；**不动** dest —— 同名重下不能先把老 jar 删了，
+    // 否则下载中途失败会让指向它的现有实例全都起不来。
+    remove_with_retry(&staging_path(&dest));
 
     let job = Arc::new(Job {
         probe: Mutex::new(None),
@@ -562,6 +583,7 @@ pub async fn start_download(
         total: AtomicU64::new(0),
         threads: AtomicUsize::new(n),
         cancelled: AtomicBool::new(false),
+        token: token.clone(),
     });
 
     // 检查-登记为一个临界区，消除同名并发窗口
@@ -725,6 +747,7 @@ mod tests {
                 total: AtomicU64::new(0),
                 threads: AtomicUsize::new(1),
                 cancelled: AtomicBool::new(false),
+                token: None,
             })
         };
         let job = mk();
