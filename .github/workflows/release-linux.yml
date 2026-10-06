@@ -51,6 +51,11 @@ jobs:
       - name: 安装前端依赖
         run: npm ci
 
+      # 必须先构建前端：tauri::generate_context!() 会校验 frontendDist（../dist）是否存在，
+      # 目录不在时这个 proc macro 直接 panic，连 cargo test 都会挂（CI 上踩过两次）
+      - name: 构建前端
+        run: npm run build
+
       - name: 跑测试
         run: cargo test --manifest-path src-tauri/Cargo.toml
 
