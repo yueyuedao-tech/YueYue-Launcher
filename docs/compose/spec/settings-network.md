@@ -17,6 +17,10 @@ commits: 工作区（未提交）
 **文件站下载（第⑤条，本轮最主要）** — 原来 mdtbbs 的目录页只能「打开目录」跳浏览器。勘察真实结构后发现三件事：目录页列的是**文件夹**（`class="term-file term-folder-link"`，名字在 `<div class="term-file-name">` 里），文件夹页列的是**文件**（`class="term-file"`，名字同样在 `term-file-name`，大小在 `<span class="size">`），而 href 指向的是**详情页**（返回 `text/html`），真正的 jar 在详情页的下载按钮上、指向 `/d/` + 同一路径。于是：`parse_term_entries` 统一解析文件夹与文件（名称优先取 `term-file-name`，兼容只有 `<span>` 的旧结构；大小解析 `84.8 MB` 这类写法），`parse_file_list` 只取文件夹（目录直接是文件时退化为「文件即可下载版本」），新增命令 `list_folder_files(url, proxy)` 把目录展开成可下载文件（换算成 `/d/…` 直链、滤掉服务端包）。前端在文件站版本行加「展开内容」按钮，展开后逐条列出文件名/大小/下载按钮，结果按 源+版本 缓存。
 
 1. **下载代理变成来源选项**：新增 `proxyMode`（`system` = 读系统代理 / `custom` = 用自定义地址），自定义时显示输入框、系统代理时显示读到的值。新增 Rust `get_system_proxy`：先看 `HTTPS_PROXY/HTTP_PROXY/ALL_PROXY` 等环境变量，再读 Windows WinINET 注册表（`ProxyEnable` + `ProxyServer`，支持 `http=…;https=…` 形式）。所有网络调用统一走 store 的 `effectiveProxy`。
+
+**第三轮（同日）** — ①「下载并创建」点完**立即关闭面板回到下载页**（进度与创建结果交给右下角任务圆圈），实测 1 秒后面板已关、当前页面仍是「下载」、任务继续 8 线程下载；②新增**启动页**设置（首页 / 游戏 / 下载 / 设置，默认首页）；③「关于」删掉架构段落；④旧版本归档**折到最新版那一栏下面**：平时一个分组头都不显示，**点最新版整行展开/收起**（行内按钮用 `@click.stop`，点下载只开面板不改折叠），展开后每个主版本分组（`v160 系列`/`v159 系列`…）还能各自用悬停方向键收起；⑤国内镜像去掉「展开内容」，直接一个**下载**按钮（自动挑客户端 jar，优先 `Mindustry.jar`）；⑥每个中心源加**检查更新**（`sync_central_versions` 增加 `force` 参数，忽略 15 分钟缓存强制重同步）。
+
+**第三轮实测** — 默认 `ver-group-head` 数 = 0；点最新版行 → 71 个分组头出现（`v160 系列 5 个版本` …）；再点 → 回到 0；点 `Mindustry.jar · 84.8 MB` → 面板打开且分组头仍为 0（未误触发折叠）；文件站「下载」→ 面板标题 `下载并创建 · Mindustry v8 build-160.5-stable`；`关于` 页只剩 logo/名称/月月岛科技/版本/版权。
 2. **工坊镜像改为中心化列表**：中心索引新增顶层 `mirrors.workshop`（`{name,url}[]`），服务端在 `server/central.mjs` 的 `MIRRORS` 里配置；客户端把清单随缓存一起留着（中心临时不可达也不会让设置页空掉），设置页改成下拉，未下发时显示「中心未下发镜像」。
 3. **「中心化服务器」从「下载」分区移到「镜像与网络」**（它是源/网络配置，不是下载行为）。
 4. **存档**：删掉「新开存档」功能（前端入口 + Rust `create_save` 命令一并移除）；修好「扫描存档点了没用」——真实存档在 `<实例>/data/Mindustry/saves`（启动器把 `AppData` 指向 `<实例>/data`，Mindustry 在其下再建 `Mindustry/`），老代码少了这一层，永远扫不到；非隔离实例改为读系统 `%AppData%/Mindustry/saves`。

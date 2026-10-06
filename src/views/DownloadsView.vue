@@ -136,6 +136,17 @@ function oldGroups(c: CentralItem): VerGroup[] {
   }))
 }
 
+/** 归档区（vXXX 系列分组）平时折在最新版那一栏下面；点最新版整行展开/收起 */
+const archiveOpen = reactive<Record<string, boolean>>({})
+
+function isArchiveOpen(c: CentralItem): boolean {
+  return !!q.value || !!archiveOpen[c.id]
+}
+
+function toggleArchive(c: CentralItem) {
+  archiveOpen[c.id] = !archiveOpen[c.id]
+}
+
 /** 归档分组默认收起；搜索时强制展开，免得命中的版本藏在里面 */
 const verGroupOpen = reactive<Record<string, boolean>>({})
 
@@ -723,17 +734,27 @@ onBeforeUnmount(() => {
             该源下没有匹配「{{ query }}」的版本
           </div>
 
-          <!-- 最新版独立置顶（搜索命中旧版本时不打「最新」徽标、也不加高亮） -->
+          <!-- 最新版独立置顶：整行就是旧版本归档的开合开关（里面的按钮不触发） -->
           <div
             v-if="latestOf(c)"
-            :class="isTrueLatest(c) ? 'row-card row-card--latest' : 'row-card'"
+            :class="[
+              isTrueLatest(c) ? 'row-card row-card--latest' : 'row-card',
+              oldGroups(c).length ? 'row-card--toggle' : '',
+            ]"
             style="padding: 13px 15px"
+            @click="oldGroups(c).length && toggleArchive(c)"
           >
             <div class="row-main">
               <div class="name" style="font-size: 14.5px">
+                <span v-if="oldGroups(c).length" class="archive-arrow">
+                  {{ isArchiveOpen(c) ? '▾' : '▸' }}
+                </span>
                 {{ latestOf(c)!.tag }}
                 <span v-if="isTrueLatest(c)" class="tag" style="margin-left: 6px; background: rgba(255,125,176,.16); color: var(--pink)">最新</span>
                 <span v-else-if="q" class="tag" style="margin-left: 6px; background: rgba(255,255,255,.07); color: var(--ink-dim)">搜索命中</span>
+                <span v-if="oldGroups(c).length" class="meta" style="margin-left: 8px; font-size: 12px">
+                  旧版本 {{ versionsFor(c).length - 1 }} 个
+                </span>
               </div>
               <div class="meta">
                 {{ latestOf(c)!.title }}{{ latestOf(c)!.date ? ' · ' + latestOf(c)!.date : '' }}
@@ -746,14 +767,14 @@ onBeforeUnmount(() => {
                   class="btn-grad"
                   style="font-size: 12px; padding: 7px 15px"
                   :disabled="mirrorPicking[folderKey(c, latestOf(c)!)]"
-                  @click="downloadFromFolder(c, latestOf(c)!)"
+                  @click.stop="downloadFromFolder(c, latestOf(c)!)"
                 >
                   {{ mirrorPicking[folderKey(c, latestOf(c)!)] ? '读取中…' : '下载' }}
                 </button>
                 <button
                   class="btn-ghost"
                   style="font-size: 12px; padding: 6px 12px"
-                  @click="openPage(latestOf(c)!.pageUrl)"
+                  @click.stop="openPage(latestOf(c)!.pageUrl)"
                 >
                   打开目录
                 </button>
@@ -764,7 +785,7 @@ onBeforeUnmount(() => {
                   :key="a.url"
                   class="btn-grad"
                   style="font-size: 12px; padding: 7px 15px"
-                  @click="askDownload(c, latestOf(c)!, a)"
+                  @click.stop="askDownload(c, latestOf(c)!, a)"
                 >
                   {{ shortAsset(a.name) }}{{ a.size ? ' · ' + fmtBytes(a.size) : '' }}
                 </button>
@@ -773,15 +794,17 @@ onBeforeUnmount(() => {
                 v-else
                 class="btn-ghost"
                 style="font-size: 12px; padding: 6px 12px"
-                @click="openPage(latestOf(c)!.pageUrl)"
+                @click.stop="openPage(latestOf(c)!.pageUrl)"
               >
                 页面
               </button>
             </div>
           </div>
 
-          <!-- 其余旧版本按主版本归档：默认收起，鼠标滑到组头上才显出方向键 -->
-          <div v-for="g in oldGroups(c)" :key="'vg-' + c.id + '-' + g.key" class="ver-group">
+          <!-- 旧版本归档：平时折在最新版那一栏下面，点最新版展开；
+               展开后每个主版本分组还能各自用悬停方向键收起 -->
+          <template v-if="isArchiveOpen(c)">
+            <div v-for="g in oldGroups(c)" :key="'vg-' + c.id + '-' + g.key" class="ver-group">
             <button class="ver-group-head" @click="toggleVerGroup(c, g.key)">
               <span class="vg-arrow">{{ isGroupOpen(c, g.key) ? '▾' : '▸' }}</span>
               <span class="vg-title">{{ g.label }}</span>
@@ -830,6 +853,7 @@ onBeforeUnmount(() => {
               </div>
             </div>
           </div>
+          </template>
         </div>
       </div>
     </template>

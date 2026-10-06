@@ -507,6 +507,17 @@ select.field option { background: #171722; color: var(--ink); }
 /* 源卡片右上角的「检查更新」 */
 .src-refresh { flex: none; font-size: 12px; padding: 6px 12px; }
 
+/* 最新版那一栏兼任归档开关：整行可点，方向键平时不显、悬停才出来 */
+.row-card--toggle { cursor: pointer; }
+.archive-arrow {
+  display: inline-block;
+  width: 12px;
+  opacity: 0;                     /* 平时不显示方向键，滑上去才出现 */
+  transition: opacity .15s;
+}
+.row-card--toggle:hover .archive-arrow,
+.row-card--toggle:focus-within .archive-arrow { opacity: 1; }
+
 /* 下载中心内搜索：一行输入 + 清空 + 命中计数（窄屏换行） */
 .search-bar {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
