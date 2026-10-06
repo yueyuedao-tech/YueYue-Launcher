@@ -3,7 +3,6 @@ import { computed, onMounted, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { open as openExternal } from '@tauri-apps/plugin-shell'
 import {
-  centralServerUsed,
   effectiveProxyLabel,
   infoBarError,
   infoBarLoading,
@@ -116,7 +115,6 @@ onMounted(async () => {
         <div class="set-row">
           <div>
             <div class="label">下载目录</div>
-            <div class="hint" style="font-size: 12px">留空 = 用默认目录</div>
           </div>
           <div class="ctrl" style="flex: 1; max-width: 420px">
             <input v-model="settings.downloadDir" class="field" style="width: 100%" placeholder="D:\Mindustry下载" />
@@ -136,9 +134,6 @@ onMounted(async () => {
               <option :value="4">4</option>
               <option :value="8">8</option>
             </select>
-            <span class="meta" style="font-size: 12px">
-              分段并发下载；服务器不支持 Range 时自动降为单连接
-            </span>
           </div>
         </div>
       </div>
@@ -161,19 +156,13 @@ onMounted(async () => {
               v-model="settings.proxy"
               class="field"
               style="flex: 1; min-width: 180px"
-              placeholder="127.0.0.1:7897（留空 = 直连）"
+              placeholder="127.0.0.1:7897"
             />
           </div>
         </div>
         <div class="set-row">
           <div>
             <div class="label">中心化服务器</div>
-            <div class="hint" style="font-size: 12px">
-              源索引与版本都从它下发；按顺序尝试，前面连不上自动用后面的（空 = 内置索引）
-              <template v-if="centralServerUsed">
-                <br />当前在用：<b>{{ centralServerUsed }}</b>
-              </template>
-            </div>
           </div>
           <div class="ctrl" style="flex: 1; max-width: 520px; flex-direction: column; align-items: stretch; gap: 8px">
             <div
@@ -222,10 +211,6 @@ onMounted(async () => {
         <div class="set-row">
           <div>
             <div class="label">每日信息（首页公告）</div>
-            <div class="hint" style="font-size: 12px">
-              从下面的链接索引内容（Markdown，一行一条；行首 <code>**日期 · 标签**</code> 之后是标题）。
-              留空则用中心化服务器下发的内容；关掉开关即整块不显示
-            </div>
           </div>
           <div class="ctrl" style="flex: 1; max-width: 560px; gap: 10px; flex-wrap: wrap">
             <label class="switch" style="flex: none">
@@ -238,7 +223,7 @@ onMounted(async () => {
               class="field"
               style="flex: 1; min-width: 200px"
               :disabled="!settings.infoBarEnabled"
-              placeholder="https://example.com/news.md（留空 = 用中心下发）"
+              placeholder="https://example.com/news.md"
             />
             <span v-if="infoBarLoading" class="meta" style="font-size: 12px; flex-basis: 100%">读取中…</span>
             <span
@@ -247,13 +232,6 @@ onMounted(async () => {
               style="font-size: 12px; flex-basis: 100%; color: #ff8f8f"
             >
               {{ infoBarError }}
-            </span>
-            <span
-              v-else-if="settings.infoBarEnabled && !settings.infoBarUrl.trim()"
-              class="meta"
-              style="font-size: 12px; flex-basis: 100%"
-            >
-              当前：使用中心化服务器下发的内容
             </span>
           </div>
         </div>
