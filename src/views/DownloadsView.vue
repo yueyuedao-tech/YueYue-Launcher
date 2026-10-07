@@ -1164,11 +1164,6 @@ onBeforeUnmount(() => {
           <button class="dl-close" aria-label="关闭" title="关闭 (Esc)" @click="closePanel">✕</button>
         </div>
 
-        <!-- 本地已经有同一个客户端：不再重新下载，直接引用它建实例 -->
-        <div v-if="dlPanel.reusePath" class="reuse-tip">
-          本地已有这个客户端，将<strong>直接复用</strong>（不重新下载，只建一份独立数据）
-        </div>
-
         <div class="set-row">
           <div class="label">游戏名称</div>
           <div class="ctrl" style="flex: 1; max-width: 340px">

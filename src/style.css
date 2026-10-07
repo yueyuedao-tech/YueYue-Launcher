@@ -301,17 +301,6 @@ select.field option { background: #171722; color: var(--ink); }
 .edit-overlay.dl-overlay { z-index: 95; }
 .dl-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .dl-head h3 { margin: 0; }
-/* 「本地已有这个客户端，将直接复用」提示 */
-.reuse-tip {
-  margin: -4px 0 0;
-  padding: 7px 12px;
-  border-radius: 8px;
-  font-size: 12.5px;
-  background: rgba(110, 231, 249, .1);
-  border: 1px solid rgba(110, 231, 249, .28);
-  color: var(--cyan);
-}
-.reuse-tip strong { font-weight: 600; }
 .dl-close {
   flex: none;
   width: 30px; height: 30px;
