@@ -40,7 +40,7 @@ function cacheKey(targetPage: number): string {
 function trimCache(center: number) {
   for (const key of pageCache.keys()) {
     const cachedPage = Number(key.split('\0').at(-1))
-    if (Math.abs(cachedPage - center) > 1) pageCache.delete(key)
+    if (cachedPage < center || cachedPage > center + 2) pageCache.delete(key)
   }
 }
 
@@ -89,7 +89,8 @@ async function loadMaps() {
 }
 
 async function prefetchNeighbors(center: number) {
-  const neighbors = [center - 1, center + 1].filter((p) => p >= 0)
+  // 后台准备后两页；第一页展示后立即把第二、第三页写入后端磁盘缓存。
+  const neighbors = [center + 1, center + 2]
   await Promise.allSettled(neighbors.map((p) => fetchPage(p)))
   trimCache(center)
 }
