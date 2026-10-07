@@ -1,17 +1,18 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
 const APPID: &str = "1127400";
+const MODS_INDEX: &str = "https://raw.githubusercontent.com/Anuken/MindustryMods/master/mods.json";
 
 pub fn mods_dir_for(instance_id: &str) -> Result<PathBuf, String> {
-    let id = crate::instances::validate_id(instance_id)?;
-    let dir = crate::instances::instances_root()
-        .join(&id)
-        .join("data")
-        .join("Mindustry")
-        .join("mods");
-    Ok(dir)
+    let info = crate::instances::read_instance(instance_id)?;
+    let root = if info.isolate {
+        crate::instances::data_dir_abs(&info)
+    } else {
+        crate::instances::shared_data()
+    };
+    Ok(root.join("Mindustry").join("mods"))
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -28,6 +29,123 @@ pub struct ModFile {
     pub name: String,
     pub size: u64,
     pub mtime: String,
+}
+
+#[derive(Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct RepoMod {
+    repo: String,
+    #[serde(default)]
+    internal_name: String,
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    author: String,
+    #[serde(default)]
+    last_updated: String,
+    #[serde(default)]
+    stars: u64,
+    #[serde(default)]
+    version: String,
+    #[serde(default)]
+    min_game_version: String,
+    #[serde(default)]
+    has_java: bool,
+    #[serde(default)]
+    description: String,
+}
+
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ModCatalogItem {
+    pub repo: String,
+    pub internal_name: String,
+    pub name: String,
+    pub author: String,
+    pub last_updated: String,
+    pub stars: u64,
+    pub version: String,
+    pub min_game_version: String,
+    pub has_java: bool,
+    pub description: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModCatalogPage {
+    pub items: Vec<ModCatalogItem>,
+    pub total: usize,
+}
+
+#[derive(Deserialize)]
+struct GithubRelease {
+    #[serde(default)]
+    assets: Vec<GithubAsset>,
+}
+
+#[derive(Deserialize)]
+struct GithubAsset {
+    name: String,
+    browser_download_url: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModDownloadInfo {
+    pub file_name: String,
+    pub url: String,
+}
+
+fn http_text(url: &str, proxy: &str) -> Result<String, String> {
+    let mut cmd = crate::cmdutil::no_console("curl");
+    cmd.args(["-fLsS", "--max-time", "30", "-H", "User-Agent: YueYue-Launcher"]);
+    if !proxy.trim().is_empty() { cmd.args(["--proxy", proxy.trim()]); }
+    let out = cmd.arg(url).output().map_err(|e| format!("无法运行 curl: {e}"))?;
+    if !out.status.success() { return Err(format!("GitHub 请求失败: {}", String::from_utf8_lossy(&out.stderr).trim())); }
+    String::from_utf8(out.stdout).map_err(|e| format!("GitHub 返回编码错误: {e}"))
+}
+
+fn catalog_item(m: RepoMod) -> ModCatalogItem {
+    ModCatalogItem { repo: m.repo, internal_name: m.internal_name, name: m.name, author: m.author, last_updated: m.last_updated, stars: m.stars, version: m.version, min_game_version: m.min_game_version, has_java: m.has_java, description: m.description }
+}
+
+#[tauri::command]
+pub async fn list_github_mods(query: String, page: u32, proxy: String) -> Result<ModCatalogPage, String> {
+    if page > 1000 { return Err("页码超出范围".into()); }
+    let query = query.trim().to_lowercase();
+    if query.chars().count() > 100 { return Err("搜索词过长".into()); }
+    tauri::async_runtime::spawn_blocking(move || {
+        let raw = http_text(MODS_INDEX, &proxy)?;
+        let all: Vec<RepoMod> = serde_json::from_str(&raw).map_err(|e| format!("Mod 清单格式错误: {e}"))?;
+        let filtered: Vec<ModCatalogItem> = all.into_iter()
+            .filter(|m| query.is_empty() || [m.name.as_str(), m.internal_name.as_str(), m.repo.as_str(), m.author.as_str(), m.description.as_str()].iter().any(|s| s.to_lowercase().contains(&query)))
+            .map(catalog_item)
+            .collect();
+        let total = filtered.len();
+        let start = page as usize * 20;
+        Ok(ModCatalogPage { items: filtered.into_iter().skip(start).take(20).collect(), total })
+    }).await.map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn resolve_github_mod(repo: String, proxy: String) -> Result<ModDownloadInfo, String> {
+    if !repo.contains('/') || repo.len() > 120 { return Err("仓库地址无效".into()); }
+    tauri::async_runtime::spawn_blocking(move || {
+        let url = format!("https://api.github.com/repos/{repo}/releases?per_page=5");
+        let raw = http_text(&url, &proxy)?;
+        let releases: Vec<GithubRelease> = serde_json::from_str(&raw).map_err(|e| format!("Release 列表格式错误: {e}"))?;
+        let mut fallback: Option<ModDownloadInfo> = None;
+        for release in releases {
+            for asset in release.assets {
+                let lower = asset.name.to_lowercase();
+                if !(lower.ends_with(".jar") || lower.ends_with(".zip")) || lower.contains("source") { continue; }
+                let info = ModDownloadInfo { file_name: asset.name, url: asset.browser_download_url };
+                if lower.ends_with(".jar") { return Ok(info); }
+                fallback = Some(info);
+            }
+        }
+        fallback.ok_or_else(|| "这个 Mod 没有可下载的 Release 文件".into())
+    }).await.map_err(|e| e.to_string())?
 }
 
 /// 百分号编码（零依赖）：保留 RFC3986 unreserved，其余按 UTF-8 字节编码

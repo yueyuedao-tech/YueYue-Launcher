@@ -123,6 +123,8 @@ fn main() {
             central::list_folder_files,
             github::fetch_repo_versions,
             mods::search_workshop,
+            mods::list_github_mods,
+            mods::resolve_github_mod,
             mods::list_mods,
             mods::mods_dir,
             mods::delete_mod,

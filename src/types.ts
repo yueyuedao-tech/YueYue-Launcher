@@ -196,6 +196,29 @@ export interface ModFile {
   mtime: string
 }
 
+export interface ModCatalogItem {
+  repo: string
+  internalName: string
+  name: string
+  author: string
+  lastUpdated: string
+  stars: number
+  version: string
+  minGameVersion: string
+  hasJava: boolean
+  description: string
+}
+
+export interface ModCatalogPage {
+  items: ModCatalogItem[]
+  total: number
+}
+
+export interface ModDownloadInfo {
+  fileName: string
+  url: string
+}
+
 export interface MapItem {
   id: number
   name: string

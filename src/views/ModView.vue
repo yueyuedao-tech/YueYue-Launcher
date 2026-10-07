@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { open as openExternal } from '@tauri-apps/plugin-shell'
 import { effectiveProxy, instances, selectedInstanceId, settings } from '../store'
-import type { ModFile, WorkshopItem } from '../types'
+import type { ModCatalogItem, ModCatalogPage, ModFile, WorkshopItem } from '../types'
 
 const query = ref('')
 const searching = ref(false)
@@ -13,6 +14,15 @@ const results = ref<WorkshopItem[]>([])
 const mods = ref<ModFile[]>([])
 const modsError = ref('')
 const busy = ref(false)
+const catalog = ref<ModCatalogItem[]>([])
+const catalogPage = ref(0)
+const catalogTotal = ref(0)
+const catalogLoading = ref(false)
+const catalogError = ref('')
+const modDownloading = ref<string | null>(null)
+const modDownloadError = ref<Record<string, string>>({})
+const modDownloadNames = ref<Record<string, string>>({})
+const unlisteners: UnlistenFn[] = []
 
 const currentId = computed(() => selectedInstanceId.value)
 const currentName = computed(
@@ -33,6 +43,7 @@ async function refreshMods() {
 }
 
 async function search() {
+  void loadCatalog(true)
   if (!query.value.trim()) return
   searching.value = true
   searchError.value = ''
@@ -48,6 +59,58 @@ async function search() {
     searchError.value = String(e)
   } finally {
     searching.value = false
+  }
+}
+
+async function loadCatalog(reset = false) {
+  if (reset) catalogPage.value = 0
+  catalogLoading.value = true
+  catalogError.value = ''
+  try {
+    const result = (await invoke('list_github_mods', {
+      query: query.value.trim(),
+      page: catalogPage.value,
+      proxy: effectiveProxy.value,
+    })) as ModCatalogPage
+    catalog.value = result.items
+    catalogTotal.value = result.total
+  } catch (e) {
+    catalog.value = []
+    catalogTotal.value = 0
+    catalogError.value = String(e)
+  } finally {
+    catalogLoading.value = false
+  }
+}
+
+function safeFileName(name: string, repo: string): string {
+  const base = name.replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^[-_.]+|[-_.]+$/g, '')
+  const owner = repo.replace('/', '-')
+  const file = `${owner}-${base || 'mod'}`
+  return file + (base.toLowerCase().endsWith('.jar') || base.toLowerCase().endsWith('.zip') ? '' : '.jar')
+}
+
+async function downloadMod(item: ModCatalogItem) {
+  if (!currentId.value || modDownloading.value) return
+  modDownloading.value = item.repo
+  delete modDownloadError.value[item.repo]
+  try {
+    const info = (await invoke('resolve_github_mod', { repo: item.repo, proxy: effectiveProxy.value })) as { fileName: string; url: string }
+    const dir = (await invoke('mods_dir', { instanceId: currentId.value })) as string
+    const fileName = safeFileName(info.fileName, item.repo)
+    await invoke('start_download', {
+      url: info.url,
+      fileName,
+      proxy: effectiveProxy.value,
+      downloadDir: dir,
+      threads: settings.downloadThreads,
+      name: item.name,
+    })
+    modDownloadNames.value[item.repo] = fileName
+  } catch (e) {
+    modDownloadError.value[item.repo] = String(e)
+  } finally {
+    modDownloading.value = null
   }
 }
 
@@ -81,9 +144,16 @@ function fmtBytes(n: number): string {
   return n + ' B'
 }
 
-onMounted(refreshMods)
+onMounted(async () => {
+  await refreshMods()
+  await loadCatalog()
+  unlisteners.push(await listen<{ fileName: string }>('download-done', async (event) => {
+    if (Object.values(modDownloadNames.value).includes(event.payload.fileName)) await refreshMods()
+  }))
+})
 // 切换游戏立即刷新列表，避免陈旧列表按新 currentId 误删
 watch(currentId, refreshMods)
+onBeforeUnmount(() => unlisteners.forEach((stop) => stop()))
 </script>
 
 <template>
@@ -92,7 +162,7 @@ watch(currentId, refreshMods)
       <div>
         <h1 class="page-title">Mod 管理</h1>
         <p class="page-sub" style="margin-bottom: 0">
-          工坊搜索（可浏览）· 游戏 Mod 本地管理
+          GitHub Mod 清单 · 下载到当前游戏
           <template v-if="effectiveProxy"> · 代理 {{ effectiveProxy }}</template>
           <template v-if="settings.workshopMirror"> · 工坊镜像已配</template>
         </p>
@@ -127,9 +197,33 @@ watch(currentId, refreshMods)
         </div>
       </div>
       <p v-if="searchError" style="color: #ff7db0; font-size: 13px; padding: 0 0 10px">{{ searchError }}</p>
-      <p style="color: var(--ink-dim); font-size: 12px; padding-bottom: 8px">
-        注：工坊内容下载需 Steam 拥有者登录（该下载功能暂缓，登录方案就绪后开放）；当前支持浏览搜索与手动放入的 Mod 管理。
-      </p>
+    </div>
+
+    <div v-if="currentId" class="set-group" style="margin-bottom: 16px">
+      <h3>Anuken/MindustryMods（{{ catalogTotal }}）</h3>
+      <p v-if="catalogError" class="mod-error">{{ catalogError }}</p>
+      <div v-if="catalogLoading" class="empty" style="padding: 20px 0">正在读取 Mod 清单…</div>
+      <div v-else class="list" style="margin-top: 8px">
+        <div v-for="item in catalog" :key="item.repo" class="row-card">
+          <div class="row-icon cy">🧩</div>
+          <div class="row-main">
+            <div class="name">{{ item.name || item.internalName }}</div>
+            <div class="meta">{{ item.repo }} · v{{ item.version || '未知' }} · 最低游戏 {{ item.minGameVersion || '未知' }} · ★{{ item.stars }}</div>
+            <div v-if="item.description" class="mod-description">{{ item.description.replace(/\s+/g, ' ').slice(0, 180) }}</div>
+            <div v-if="modDownloadError[item.repo]" class="mod-error">{{ modDownloadError[item.repo] }}</div>
+          </div>
+          <div class="row-side">
+            <button class="btn-grad mod-download" :disabled="modDownloading !== null" @click="downloadMod(item)">
+              {{ modDownloading === item.repo ? '解析中…' : modDownloadNames[item.repo] ? '已开始' : '下载' }}
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="mod-pages" v-if="catalogTotal > 20">
+        <button class="btn-ghost" :disabled="catalogPage === 0 || catalogLoading" @click="catalogPage--; loadCatalog()">上一页</button>
+        <span>第 {{ catalogPage + 1 }} / {{ Math.ceil(catalogTotal / 20) }} 页</span>
+        <button class="btn-ghost" :disabled="(catalogPage + 1) * 20 >= catalogTotal || catalogLoading" @click="catalogPage++; loadCatalog()">下一页</button>
+      </div>
     </div>
 
     <!-- 搜索结果 -->
@@ -168,3 +262,10 @@ watch(currentId, refreshMods)
     </div>
   </section>
 </template>
+
+<style scoped>
+.mod-download { min-width: 64px; padding: 7px 12px; font-size: 12px; }
+.mod-description { color: var(--ink-dim); font-size: 12px; margin-top: 4px; line-height: 1.4; }
+.mod-error { color: #ff8f8f; font-size: 12px; margin-top: 5px; }
+.mod-pages { display: flex; justify-content: center; align-items: center; gap: 16px; padding: 14px 0 4px; }
+</style>
