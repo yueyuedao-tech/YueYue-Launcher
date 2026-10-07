@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
-import { effectiveProxy, instances, selectedInstanceId } from '../store'
+import { effectiveProxy, instances, selectedInstanceId, settings } from '../store'
 import type { MapItem, MapPage } from '../types'
 
 const versions = [
@@ -28,48 +28,25 @@ const installing = ref<number | null>(null)
 const installed = ref<Record<number, string>>({})
 const installError = ref<Record<number, string>>({})
 const previewMap = ref<MapItem | null>(null)
-const pageCache = new Map<string, MapPage>()
 let requestId = 0
 
 const currentName = computed(() => instances.value.find((i) => i.id === selectedInstanceId.value)?.name ?? '')
 
-function cacheKey(targetPage: number): string {
-  return `${appliedQuery.value}\0${version.value}\0${targetPage}`
-}
-
-function trimCache(center: number) {
-  for (const key of pageCache.keys()) {
-    const cachedPage = Number(key.split('\0').at(-1))
-    if (cachedPage < center || cachedPage > center + 2) pageCache.delete(key)
-  }
-}
-
 async function fetchPage(targetPage: number): Promise<MapPage> {
-  const key = cacheKey(targetPage)
-  const cached = pageCache.get(key)
-  if (cached) return cached
   const result = (await invoke('search_maps', {
     page: targetPage,
     query: appliedQuery.value,
     version: version.value,
     proxy: effectiveProxy.value,
+    cacheMinutes: Math.min(60, Math.max(1, Number(settings.mapCacheMinutes) || 60)),
   })) as MapPage
-  pageCache.set(key, result)
   return result
 }
 
 async function loadMaps() {
   const id = ++requestId
-  trimCache(page.value)
   pageInput.value = String(page.value + 1)
   const targetPage = page.value
-  const cached = pageCache.get(cacheKey(targetPage))
-  if (cached) {
-    maps.value = cached.items
-    hasMore.value = cached.hasMore
-    void prefetchNeighbors(targetPage)
-    return
-  }
   loading.value = true
   error.value = ''
   try {
@@ -92,13 +69,11 @@ async function prefetchNeighbors(center: number) {
   // 后台准备后两页；第一页展示后立即把第二、第三页写入后端磁盘缓存。
   const neighbors = [center + 1, center + 2]
   await Promise.allSettled(neighbors.map((p) => fetchPage(p)))
-  trimCache(center)
 }
 
 function search() {
   appliedQuery.value = query.value.trim()
   page.value = 0
-  pageCache.clear()
   void loadMaps()
 }
 
@@ -141,7 +116,6 @@ async function install(item: MapItem) {
 
 watch(version, () => {
   page.value = 0
-  pageCache.clear()
   void loadMaps()
 })
 watch(selectedInstanceId, () => {
@@ -156,7 +130,6 @@ onMounted(loadMaps)
     <div class="toolbar maps-toolbar">
       <div>
         <h1 class="page-title">地图</h1>
-        <p class="page-sub">Mindustry 资源站 · {{ page * 20 + 1 }}-{{ page * 20 + maps.length }}</p>
       </div>
       <select v-model="selectedInstanceId" class="field maps-instance" aria-label="安装到游戏">
         <option v-for="i in instances" :key="i.id" :value="i.id">{{ i.name }}</option>

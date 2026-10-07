@@ -163,6 +163,19 @@ onMounted(async () => {
             </select>
           </div>
         </div>
+        <div class="set-row">
+          <div>
+            <div class="label">地图页缓存</div>
+            <div class="hint" style="font-size: 12px">地图列表保存到本地缓存目录，减少重复请求</div>
+          </div>
+          <div class="ctrl" style="flex: 1; max-width: 420px">
+            <select v-model.number="settings.mapCacheMinutes" class="field" style="width: 100%">
+              <option :value="15">15 分钟</option>
+              <option :value="30">30 分钟</option>
+              <option :value="60">1 小时</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <!-- 镜像与网络：代理来源可选，镜像地址由中心服务器下发 -->
