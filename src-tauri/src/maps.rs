@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -8,7 +9,6 @@ const API: &str = "https://api.mindustry.top/maps";
 const BATCH: usize = 15;
 const PAGE: usize = 20;
 const MAX_MAP_BYTES: u64 = 20 * 1024 * 1024;
-const MAP_CACHE_TTL_MS: u64 = 7 * 24 * 60 * 60 * 1000;
 const MAP_CACHE_LIMIT: usize = 60;
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -39,14 +39,8 @@ pub struct MapPage {
 
 #[derive(Deserialize, Serialize)]
 struct MapCacheEntry {
-    key: String,
     fetched_at: u64,
     page: MapPage,
-}
-
-#[derive(Deserialize, Serialize, Default)]
-struct MapCache {
-    entries: Vec<MapCacheEntry>,
 }
 
 fn now_ms() -> u64 {
@@ -56,8 +50,8 @@ fn now_ms() -> u64 {
         .unwrap_or(0)
 }
 
-fn cache_path() -> PathBuf {
-    crate::cmdutil::app_root().join("map-metadata-cache.json")
+fn cache_dir() -> PathBuf {
+    crate::cmdutil::app_root().join("cache").join("maps").join("pages")
 }
 
 fn cache_lock() -> &'static Mutex<()> {
@@ -65,32 +59,43 @@ fn cache_lock() -> &'static Mutex<()> {
     LOCK.get_or_init(|| Mutex::new(()))
 }
 
-fn read_cached(key: &str) -> Option<MapPage> {
+fn query_dir(query: &str, version: &str) -> PathBuf {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    query.hash(&mut hasher);
+    version.hash(&mut hasher);
+    cache_dir().join(format!("{:016x}", hasher.finish()))
+}
+
+fn cache_path(query: &str, version: &str, page: u32) -> PathBuf {
+    query_dir(query, version).join(format!("page-{page}.json"))
+}
+
+fn read_cached(query: &str, version: &str, page: u32, ttl_ms: u64) -> Option<MapPage> {
     let _guard = cache_lock().lock().ok()?;
-    let raw = fs::read_to_string(cache_path()).ok()?;
-    let cache: MapCache = serde_json::from_str(&raw).ok()?;
-    let entry = cache.entries.into_iter().find(|e| e.key == key)?;
-    if now_ms().saturating_sub(entry.fetched_at) > MAP_CACHE_TTL_MS {
+    let raw = fs::read_to_string(cache_path(query, version, page)).ok()?;
+    let entry: MapCacheEntry = serde_json::from_str(&raw).ok()?;
+    if now_ms().saturating_sub(entry.fetched_at) > ttl_ms {
         return None;
     }
     Some(entry.page)
 }
 
-fn write_cached(key: String, page: MapPage) {
+fn write_cached(query: &str, version: &str, page_number: u32, page: MapPage) {
     let Ok(_guard) = cache_lock().lock() else { return };
-    let path = cache_path();
-    let mut cache = fs::read_to_string(&path)
-        .ok()
-        .and_then(|raw| serde_json::from_str::<MapCache>(&raw).ok())
-        .unwrap_or_default();
-    cache.entries.retain(|e| e.key != key);
-    cache.entries.push(MapCacheEntry { key, fetched_at: now_ms(), page });
-    cache.entries.sort_by_key(|e| std::cmp::Reverse(e.fetched_at));
-    cache.entries.truncate(MAP_CACHE_LIMIT);
+    let path = cache_path(query, version, page_number);
     if let Some(parent) = path.parent() { let _ = fs::create_dir_all(parent); }
     let temp = path.with_extension("json.tmp");
-    if let Ok(data) = serde_json::to_vec_pretty(&cache) {
+    if let Ok(data) = serde_json::to_vec_pretty(&MapCacheEntry { fetched_at: now_ms(), page }) {
         if fs::write(&temp, data).is_ok() { let _ = fs::rename(temp, path); }
+    }
+    // Keep the cache directory bounded without maintaining a second index file.
+    if let Ok(entries) = fs::read_dir(cache_dir()) {
+        let mut files: Vec<_> = entries.flatten().filter(|e| e.path().is_dir()).collect();
+        files.sort_by_key(|e| e.metadata().and_then(|m| m.modified()).ok());
+        while files.len() > MAP_CACHE_LIMIT {
+            let old = files.remove(0);
+            let _ = fs::remove_dir_all(old.path());
+        }
     }
 }
 
@@ -115,7 +120,7 @@ fn encode_query(query: &str) -> String {
 }
 
 #[tauri::command]
-pub async fn search_maps(page: u32, query: String, version: String, proxy: String) -> Result<MapPage, String> {
+pub async fn search_maps(page: u32, query: String, version: String, proxy: String, cache_minutes: u32) -> Result<MapPage, String> {
     if page > 1000 {
         return Err("页码超出范围".into());
     }
@@ -125,10 +130,11 @@ pub async fn search_maps(page: u32, query: String, version: String, proxy: Strin
     if !version.is_empty() && !["3", "4", "5", "7", "8", "9", "10", "11"].contains(&version.as_str()) {
         return Err("未知地图版本".into());
     }
+    let cache_minutes = cache_minutes.clamp(1, 60);
     tauri::async_runtime::spawn_blocking(move || {
         let search = format!("{}{}", query.trim(), if version.is_empty() { String::new() } else { format!(" @version:{version}") });
-        let cache_key = format!("{}\0{}\0{}", search.trim(), version, page);
-        if let Some(cached) = read_cached(&cache_key) {
+        let ttl_ms = u64::from(cache_minutes) * 60 * 1000;
+        if let Some(cached) = read_cached(search.trim(), &version, page, ttl_ms) {
             return Ok(cached);
         }
         let first = page as usize * PAGE;
@@ -150,7 +156,7 @@ pub async fn search_maps(page: u32, query: String, version: String, proxy: Strin
         let start = first - first / BATCH * BATCH;
         let selected: Vec<MapItem> = items.into_iter().skip(start).take(PAGE + 1).collect();
         let result = MapPage { has_more: selected.len() > PAGE, items: selected.into_iter().take(PAGE).collect() };
-        write_cached(cache_key, result.clone());
+        write_cached(search.trim(), &version, page, result.clone());
         Ok(result)
     }).await.map_err(|e| e.to_string())?
 }

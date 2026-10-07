@@ -619,6 +619,8 @@ export interface Settings {
   infoBarEnabled: boolean
   /** 每日信息的来源链接；留空则用中心化服务器下发的内容 */
   infoBarUrl: string
+  /** 地图列表元数据缓存有效期（分钟，最高 60） */
+  mapCacheMinutes: number
 }
 
 const defaults: Settings = {
@@ -654,6 +656,7 @@ const defaults: Settings = {
   startView: 'home',
   infoBarEnabled: true,
   infoBarUrl: '',
+  mapCacheMinutes: 60,
 }
 
 function loadSettings(): Settings {
