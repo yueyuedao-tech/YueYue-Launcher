@@ -556,6 +556,10 @@ type DlState2 = {
   threads: number
   state: 'form' | 'downloading' | 'creating' | 'done' | 'error'
   error: string
+  /** 资源标注的大小，用来判断本地同名文件能不能直接复用 */
+  expectedSize: number | null
+  /** 本地已有的同一个客户端文件路径；非空则「下载并创建」不重新下载，直接引用它 */
+  reusePath: string
 }
 
 /** 点「下载」直接弹出创建面板；所有字段留空即走默认值 */
@@ -575,6 +579,21 @@ function newToken(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
 }
 
+/** 面板打开时查一次本地有没有同一个客户端：有就提示可以直接复用，不再重复下载 */
+async function checkReuse(p: DlState2) {
+  try {
+    const found = (await invoke('existing_download', {
+      fileName: p.fileName,
+      downloadDir: p.downloadDir,
+      expectedSize: p.expectedSize ?? null,
+    })) as string | null
+    // 只更新还在待创建表里的那一条（期间用户可能又开了别的下载）
+    if (pendingCreates[p.token] === p) p.reusePath = found ?? ''
+  } catch {
+    /* 查不到就当没有，照常下载 */
+  }
+}
+
 function askDownload(c: CentralItem, v: CentralVersion, a: CentralAsset) {
   const p: DlState2 = {
     sourceName: c.name,
@@ -591,10 +610,16 @@ function askDownload(c: CentralItem, v: CentralVersion, a: CentralAsset) {
     threads: settings.downloadThreads,
     state: 'form',
     error: '',
+    expectedSize: a.size ?? null,
+    reusePath: '',
   }
   pendingCreates[p.token] = p
-  dlPanel.value = p
+  // 取回响应式代理再往下用：reactive() 里存的是代理，直接拿原始对象做 === 比较永远不等
+  // （之前复用检测与「用完清理自己那条」都是这么静默失效的）
+  const live = pendingCreates[p.token]
+  dlPanel.value = live
   dlPanelOpen.value = true
+  void checkReuse(live)
 }
 
 /** 关掉面板：下载/创建过程不受影响，任务在右下角圆圈里继续。
@@ -626,8 +651,27 @@ function onKeydown(e: KeyboardEvent) {
 async function confirmDownload() {
   const p = dlPanel.value
   if (!p) return
-  p.state = 'downloading'
   p.error = ''
+
+  // 本地已经有同一个客户端 → 直接引用它建实例，完全不下载（省一次几十 MB）
+  if (p.reusePath) {
+    p.state = 'creating'
+    unmarkDownloadCanceled(p.fileName)
+    downloadStates[p.fileName] = {
+      status: 'done',
+      percent: 100,
+      received: 0,
+      total: p.expectedSize ?? 0,
+      threads: 1,
+      path: p.reusePath,
+      reused: true,
+    }
+    dlPanelOpen.value = false
+    void createFromPanel(p.token, p.reusePath)
+    return
+  }
+
+  p.state = 'downloading'
   unmarkDownloadCanceled(p.fileName)
   // 必须自己先建一条进度记录：App 层的 progress 监听只在已有记录时才更新，
   // 否则弹窗里的百分比/速度会一直是 0% 与「测速中…」
@@ -1107,6 +1151,11 @@ onBeforeUnmount(() => {
         <div class="dl-head">
           <h3>下载并创建 · {{ dlPanel.sourceName }} {{ dlPanel.version }}</h3>
           <button class="dl-close" aria-label="关闭" title="关闭 (Esc)" @click="closePanel">✕</button>
+        </div>
+
+        <!-- 本地已经有同一个客户端：不再重新下载，直接引用它建实例 -->
+        <div v-if="dlPanel.reusePath" class="reuse-tip">
+          本地已有这个客户端，将<strong>直接复用</strong>（不重新下载，只建一份独立数据）
         </div>
 
         <div class="set-row">

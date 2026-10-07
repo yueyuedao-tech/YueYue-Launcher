@@ -377,6 +377,8 @@ export interface DlState {
   threads?: number
   path?: string
   code?: number
+  /** 这条不是下载来的，而是直接复用了本地已有的客户端文件 */
+  reused?: boolean
 }
 
 export const downloadStates = reactive<Record<string, DlState>>({})

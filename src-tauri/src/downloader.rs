@@ -663,6 +663,34 @@ pub async fn downloads_dir(download_dir: String) -> String {
     resolve_dir(&download_dir).to_string_lossy().into_owned()
 }
 
+/// 本地是否已有同一个客户端文件。
+///
+/// 用途：同一个版本再下一次（换个游戏名建第二个实例）时**直接引用现有文件**建实例，
+/// 省掉一次几十 MB 的下载。存在的文件只可能是「完整下载过」的——下载过程写的是
+/// `.downloading` 暂存文件，成功后才改名——所以大小对得上即可放心复用。
+///
+/// - `expected_size` 给了就要求大小完全一致，避免拿到同名但内容不符的残留
+/// - 返回绝对路径；没有可复用的返回 None
+#[tauri::command]
+pub async fn existing_download(
+    file_name: String,
+    download_dir: String,
+    expected_size: Option<u64>,
+) -> Option<String> {
+    let id = crate::instances::validate_id(&file_name).ok()?;
+    let path = resolve_dir(&download_dir).join(&id);
+    let meta = std::fs::metadata(&path).ok()?;
+    if !meta.is_file() || meta.len() == 0 {
+        return None;
+    }
+    if let Some(want) = expected_size {
+        if want > 0 && want != meta.len() {
+            return None;
+        }
+    }
+    Some(path.to_string_lossy().into_owned())
+}
+
 /// 设置里「下载代理 = 系统代理」时，前端用这个值去填下载与索引请求
 #[tauri::command]
 pub async fn get_system_proxy() -> String {

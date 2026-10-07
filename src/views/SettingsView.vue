@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
+import { getVersion } from '@tauri-apps/api/app'
 import { open as openExternal } from '@tauri-apps/plugin-shell'
 import {
   effectiveProxyLabel,
@@ -61,6 +62,8 @@ const targetName = computed(
 )
 const saves = ref<string[]>([])
 const saveError = ref('')
+/** 「关于」页显示的版本号：开机问 Tauri 要，避免页面里写死后发新版不更新 */
+const appVersion = ref('')
 
 async function refreshSaves() {
   saveError.value = ''
@@ -81,6 +84,15 @@ onMounted(async () => {
   await refreshSaves()
   void loadSystemProxy()
   void loadCachedMirrors()
+  // 版本号直接问 Tauri 要（tauri.conf.json 里的 version），
+  // 不再在页面里写死 —— 以前写死 0.1.0，发新版后「关于」还显示旧版本
+  void getVersion()
+    .then((v) => {
+      appVersion.value = v
+    })
+    .catch(() => {
+      appVersion.value = ''
+    })
 })
 </script>
 
@@ -398,7 +410,7 @@ onMounted(async () => {
 
         <div class="set-row">
           <div class="label">版本</div>
-          <div class="ctrl"><span class="val">0.1.0</span></div>
+          <div class="ctrl"><span class="val">{{ appVersion || '读取中…' }}</span></div>
         </div>
 
         <div class="set-row">
