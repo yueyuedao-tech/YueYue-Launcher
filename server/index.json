@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "app": "yueyue-launcher",
-  "generated": "2026-10-06T14:08:30.967Z",
+  "generated": "2026-10-07T04:16:54.908Z",
   "count": 3,
   "items": [
     {
@@ -23,6 +23,21 @@
       "slogan": "Anuken 官方原版 · 紧跟上游 stable",
       "scope": "client",
       "versions": [
+        {
+          "tag": "v160.6",
+          "title": "v8 Build 160.6",
+          "date": "2026-10-06",
+          "pageUrl": "https://github.com/Anuken/Mindustry/releases/tag/v160.6",
+          "assets": [
+            {
+              "name": "Mindustry.jar",
+              "url": "https://github.com/Anuken/Mindustry/releases/download/v160.6/Mindustry.jar",
+              "size": 88681189
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
         {
           "tag": "v160.5",
           "title": "v8 Build 160.5",
@@ -2212,6 +2227,26 @@
       "scope": "client",
       "versions": [
         {
+          "tag": "v2026.10.X38",
+          "title": "2026.10.X38",
+          "date": "2026-10-06",
+          "pageUrl": "https://github.com/TinyLake/MindustryX/releases/tag/v2026.10.X38",
+          "assets": [
+            {
+              "name": "MindustryX-2026.10.X38-Desktop-SDL3.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2026.10.X38/MindustryX-2026.10.X38-Desktop-SDL3.jar",
+              "size": 100155132
+            },
+            {
+              "name": "MindustryX-2026.10.X38-Desktop.jar",
+              "url": "https://github.com/TinyLake/MindustryX/releases/download/v2026.10.X38/MindustryX-2026.10.X38-Desktop.jar",
+              "size": 91528040
+            }
+          ],
+          "dropped": 3,
+          "folder": false
+        },
+        {
           "tag": "prerelease-2026.10.06.B506",
           "title": "2026.10.06.B506",
           "date": "2026-10-06",
@@ -2805,7 +2840,12 @@
       "versionsError": ""
     }
   ],
-  "infoBar": "**2099-01-01 · 测试** 这行是改文件后现场生效的\n**2099-01-02 · 第二条** 第二条内容",
+  "infoBar": "**2026-10-03 · 公告** YueYue Launcher (YYL) V1 发布：全新二次元界面，支持 Windows 与 Linux\n**2026-09-28 · 更新** 模拟启动流程上线，日志面板实时显示各阶段状态\n**2026-09-20 · 社区** Mindustry 游戏管理上线：每个客户端独立存档与配置",
+  "launcher": {
+    "version": "0.1.3",
+    "url": "https://github.com/yueyuedao-tech/YueYue-Launcher/releases",
+    "note": "下载时复用本地已有客户端；关于页新增检查更新"
+  },
   "mirrors": {
     "workshop": []
   }

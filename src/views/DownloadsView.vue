@@ -667,6 +667,17 @@ async function confirmDownload() {
       reused: true,
     }
     dlPanelOpen.value = false
+    // 在任务面板里也登记一条「已复用」，否则用户会觉得「没下载怎么就建好了」，
+    // 也没有任何地方能看这次用了哪个文件
+    void invoke('register_reused_download', {
+      fileName: p.fileName,
+      downloadDir: p.downloadDir,
+      name: p.name,
+    })
+      .catch(() => {
+        /* 登记失败不影响创建 */
+      })
+      .then(() => refreshDownloadTasks())
     void createFromPanel(p.token, p.reusePath)
     return
   }

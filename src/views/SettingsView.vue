@@ -8,13 +8,17 @@ import {
   infoBarError,
   infoBarLoading,
   instances,
+  launcherLatest,
   loadCachedMirrors,
   loadInstances,
   loadSystemProxy,
+  checkLauncherUpdate,
   selectedInstanceId,
   settings,
   settingsNavPos,
   settingsTab,
+  updateError,
+  updateState,
   type SettingsTab,
 } from '../store'
 import PersonalControls from './PersonalControls.vue'
@@ -77,6 +81,17 @@ async function refreshSaves() {
     saveError.value = String(e)
     saves.value = []
   }
+}
+
+/** 「关于 → 检查更新」：现拉一次中心化索引，比对自己当前版本 */
+async function onCheckUpdate() {
+  await checkLauncherUpdate(appVersion.value)
+}
+
+/** 有新版本时打开服务端给的下载地址 */
+function openRelease() {
+  const url = launcherLatest.value?.url
+  if (url) void openExternal(url)
 }
 
 onMounted(async () => {
@@ -410,7 +425,45 @@ onMounted(async () => {
 
         <div class="set-row">
           <div class="label">版本</div>
-          <div class="ctrl"><span class="val">{{ appVersion || '读取中…' }}</span></div>
+          <div class="ctrl">
+            <span class="val">{{ appVersion || '读取中…' }}</span>
+            <button
+              class="btn-ghost"
+              style="font-size: 12px"
+              :disabled="updateState === 'checking' || !appVersion"
+              @click="onCheckUpdate"
+            >
+              {{ updateState === 'checking' ? '检查中…' : '检查更新' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 检查更新结果 -->
+        <div v-if="updateState === 'latest'" class="set-row">
+          <div class="hint" style="font-size: 12.5px; color: var(--cyan)">
+            已是最新版本（{{ appVersion }}）
+          </div>
+        </div>
+        <div v-else-if="updateState === 'newer' && launcherLatest" class="set-row">
+          <div style="flex: 1">
+            <div class="hint" style="font-size: 12.5px">
+              发现新版本
+              <b style="color: var(--pink)">{{ launcherLatest.version }}</b>
+              <template v-if="launcherLatest.note">
+                <br /><span>{{ launcherLatest.note }}</span>
+              </template>
+            </div>
+          </div>
+          <div class="ctrl">
+            <button class="btn-grad" style="font-size: 12px" @click="openRelease">
+              前往下载
+            </button>
+          </div>
+        </div>
+        <div v-else-if="updateState === 'failed'" class="set-row">
+          <div class="hint" style="font-size: 12.5px; color: #ff8f8f">
+            检查失败：{{ updateError }}
+          </div>
         </div>
 
         <div class="set-row">

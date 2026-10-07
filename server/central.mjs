@@ -115,6 +115,44 @@ const CONTENT_DIR = join(HERE, 'content')
 const INFO_FILE = join(CONTENT_DIR, 'info.md')
 
 /**
+ * 启动器自身的最新版本（客户端「设置 → 关于 → 检查更新」用它比对）。
+ *
+ * 为什么由服务端下发：仓库是私有的，客户端匿名访问 GitHub releases 会 404，
+ * 所以版本号与下载地址在这里统一告诉客户端。
+ *
+ * 也可以放到 `content/launcher.json` 覆盖（`{ "version": "...", "url": "...", "note": "..." }`），
+ * 那样发新版只改服务器上的文件，不用重建镜像。
+ */
+const LAUNCHER = {
+  version: '0.1.3',
+  url: 'https://github.com/yueyuedao-tech/YueYue-Launcher/releases',
+  note: '',
+}
+
+const LAUNCHER_FILE = join(CONTENT_DIR, 'launcher.json')
+
+/** 取启动器版本信息：优先 content/launcher.json，否则用内置默认 */
+function readLauncher() {
+  try {
+    if (existsSync(LAUNCHER_FILE)) {
+      const raw = readFileSync(LAUNCHER_FILE, 'utf8').replace(/^\uFEFF/, '')
+      const j = JSON.parse(raw)
+      const version = String(j.version ?? '').trim()
+      if (version) {
+        return {
+          version: version.slice(0, 32),
+          url: String(j.url ?? '').trim().slice(0, 300) || LAUNCHER.url,
+          note: String(j.note ?? '').trim().slice(0, 200),
+        }
+      }
+    }
+  } catch {
+    // 文件坏了就用内置的，不能因为这个把整个接口带崩
+  }
+  return LAUNCHER
+}
+
+/**
  * 取当前要下发的每日信息：优先 `content/info.md`（可编辑），否则用内置默认值。
  * 每次请求都读盘 —— 改完文件不用重启容器。
  */
@@ -301,6 +339,8 @@ async function build() {
     items,
     // 每日信息：Markdown 原文，客户端自己拆行
     infoBar: clean(readInfoBar(), 8000),
+    // 启动器自身最新版本（关于页「检查更新」用）
+    launcher: readLauncher(),
     // 镜像清单：只收 http(s) 前缀，名称/地址都裁长度
     mirrors: {
       workshop: (MIRRORS.workshop ?? [])

@@ -8,6 +8,7 @@ import type {
   GithubVersion,
   InstanceInfo,
   InstanceList,
+  LauncherInfo,
   VersionIndex,
 } from './types'
 import { defaultInfoBar } from './data/mock'
@@ -492,6 +493,64 @@ export function ackUpdate(): void {
     settings.lastSeenTag = latestTag.value
   }
   updateDot.value = false
+}
+
+/* ---------- 启动器自身的版本检查（设置 → 关于） ---------- */
+
+export type UpdateState = 'idle' | 'checking' | 'latest' | 'newer' | 'failed'
+
+/** 中心化服务器告诉我们的最新版本 */
+export const launcherLatest = ref<LauncherInfo | null>(null)
+export const updateState = ref<UpdateState>('idle')
+export const updateError = ref('')
+
+/** 版本号比较：a > b 返回 1，相等 0，小于 -1（只按数字段比，够用） */
+export function compareVersion(a: string, b: string): number {
+  const pa = a.replace(/^v/i, '').split(/[.\-+]/).map((x) => parseInt(x, 10) || 0)
+  const pb = b.replace(/^v/i, '').split(/[.\-+]/).map((x) => parseInt(x, 10) || 0)
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const x = pa[i] ?? 0
+    const y = pb[i] ?? 0
+    if (x !== y) return x > y ? 1 : -1
+  }
+  return 0
+}
+
+/**
+ * 「检查更新」：现拉一次中心化索引，读里面下发的启动器版本再和当前版本比。
+ * 现拉而不是用缓存，是因为这个按钮点了就该是「现在的最新情况」。
+ */
+export async function checkLauncherUpdate(current: string): Promise<void> {
+  updateState.value = 'checking'
+  updateError.value = ''
+  launcherLatest.value = null
+  try {
+    const hit = await pickCentralServer(
+      (base) =>
+        invoke('fetch_central_index', {
+          base,
+          proxy: effectiveProxy.value,
+        }) as Promise<CentralIndex>,
+      (r) => r.source === 'remote',
+    )
+    const idx =
+      hit?.result ??
+      ((await invoke('fetch_central_index', {
+        base: '',
+        proxy: effectiveProxy.value,
+      })) as CentralIndex)
+    const info = idx.launcher
+    if (!info?.version) {
+      updateState.value = 'failed'
+      updateError.value = '中心化服务器没有提供版本信息（可在服务端 content/launcher.json 里配置）'
+      return
+    }
+    launcherLatest.value = info
+    updateState.value = compareVersion(info.version, current) > 0 ? 'newer' : 'latest'
+  } catch (e) {
+    updateState.value = 'failed'
+    updateError.value = String(e)
+  }
 }
 
 // ---------- 设置（localStorage 持久化） ----------

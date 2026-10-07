@@ -133,6 +133,7 @@ fn main() {
             downloader::get_system_proxy,
             downloader::downloads_dir,
             downloader::existing_download,
+            downloader::register_reused_download,
             set_close_behavior,
         ])
         .setup(|app| {

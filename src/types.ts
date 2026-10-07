@@ -132,6 +132,15 @@ export interface CentralIndex {
   mirrors: CentralMirrors
   /** 每日信息：Markdown 原文（首页底部公告） */
   infoBar?: string
+  /** 启动器自身最新版本（关于页「检查更新」用，由中心化服务器下发） */
+  launcher?: LauncherInfo
+}
+
+/** 启动器版本信息 */
+export interface LauncherInfo {
+  version: string
+  url: string
+  note: string
 }
 
 export interface DownloadProgressPayload {
@@ -159,6 +168,8 @@ export interface DownloadTask {
   path: string
   code: number
   startedAt: number
+  /** 直接复用本地已有客户端，没有真的下载 */
+  reused?: boolean
 }
 
 export interface DownloadDonePayload {

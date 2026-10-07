@@ -124,6 +124,21 @@ pub struct CentralIndex {
     /// 每日信息：Markdown 原文（首页底部公告）
     #[serde(default)]
     pub info_bar: String,
+    /// 启动器自身最新版本（关于页「检查更新」用）
+    #[serde(default)]
+    pub launcher: Option<LauncherInfo>,
+}
+
+/// 启动器版本信息：由中心化服务器下发（私有仓库客户端自己查不到 releases）
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct LauncherInfo {
+    #[serde(default)]
+    pub version: String,
+    #[serde(default)]
+    pub url: String,
+    #[serde(default)]
+    pub note: String,
 }
 
 /// 工坊镜像条目：名称 + 前缀地址
@@ -154,6 +169,9 @@ struct IndexFile {
     /// 每日信息 Markdown 原文
     #[serde(default)]
     info_bar: String,
+    /// 启动器最新版本信息
+    #[serde(default)]
+    launcher: Option<LauncherInfo>,
 }
 
 /// 镜像清单裁剪：只留 http(s)、名称与地址都非空，条数与长度封顶
@@ -425,6 +443,7 @@ fn fetch_sync_with(base: &str, proxy: &str, timeout: u32) -> Result<CentralIndex
             items: sanitize(builtin_items()),
             mirrors: Mirrors::default(),
             info_bar: String::new(),
+            launcher: None,
         });
     }
     if !(base.starts_with("https://") || base.starts_with("http://")) {
@@ -441,15 +460,17 @@ fn fetch_sync_with(base: &str, proxy: &str, timeout: u32) -> Result<CentralIndex
                 sanitize(f.items),
                 sanitize_mirrors(f.mirrors),
                 f.info_bar.chars().take(8000).collect::<String>(),
+                f.launcher,
             )
         })
     {
-        Ok((items, mirrors, info_bar)) if !items.is_empty() => Ok(CentralIndex {
+        Ok((items, mirrors, info_bar, launcher)) if !items.is_empty() => Ok(CentralIndex {
             source: "remote".into(),
             note: String::new(),
             items,
             mirrors,
             info_bar,
+            launcher,
         }),
         Ok(_) => Ok(CentralIndex {
             source: "builtin".into(),
@@ -457,6 +478,7 @@ fn fetch_sync_with(base: &str, proxy: &str, timeout: u32) -> Result<CentralIndex
             items: sanitize(builtin_items()),
             mirrors: Mirrors::default(),
             info_bar: String::new(),
+            launcher: None,
         }),
         Err(e) => Ok(CentralIndex {
             source: "builtin".into(),
@@ -465,6 +487,7 @@ fn fetch_sync_with(base: &str, proxy: &str, timeout: u32) -> Result<CentralIndex
             // 内置索引没有镜像清单与每日信息；但都不能因此消失，保留上次下发的
             mirrors: Mirrors::default(),
             info_bar: String::new(),
+            launcher: None,
         }),
     }
 }

@@ -50,6 +50,10 @@ pub struct TaskInfo {
     pub path: String,
     pub code: i32,
     pub started_at: u64,
+    /// 这条不是下载来的，而是直接复用了本地已有的客户端文件。
+    /// 复用也要在任务面板里露一条，用户才知道「为什么没下载却建好了」。
+    #[serde(default)]
+    pub reused: bool,
 }
 
 #[derive(Serialize, Clone)]
@@ -655,6 +659,40 @@ pub async fn clear_finished_downloads() -> usize {
     let before = t.len();
     t.retain(|_, v| v.status == "downloading");
     before - t.len()
+}
+
+/// 复用本地已有客户端时，往任务表里登记一条「已完成」记录。
+/// 这样复用和普通下载一样能在右下角任务面板里看到（含文件大小与落盘路径），
+/// 也能用同一套「移除 / 清空已结束」收拾掉。
+#[tauri::command]
+pub async fn register_reused_download(
+    file_name: String,
+    download_dir: String,
+    name: Option<String>,
+) -> Result<TaskInfo, String> {
+    let id = crate::instances::validate_id(&file_name)?;
+    let path = resolve_dir(&download_dir).join(&id);
+    let len = std::fs::metadata(&path).map_err(|e| e.to_string())?.len();
+    if len == 0 {
+        return Err("本地文件为空，无法复用".into());
+    }
+    let t = TaskInfo {
+        name: name.filter(|s| !s.trim().is_empty()).unwrap_or_else(|| id.clone()),
+        file_name: id.clone(),
+        url: String::new(),
+        status: "done".into(),
+        received: len,
+        total: len,
+        percent: 100.0,
+        speed: 0.0,
+        threads: 1,
+        path: path.to_string_lossy().into_owned(),
+        code: 0,
+        started_at: now_ms(),
+        reused: true,
+    };
+    tasks().lock().unwrap().insert(id, t.clone());
+    Ok(t)
 }
 
 /// 设置里「打开下载目录」用：返回当前真正生效的下载目录（与落盘同一口径）

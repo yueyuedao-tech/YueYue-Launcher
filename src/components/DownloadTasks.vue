@@ -40,11 +40,13 @@ function fmtSpeed(bps: number): string {
   return bps > 0 ? fmtBytes(bps) + '/s' : '测速中…'
 }
 
-function statusText(s: string): string {
+function statusText(s: string, reused?: boolean): string {
+  if (reused) return '已复用'
   return s === 'done' ? '已完成' : s === 'error' ? '失败' : '下载中'
 }
 
-function statusStyle(s: string): Record<string, string> {
+function statusStyle(s: string, reused?: boolean): Record<string, string> {
+  if (reused) return { background: 'rgba(255,255,255,.08)', color: 'var(--ink-dim)' }
   if (s === 'done') return { background: 'rgba(110,231,249,.15)', color: 'var(--cyan)' }
   if (s === 'error') return { background: 'rgba(255,120,120,.15)', color: '#ff8f8f' }
   return { background: 'rgba(255,125,176,.16)', color: 'var(--pink)' }
@@ -122,7 +124,7 @@ async function remove(fileName: string) {
         <div v-for="t in downloadTasks" :key="t.fileName" class="task-row">
           <div class="task-row-top">
             <div class="task-name" :title="t.name">{{ t.name }}</div>
-            <span class="tag" :style="statusStyle(t.status)">{{ statusText(t.status) }}</span>
+            <span class="tag" :style="statusStyle(t.status, t.reused)">{{ statusText(t.status, t.reused) }}</span>
           </div>
 
           <div class="dl-progress">
@@ -134,6 +136,7 @@ async function remove(fileName: string) {
             <span>
               {{ fmtBytes(t.received) }}<template v-if="t.total"> / {{ fmtBytes(t.total) }}</template>
             </span>
+            <span v-if="t.reused" style="color: var(--ink-dim)">本地已有客户端，未重新下载</span>
             <span v-if="t.status === 'downloading'" style="color: var(--cyan)">
               {{ fmtSpeed(t.speed) }}
             </span>
