@@ -1,11 +1,14 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 const API: &str = "https://api.mindustry.top/maps";
 const BATCH: usize = 15;
 const PAGE: usize = 20;
 const MAX_MAP_BYTES: u64 = 20 * 1024 * 1024;
+const MAP_CACHE_TTL_MS: u64 = 7 * 24 * 60 * 60 * 1000;
+const MAP_CACHE_LIMIT: usize = 60;
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -26,11 +29,61 @@ pub struct MapItem {
     mode: String,
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct MapPage {
     items: Vec<MapItem>,
     has_more: bool,
+}
+
+#[derive(Deserialize, Serialize)]
+struct MapCacheEntry {
+    key: String,
+    fetched_at: u64,
+    page: MapPage,
+}
+
+#[derive(Deserialize, Serialize, Default)]
+struct MapCache {
+    entries: Vec<MapCacheEntry>,
+}
+
+fn now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+fn cache_path() -> PathBuf {
+    crate::cmdutil::app_root().join("map-metadata-cache.json")
+}
+
+fn read_cached(key: &str) -> Option<MapPage> {
+    let raw = fs::read_to_string(cache_path()).ok()?;
+    let cache: MapCache = serde_json::from_str(&raw).ok()?;
+    let entry = cache.entries.into_iter().find(|e| e.key == key)?;
+    if now_ms().saturating_sub(entry.fetched_at) > MAP_CACHE_TTL_MS {
+        return None;
+    }
+    Some(entry.page)
+}
+
+fn write_cached(key: String, page: MapPage) {
+    let path = cache_path();
+    let mut cache = fs::read_to_string(&path)
+        .ok()
+        .and_then(|raw| serde_json::from_str::<MapCache>(&raw).ok())
+        .unwrap_or_default();
+    cache.entries.retain(|e| e.key != key);
+    cache.entries.push(MapCacheEntry { key, fetched_at: now_ms(), page });
+    cache.entries.sort_by_key(|e| std::cmp::Reverse(e.fetched_at));
+    cache.entries.truncate(MAP_CACHE_LIMIT);
+    if let Some(parent) = path.parent() { let _ = fs::create_dir_all(parent); }
+    let temp = path.with_extension("json.tmp");
+    if let Ok(data) = serde_json::to_vec_pretty(&cache) {
+        if fs::write(&temp, data).is_ok() { let _ = fs::rename(temp, path); }
+    }
 }
 
 fn get(url: &str, proxy: &str, output: Option<&std::path::Path>) -> Result<Vec<u8>, String> {
@@ -66,6 +119,10 @@ pub async fn search_maps(page: u32, query: String, version: String, proxy: Strin
     }
     tauri::async_runtime::spawn_blocking(move || {
         let search = format!("{}{}", query.trim(), if version.is_empty() { String::new() } else { format!(" @version:{version}") });
+        let cache_key = format!("{}\0{}\0{}", search.trim(), version, page);
+        if let Some(cached) = read_cached(&cache_key) {
+            return Ok(cached);
+        }
         let first = page as usize * PAGE;
         let end = first + PAGE + 1;
         let mut items = Vec::new();
@@ -81,7 +138,9 @@ pub async fn search_maps(page: u32, query: String, version: String, proxy: Strin
         }
         let start = first - first / BATCH * BATCH;
         let selected: Vec<MapItem> = items.into_iter().skip(start).take(PAGE + 1).collect();
-        Ok(MapPage { has_more: selected.len() > PAGE, items: selected.into_iter().take(PAGE).collect() })
+        let result = MapPage { has_more: selected.len() > PAGE, items: selected.into_iter().take(PAGE).collect() };
+        write_cached(cache_key, result.clone());
+        Ok(result)
     }).await.map_err(|e| e.to_string())?
 }
 
