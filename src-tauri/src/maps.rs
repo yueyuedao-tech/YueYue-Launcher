@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const API: &str = "https://api.mindustry.top/maps";
@@ -59,7 +60,13 @@ fn cache_path() -> PathBuf {
     crate::cmdutil::app_root().join("map-metadata-cache.json")
 }
 
+fn cache_lock() -> &'static Mutex<()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(()))
+}
+
 fn read_cached(key: &str) -> Option<MapPage> {
+    let _guard = cache_lock().lock().ok()?;
     let raw = fs::read_to_string(cache_path()).ok()?;
     let cache: MapCache = serde_json::from_str(&raw).ok()?;
     let entry = cache.entries.into_iter().find(|e| e.key == key)?;
@@ -70,6 +77,7 @@ fn read_cached(key: &str) -> Option<MapPage> {
 }
 
 fn write_cached(key: String, page: MapPage) {
+    let Ok(_guard) = cache_lock().lock() else { return };
     let path = cache_path();
     let mut cache = fs::read_to_string(&path)
         .ok()
@@ -125,16 +133,19 @@ pub async fn search_maps(page: u32, query: String, version: String, proxy: Strin
         }
         let first = page as usize * PAGE;
         let end = first + PAGE + 1;
+        let first_batch = first / BATCH;
+        let last_batch = (end.saturating_sub(1) / BATCH) + 1;
+        let urls: Vec<String> = (first_batch..last_batch)
+            .map(|batch| format!("{API}/list?begin={}&search={}", batch * BATCH, encode_query(search.trim())))
+            .collect();
+        let batches = std::thread::scope(|scope| {
+            let handles = urls.iter().map(|url| scope.spawn(|| get(url, &proxy, None))).collect::<Vec<_>>();
+            handles.into_iter().map(|h| h.join().map_err(|_| "地图请求线程异常".to_string())?).collect::<Result<Vec<_>, String>>()
+        })?;
         let mut items = Vec::new();
-        let mut offset = first / BATCH * BATCH;
-        while offset < end {
-            let url = format!("{API}/list?begin={offset}&search={}", encode_query(search.trim()));
-            let data = get(&url, &proxy, None)?;
+        for data in batches {
             let batch: Vec<MapItem> = serde_json::from_slice(&data).map_err(|e| format!("地图列表格式错误: {e}"))?;
-            let count = batch.len();
             items.extend(batch);
-            if count < BATCH { break; }
-            offset += BATCH;
         }
         let start = first - first / BATCH * BATCH;
         let selected: Vec<MapItem> = items.into_iter().skip(start).take(PAGE + 1).collect();
