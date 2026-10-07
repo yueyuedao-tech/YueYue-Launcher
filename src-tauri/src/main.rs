@@ -6,6 +6,7 @@ mod downloader;
 mod github;
 mod instances;
 mod launcher;
+mod maps;
 mod mods;
 mod sources;
 
@@ -125,6 +126,8 @@ fn main() {
             mods::list_mods,
             mods::mods_dir,
             mods::delete_mod,
+            maps::search_maps,
+            maps::install_map,
             downloader::start_download,
             downloader::stop_download,
             downloader::list_downloads,

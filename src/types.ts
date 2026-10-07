@@ -195,3 +195,19 @@ export interface ModFile {
   size: number
   mtime: string
 }
+
+export interface MapItem {
+  id: number
+  name: string
+  desc: string
+  preview: string
+  tags: string[]
+  width: number
+  height: number
+  mode: string
+}
+
+export interface MapPage {
+  items: MapItem[]
+  hasMore: boolean
+}
