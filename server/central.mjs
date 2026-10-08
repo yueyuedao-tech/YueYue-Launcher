@@ -455,6 +455,32 @@ async function emit() {
   return json
 }
 
+let indexSnapshot = null
+let indexRefreshing = null
+let lastIndexRefresh = 0
+
+function currentIndex() {
+  if (!indexSnapshot) {
+    try { indexSnapshot = JSON.parse(readFileSync(OUT, 'utf8')) } catch { return null }
+  }
+  return JSON.stringify({
+    ...indexSnapshot,
+    infoBar: clean(readInfoBar(), 8000),
+    launcher: readLauncher(),
+  })
+}
+
+function refreshIndex() {
+  if (!indexRefreshing) {
+    indexRefreshing = emit().then((body) => {
+      indexSnapshot = JSON.parse(body)
+      lastIndexRefresh = Date.now()
+      return body
+    }).finally(() => { indexRefreshing = null })
+  }
+  return indexRefreshing
+}
+
 function summarize(items) {
   for (const it of items) {
     const v = it.versions.length
@@ -516,7 +542,17 @@ async function serve(port) {
       return
     }
 
-    emit().then(
+    const snapshot = currentIndex()
+    if (snapshot) {
+      res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', ...CORS })
+      res.end(snapshot)
+      if (Date.now() - lastIndexRefresh > 30_000) {
+        void refreshIndex().catch((e) => console.error('索引后台刷新失败:', e))
+      }
+      return
+    }
+
+    refreshIndex().then(
       (body) => {
         res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', ...CORS })
         res.end(body)
@@ -531,7 +567,7 @@ async function serve(port) {
   // 容器启动期 /health 会连不上（实测踩过），编排会误判成起不来。
   server.listen(port, '0.0.0.0', () => {
     console.log(`已监听，首次索引在后台构建…`)
-    emit().then(
+    refreshIndex().then(
       (body) => {
         const idx = JSON.parse(body)
         console.log(`首次索引完成（schema ${idx.schema}，${idx.count} 条源）`)
