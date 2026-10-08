@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import {
   store,
@@ -50,25 +50,16 @@ const views = {
   settings: SettingsView,
 } as const
 
-const ALL_NAV: { id: ViewId; label: string; path: string; devOnly?: boolean }[] = [
+const ALL_NAV: { id: ViewId; label: string; path: string }[] = [
   { id: 'home', label: '首页', path: 'M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z' },
   { id: 'instances', label: '游戏', path: 'M4 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z' },
   { id: 'downloads', label: '下载', path: 'M12 4v10m0 0 4-4m-4 4-4-4M5 19h14' },
   { id: 'maps', label: '地图', path: 'M3 5l6-2 6 2 6-2v16l-6 2-6-2-6 2V5zm6-2v16m6-14v16' },
-  // Mod 页还没写完：默认隐藏，只有设置里打开「开发者模式」才出现
   { id: 'mod', label: 'Mod', path: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' },
   { id: 'settings', label: '设置', path: 'M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7zm7.4-2.6.1-1-.1-1 2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L15 3.4h-4l-.3 2.5c-.6.2-1.2.6-1.7 1l-2.4-1-2 3.4 2 1.6-.1 1 .1 1-2 1.6 2 3.4 2.4-1c.5.4 1.1.8 1.7 1l.3 2.5h4l.3-2.5c.6-.2 1.2-.6 1.7-1l2.4 1 2-3.4z' },
 ]
 
-const nav = computed(() => ALL_NAV.filter((n) => !n.devOnly || settings.devMode))
-
-// 开发者模式关掉时若正停在 Mod 页，退回首页，避免留下一个进不去的页面
-watch(
-  () => settings.devMode,
-  (on) => {
-    if (!on && store.view === 'mod') store.view = 'home'
-  },
-)
+const nav = ALL_NAV
 
 const current = computed(() => views[store.view])
 /** 首页始终有背景图；其他页面由「个性化 → 背景图也用在其他页面」决定 */

@@ -51,7 +51,6 @@ const tabs: { id: SettingsTab; label: string }[] = [
   { id: 'launch', label: '启动' },
   { id: 'game', label: '游戏' },
   { id: 'personal', label: '个性化' },
-  { id: 'dev', label: '开发者' },
   { id: 'about', label: '关于' },
 ]
 
@@ -395,34 +394,6 @@ onMounted(async () => {
 
       <!-- 个性化（原独立页已归档至此，数据同源） -->
       <PersonalControls v-show="settingsTab === 'personal'" />
-
-      <!-- 开发者：没写完的功能默认藏起来，在这里放开预览 -->
-      <div v-show="settingsTab === 'dev'" class="set-group">
-        <h3>开发者</h3>
-        <div class="set-row">
-          <div>
-            <div class="label">开发者模式</div>
-            <div class="hint" style="font-size: 12px">
-              打开后会显示导航里的「Mod」——该页面尚未完成，仅作预览
-            </div>
-          </div>
-          <div class="ctrl">
-            <label class="switch">
-              <input v-model="settings.devMode" type="checkbox" />
-              <span class="track" />
-              <span class="thumb" />
-            </label>
-          </div>
-        </div>
-        <div class="set-row">
-          <div>
-            <div class="label">未完成功能</div>
-            <div class="hint" style="font-size: 12px">
-              Mod 页：{{ settings.devMode ? '已在导航中显示' : '已隐藏' }}
-            </div>
-          </div>
-        </div>
-      </div>
 
       <!-- 关于 -->
       <div v-show="settingsTab === 'about'" class="set-group">

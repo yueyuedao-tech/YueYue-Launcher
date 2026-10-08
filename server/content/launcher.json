@@ -1,5 +1,5 @@
 {
-  "version": "0.1.4",
+  "version": "0.1.5",
   "url": "https://github.com/yueyuedao-tech/YueYue-Launcher/releases",
-  "note": "地图页新增本地缓存，打开和翻页更快；设置里可以调整缓存时长"
+  "note": "新增地图浏览与安装、Mod 搜索与下载；地图列表支持本地缓存"
 }

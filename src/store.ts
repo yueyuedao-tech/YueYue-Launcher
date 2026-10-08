@@ -15,7 +15,7 @@ import { defaultInfoBar } from './data/mock'
 
 export type ViewId = 'home' | 'instances' | 'downloads' | 'maps' | 'mod' | 'settings'
 export type LaunchStatus = 'running' | 'done' | 'failed' | 'stopped'
-export type SettingsTab = 'download' | 'mirror' | 'launch' | 'game' | 'personal' | 'dev' | 'about'
+export type SettingsTab = 'download' | 'mirror' | 'launch' | 'game' | 'personal' | 'about'
 
 export const store = reactive({
   view: 'home' as ViewId,
@@ -599,8 +599,6 @@ export interface Settings {
   workshopMirror: string
   /** 下载线程数：1 = 单连接（服务器不支持分段时自动降为 1） */
   downloadThreads: number
-  /** 开发者模式：打开后才显示还没写完的功能（当前是 Mod 页） */
-  devMode: boolean
   /** 界面缩放百分比（100 = 原始大小） */
   uiScale: number
   /** 新建游戏时默认带入的 JVM 参数 */
@@ -646,7 +644,6 @@ const defaults: Settings = {
   centralServers: [],
   workshopMirror: '',
   downloadThreads: 4,
-  devMode: false,
   uiScale: 100,
   defaultJvmArgs: '',
   defaultGameArgs: '',
@@ -665,6 +662,8 @@ function loadSettings(): Settings {
     if (raw) {
       const stored = JSON.parse(raw) as Partial<Settings>
       const parsed = { ...defaults, ...stored } as Settings
+      // 旧版设置中的开发者开关已经移除。
+      delete (parsed as Settings & { devMode?: boolean }).devMode
       // 一次性迁移：老配置升级后默认改为顶部导航
       if (!parsed.navMigrated) {
         parsed.navPosition = 'top'

@@ -86,11 +86,6 @@ onMounted(loadCatalog)
     <div class="toolbar" style="justify-content: space-between">
       <div>
         <h1 class="page-title">Mod 管理</h1>
-        <p class="page-sub" style="margin-bottom: 0">
-          GitHub Mod 清单 · 下载到当前游戏
-          <template v-if="effectiveProxy"> · 代理 {{ effectiveProxy }}</template>
-          <template v-if="settings.workshopMirror"> · 工坊镜像已配</template>
-        </p>
       </div>
       <div style="display: flex; gap: 10px; align-items: center">
         <select v-model="selectedInstanceId" class="field" style="min-width: 200px">
@@ -104,7 +99,6 @@ onMounted(loadCatalog)
     <p v-if="!instances.length" class="page-sub">请先在「游戏」页创建一个游戏</p>
 
     <div v-if="currentId" class="set-group" style="margin-bottom: 16px">
-      <h3>Anuken/MindustryMods（{{ catalogTotal }}）</h3>
       <div class="mod-search">
         <input v-model="query" class="field" placeholder="搜索 Mod 名称、作者或仓库" @keydown.enter="search" />
         <button class="btn-grad" :disabled="catalogLoading" @click="search">{{ catalogLoading ? '读取中…' : '搜索' }}</button>

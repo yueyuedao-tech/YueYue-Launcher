@@ -124,7 +124,7 @@ const INFO_FILE = join(CONTENT_DIR, 'info.md')
  * 那样发新版只改服务器上的文件，不用重建镜像。
  */
 const LAUNCHER = {
-  version: '0.1.4',
+  version: '0.1.5',
   url: 'https://github.com/yueyuedao-tech/YueYue-Launcher/releases',
   note: '',
 }
