@@ -36,6 +36,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { handleRoomRequest } from './rooms.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const OUT = join(HERE, 'index.json')
@@ -503,9 +504,15 @@ async function serve(port) {
   console.log('在客户端「设置 → 镜像与网络 → 中心化服务器」填入本服务地址即可')
 
   const server = createServer((req, res) => {
-    const url = (req.url || '/').split('?')[0]
+    const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`)
+    const url = parsedUrl.pathname
     // 访问日志：便于确认「客户端是开机拉还是进页面才拉」
     console.log(`[${new Date().toISOString()}] ${req.method} ${url} ${req.headers['user-agent'] || ''}`.trim())
+
+    if (url.startsWith('/rooms')) {
+      void handleRoomRequest(req, res, parsedUrl)
+      return
+    }
 
     if (url === '/proxy') {
       const target = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`).searchParams.get('url') || ''

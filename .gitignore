@@ -13,6 +13,7 @@ scripts/smoke-render.json
 
 src-tauri/target/
 src-tauri/gen/
+src-tauri/resources/easytier/
 scripts/tauri-shot*
 scripts/tauri-pw*
 

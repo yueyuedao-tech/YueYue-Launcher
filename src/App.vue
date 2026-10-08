@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import {
   store,
@@ -10,6 +10,7 @@ import {
   checkForUpdates,
   ackUpdate,
   settings,
+  settingsTab,
   loadCentralVersions,
   syncCentralVersions,
   loadCentralIndex,
@@ -40,6 +41,10 @@ import SettingsView from './views/SettingsView.vue'
 import LaunchOverlay from './components/LaunchOverlay.vue'
 import DownloadTasks from './components/DownloadTasks.vue'
 import LaunchDock from './components/LaunchDock.vue'
+import RoomsView from './views/RoomsView.vue'
+import { account, handleLoginUrl, initializeAccount, login, restoreAccount } from './account'
+import { getCurrent, onOpenUrl, register } from '@tauri-apps/plugin-deep-link'
+import { startRoomSync, stopRoomSync } from './rooms'
 
 const views = {
   home: HomeView,
@@ -47,6 +52,7 @@ const views = {
   downloads: DownloadsView,
   maps: MapsView,
   mod: ModView,
+  rooms: RoomsView,
   settings: SettingsView,
 } as const
 
@@ -56,6 +62,7 @@ const ALL_NAV: { id: ViewId; label: string; path: string }[] = [
   { id: 'downloads', label: '下载', path: 'M12 4v10m0 0 4-4m-4 4-4-4M5 19h14' },
   { id: 'maps', label: '地图', path: 'M3 5l6-2 6 2 6-2v16l-6 2-6-2-6 2V5zm6-2v16m6-14v16' },
   { id: 'mod', label: 'Mod', path: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' },
+  { id: 'rooms', label: '房间', path: 'M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2m16 0v-2a4 4 0 0 0-3-3.87M14 3.13a4 4 0 0 1 0 7.75M10 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z' },
   { id: 'settings', label: '设置', path: 'M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7zm7.4-2.6.1-1-.1-1 2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L15 3.4h-4l-.3 2.5c-.6.2-1.2.6-1.7 1l-2.4-1-2 3.4 2 1.6-.1 1 .1 1-2 1.6 2 3.4 2.4-1c.5.4 1.1.8 1.7 1l.3 2.5h4l.3-2.5c.6-.2 1.2-.6 1.7-1l2.4 1 2-3.4z' },
 ]
 
@@ -65,13 +72,35 @@ const current = computed(() => views[store.view])
 /** 首页始终有背景图；其他页面由「个性化 → 背景图也用在其他页面」决定 */
 const showAppBg = computed(() => store.view === 'home' || settings.bgAllPages)
 const unlisteners: UnlistenFn[] = []
+watch(() => account.profile, (profile) => {
+  if (profile) startRoomSync()
+  else stopRoomSync()
+})
 
 function go(id: ViewId) {
   store.view = id
   if (id === 'downloads') ackUpdate()
 }
 
+function accountAction() {
+  if (account.profile) {
+    settingsTab.value = 'account'
+    store.view = 'settings'
+  } else {
+    void login().catch(() => {})
+  }
+}
+
 onMounted(async () => {
+  initializeAccount()
+  void restoreAccount()
+  try {
+    try { await register('com.starlight.launcher') } catch { /* installer may already own the scheme */ }
+    unlisteners.push(await onOpenUrl((urls) => urls.forEach(handleLoginUrl)))
+    ;(await getCurrent())?.forEach(handleLoginUrl)
+  } catch {
+    // Deep-link registration is only available in the packaged desktop app.
+  }
   // 启动页可在设置里选（首页/游戏/下载/设置）
   if (settings.startView) store.view = settings.startView
   loadInstances()
@@ -195,6 +224,10 @@ onBeforeUnmount(() => {
           <span>{{ item.label }}</span>
         </button>
       </nav>
+      <button class="account-button" :disabled="account.busy" @click="accountAction">
+        <img v-if="account.profile?.avatar_url" :src="account.profile.avatar_url" alt="" />
+        <span>{{ account.busy ? '正在登录' : account.profile?.display_name || '登录' }}</span>
+      </button>
     </header>
 
     <div class="shell-body">
@@ -217,6 +250,10 @@ onBeforeUnmount(() => {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
             <path :d="item.path" />
           </svg>
+        </button>
+        <button class="rail-btn" :title="account.profile?.display_name || '登录 SSO'" aria-label="SSO 登录" @click="accountAction">
+          <img v-if="account.profile?.avatar_url" class="rail-avatar" :src="account.profile.avatar_url" alt="" />
+          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2m12-14a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z" /></svg>
         </button>
       </nav>
 

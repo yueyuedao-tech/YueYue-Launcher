@@ -52,6 +52,17 @@ input, select { font: inherit; color: var(--ink); }
 .topnav-brand { flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 10px; overflow: hidden; }
 .topnav-brand .logo { width: 30px; height: 30px; border-radius: 8px; object-fit: cover; border: 1px solid var(--line); }
 .topnav-title { font-weight: 700; font-size: 14px; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.account-button { display: flex; align-items: center; gap: 8px; margin-left: 12px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink-dim); }
+.account-button:hover { background: var(--card-hover); color: var(--ink); }
+.account-button img, .account-profile img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
+.rail-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
+.room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-top: 16px; }
+.room-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+.room-card-head, .room-actions, .account-profile { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.room-members { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0; }
+.member-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; background: rgba(255,255,255,.06); border-radius: 999px; font-size: 12px; }
+.member-chip img { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; }
+.error-text { color: #ff8f8f; margin-top: 14px; }
 .topnav-items {
   flex: 0 0 auto;
   display: flex;

@@ -22,6 +22,7 @@ import {
   type SettingsTab,
 } from '../store'
 import PersonalControls from './PersonalControls.vue'
+import { account, login, logout } from '../account'
 
 /** 中心化服务器列表：可增删，按顺序回退 */
 function addServer() {
@@ -51,6 +52,7 @@ const tabs: { id: SettingsTab; label: string }[] = [
   { id: 'launch', label: '启动' },
   { id: 'game', label: '游戏' },
   { id: 'personal', label: '个性化' },
+  { id: 'account', label: '账号' },
   { id: 'about', label: '关于' },
 ]
 
@@ -449,6 +451,18 @@ onMounted(async () => {
 
       <!-- 个性化（原独立页已归档至此，数据同源） -->
       <PersonalControls v-show="settingsTab === 'personal'" />
+
+      <div v-show="settingsTab === 'account'" class="set-group">
+        <h3>统一账号</h3>
+        <div v-if="account.profile" class="account-profile">
+          <img v-if="account.profile.avatar_url" :src="account.profile.avatar_url" alt="" />
+          <div><strong>{{ account.profile.display_name || account.profile.username }}</strong><div class="meta">UPID：{{ account.upid }}</div></div>
+        </div>
+        <div class="set-row"><span>经验</span><span class="val">{{ account.profile?.experience ?? 0 }}</span></div>
+        <div class="set-row"><span>等级</span><span class="val">Lv.{{ account.profile?.level?.level ?? 0 }}</span></div>
+        <div class="set-row"><span>硬币</span><span class="val">{{ account.profile?.coins ?? 0 }}</span></div>
+        <div class="set-row"><button class="btn primary" @click="account.profile ? logout() : login()">{{ account.profile ? '退出登录' : '登录 SSO' }}</button></div>
+      </div>
 
       <!-- 关于 -->
       <div v-show="settingsTab === 'about'" class="set-group">

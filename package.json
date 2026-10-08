@@ -11,6 +11,7 @@
     "typecheck": "vue-tsc --noEmit",
     "build": "vue-tsc --noEmit && vite build",
     "check:dist": "node scripts/check-singlefile.mjs",
+    "prepare:easytier": "node scripts/prepare-easytier.mjs",
     "tauri": "tauri",
     "start": "npm run build && electron .",
     "dist:win": "node scripts/build-win.cjs",
@@ -29,6 +30,7 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.1",
+    "@tauri-apps/plugin-deep-link": "^2.4.5",
     "@tauri-apps/plugin-shell": "^2.4.0",
     "marked": "^18.1.0"
   }

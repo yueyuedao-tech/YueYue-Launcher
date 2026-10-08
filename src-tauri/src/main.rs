@@ -8,6 +8,7 @@ mod instances;
 mod launcher;
 mod maps;
 mod mods;
+mod rooms;
 mod sources;
 
 use std::sync::{Mutex, OnceLock};
@@ -59,7 +60,10 @@ fn ensure_tray(app: &AppHandle) -> Result<(), String> {
                     let _ = w.set_focus();
                 }
             }
-            "quit" => app.exit(0),
+            "quit" => {
+                rooms::disconnect_all(app);
+                app.exit(0);
+            }
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {
@@ -100,7 +104,9 @@ fn main() {
             }
         }))
         .manage(CloseMode::default())
+        .manage(rooms::RoomProcesses::default())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_deep_link::init())
         .invoke_handler(tauri::generate_handler![
             instances::list_instances,
             instances::create_instance,
@@ -134,6 +140,9 @@ fn main() {
             maps::cache_map_preview,
             maps::remote_proxy_available,
             maps::clear_content_cache,
+            rooms::connect_room,
+            rooms::disconnect_room,
+            rooms::disconnect_all_rooms,
             downloader::start_download,
             downloader::stop_download,
             downloader::list_downloads,
@@ -164,6 +173,11 @@ fn main() {
                 });
             }
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::Destroyed = event {
+                rooms::disconnect_all(window.app_handle());
+            }
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

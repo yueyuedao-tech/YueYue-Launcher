@@ -32,8 +32,16 @@
       }
     }
   },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["com.starlight.launcher"]
+      }
+    }
+  },
   "bundle": {
     "active": true,
+    "resources": ["resources/easytier/*"],
     "targets": ["nsis", "appimage", "deb"],
     "icon": [
       "icons/32x32.png",

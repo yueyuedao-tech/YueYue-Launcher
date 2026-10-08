@@ -13,9 +13,9 @@ import type {
 } from './types'
 import { defaultInfoBar } from './data/mock'
 
-export type ViewId = 'home' | 'instances' | 'downloads' | 'maps' | 'mod' | 'settings'
+export type ViewId = 'home' | 'instances' | 'downloads' | 'maps' | 'mod' | 'rooms' | 'settings'
 export type LaunchStatus = 'running' | 'done' | 'failed' | 'stopped'
-export type SettingsTab = 'download' | 'mirror' | 'launch' | 'game' | 'personal' | 'about'
+export type SettingsTab = 'download' | 'mirror' | 'launch' | 'game' | 'personal' | 'account' | 'about'
 
 export const store = reactive({
   view: 'home' as ViewId,

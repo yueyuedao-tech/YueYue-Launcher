@@ -56,6 +56,9 @@ jobs:
       - name: 构建前端
         run: npm run build
 
+      - name: 准备 EasyTier 核心
+        run: npm run prepare:easytier
+
       - name: 跑测试
         run: cargo test --manifest-path src-tauri/Cargo.toml
 
