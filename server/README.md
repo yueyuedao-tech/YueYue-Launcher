@@ -75,7 +75,8 @@ mindustry.wiki 的证书，然后在 1020 上提供 HTTPS。
 | `PORT` | `8787`（compose 里设成 `1020`） | 监听端口 |
 | `YYL_GH_TTL_MS` | `900000`（15 分钟） | GitHub 版本缓存时长，`0` = 每次重拉 |
 | `GITHUB_TOKEN` | 空 | 提高 GitHub 限额（不带 token 只有 60 次/小时） |
-| `NODE_USE_ENV_PROXY=1` | 空 | 让 Node 的 fetch 走 `HTTPS_PROXY`/`HTTP_PROXY`（Node 24+） |
+| `YYL_UPSTREAM_PROXY` | 空 | 上游 HTTP 代理地址；有值时优先走代理，失败后直连重试 |
+| `YYL_UPSTREAM_PROXY_AUTH` | 空 | 代理认证，格式为 `用户名:密码`；仅放在服务器的 `.env` 中 |
 
 ## 改配置
 
@@ -104,6 +105,10 @@ docker compose up -d --build     # 重建镜像并重启
 `index.json` 每次请求（受 TTL 限制）都会重新生成，所以改完代码重建即可生效。
 
 ## 端口
+
+当前 `mindustry.wiki` 部署使用 `https://mindustry.wiki:1200` 对外提供 HTTPS，
+外层反向代理转发到宿主机 `1019`，Docker 容器内部仍监听 `1020`。
+上游代理配置在服务器私有的 `.env` 中，中心服务优先经代理请求；代理失败或返回错误状态时直连重试。
 
 对外端口由同目录 **`.env`** 里的 `YYL_PORT` 决定（默认 1020）：
 

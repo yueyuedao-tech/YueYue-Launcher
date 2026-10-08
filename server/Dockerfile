@@ -6,6 +6,8 @@
 # 或直接用同目录的 docker-compose.yml
 FROM node:22-alpine
 
+RUN apk add --no-cache curl
+
 # 时区/编码：日志里是 ISO 时间，这里只影响容器内 date，设成上海便于对日志
 ENV TZ=Asia/Shanghai \
     PORT=1020 \

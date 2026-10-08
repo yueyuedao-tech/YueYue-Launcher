@@ -19,10 +19,13 @@ services:
       TZ: ${TZ:-Asia/Shanghai}
       # GitHub 版本缓存时长（毫秒），默认 15 分钟；0 = 每次请求都重拉
       YYL_GH_TTL_MS: ${YYL_GH_TTL_MS:-900000}
+      # 上游请求优先走此代理，连接或响应失败时由服务端直连重试。
+      YYL_UPSTREAM_PROXY: ${YYL_UPSTREAM_PROXY:-}
+      YYL_UPSTREAM_PROXY_AUTH: ${YYL_UPSTREAM_PROXY_AUTH:-}
       # 有 token 就填，能把 GitHub 限额从 60 次/小时提高（不带 token 多仓库容易打满）
       # GITHUB_TOKEN: "ghp_xxx"
-      # Node 24+ 让 fetch 走代理（服务器直连 GitHub 时一般不需要）
-      # HTTPS_PROXY: "http://127.0.0.1:7897"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "${YYL_PORT:-1020}:1020"
     volumes:

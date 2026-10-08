@@ -31,7 +31,9 @@
  */
 import { createServer } from 'node:http'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, unlinkSync } from 'node:fs'
+import { execFile } from 'node:child_process'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -44,6 +46,49 @@ const GH_TTL_MS = Number(process.env.YYL_GH_TTL_MS ?? 15 * 60 * 1000)
 const GH_PAGES = 5
 const PROXY_TTL_MS = Number(process.env.YYL_PROXY_TTL_MS ?? 60 * 60 * 1000)
 const PROXY_CACHE_LIMIT = 60
+const UPSTREAM_PROXY = (process.env.YYL_UPSTREAM_PROXY || '').trim()
+const UPSTREAM_PROXY_AUTH = (process.env.YYL_UPSTREAM_PROXY_AUTH || '').trim()
+
+function curlFetch(url, headers, useProxy) {
+  const dir = mkdtempSync(join(tmpdir(), 'yyl-upstream-'))
+  const output = join(dir, 'body')
+  const args = ['-LsS', '--max-time', '30', '--max-filesize', '52428800', '--proto', '=http,https', '--proto-redir', '=http,https', '-o', output, '-w', '%{http_code}\n%{content_type}']
+  for (const [key, value] of Object.entries(headers || {})) args.push('-H', `${key}: ${value}`)
+  if (useProxy) {
+    args.push('--proxy', UPSTREAM_PROXY)
+    if (UPSTREAM_PROXY_AUTH) args.push('--proxy-user', UPSTREAM_PROXY_AUTH)
+  } else {
+    args.push('--noproxy', '*')
+  }
+  args.push(url)
+  return new Promise((resolve, reject) => {
+    execFile('curl', args, { maxBuffer: 1024 * 1024 }, (error, stdout) => {
+      try {
+        if (error) throw new Error('上游连接失败')
+        const [statusText, type] = stdout.trim().split('\n')
+        const status = Number(statusText)
+        if (status < 100 || status > 599) throw new Error('上游响应无效')
+        resolve(new Response(readFileSync(output), { status, headers: { 'content-type': type || 'application/octet-stream' } }))
+      } catch (e) {
+        reject(e)
+      } finally {
+        rmSync(dir, { recursive: true, force: true })
+      }
+    })
+  })
+}
+
+async function fetchUpstream(url, options = {}) {
+  if (!UPSTREAM_PROXY) return fetch(url, options)
+  try {
+    const response = await curlFetch(url, options.headers, true)
+    if (response.ok) return response
+    console.warn(`[proxy] ${new URL(url).hostname}: HTTP ${response.status}, retrying direct`)
+  } catch {
+    console.warn(`[proxy] ${new URL(url).hostname}: unavailable, retrying direct`)
+  }
+  return curlFetch(url, options.headers, false)
+}
 
 /** 源内容清单：只写事实，标签由 build 阶段统一派生；logo/标语随源一起下发。
  *  id 显式写死并与客户端内置索引（central.rs builtin_items）一致：
@@ -260,7 +305,7 @@ function trimProxyCache() {
 async function proxyRequest(target) {
   const cached = readProxyCache(target)
   if (cached) return { body: readFileSync(cached.path), type: cached.type, cached: true }
-  const response = await fetch(target, { headers: { 'user-agent': 'YYL-Central-Proxy' } })
+  const response = await fetchUpstream(target, { headers: { 'user-agent': 'YYL-Central-Proxy' } })
   if (!response.ok) throw new Error(`上游请求失败 HTTP ${response.status}`)
   const body = Buffer.from(await response.arrayBuffer())
   if (body.length > 50 * 1024 * 1024) throw new Error('上游文件超过 50 MiB 限制')
@@ -284,7 +329,7 @@ async function fetchGhVersions(repo) {
   const out = []
   for (let page = 1; page <= GH_PAGES; page++) {
     const url = `https://api.github.com/repos/${repo}/releases?per_page=100&page=${page}`
-    const res = await fetch(url, { headers })
+    const res = await fetchUpstream(url, { headers })
     if (!res.ok) {
       const hint = res.status === 403 ? '（未带 GITHUB_TOKEN 时 60 次/小时，或代理出口 IP 被拦）' : ''
       throw new Error(`GitHub HTTP ${res.status}${hint}`)
