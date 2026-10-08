@@ -594,6 +594,8 @@ export interface Settings {
   navMigrated?: boolean
   /** 中心化服务器列表：按顺序尝试，前面的连不上就自动用后面的（空 = 用内置索引） */
   centralServers: string[]
+  /** 可选的中心服务器代理入口，负责转发地图、Mod 索引和下载流量 */
+  remoteProxy: string
   /** 旧字段（单个地址），只在迁移时读一次 */
   centralServer?: string
   workshopMirror: string
@@ -642,6 +644,7 @@ const defaults: Settings = {
   lastSeenTag: '',
   navPosition: 'top',
   centralServers: [],
+  remoteProxy: '',
   workshopMirror: '',
   downloadThreads: 4,
   uiScale: 100,
@@ -684,6 +687,11 @@ function loadSettings(): Settings {
 }
 
 export const settings = reactive<Settings>(loadSettings())
+
+export function remoteProxyUrl(url: string): string {
+  const base = settings.remoteProxy.trim().replace(/\/+$/, '')
+  return base ? `${base}/proxy?url=${encodeURIComponent(url)}` : url
+}
 
 /** 设置页分类导航位置：没单独设置过就跟随主导航 */
 export const settingsNavPos = computed<'left' | 'top'>(

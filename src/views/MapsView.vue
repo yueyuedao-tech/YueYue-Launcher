@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
-import { effectiveProxy, instances, selectedInstanceId, settings } from '../store'
+import { convertFileSrc, invoke } from '@tauri-apps/api/core'
+import { effectiveProxy, instances, remoteProxyUrl, selectedInstanceId, settings } from '../store'
 import type { MapItem, MapPage } from '../types'
 
 const versions = [
@@ -38,9 +38,27 @@ async function fetchPage(targetPage: number): Promise<MapPage> {
     query: appliedQuery.value,
     version: version.value,
     proxy: effectiveProxy.value,
+    remoteProxy: settings.remoteProxy,
     cacheMinutes: Math.min(60, Math.max(1, Number(settings.mapCacheMinutes) || 60)),
   })) as MapPage
   return result
+}
+
+async function cachePreviewImages(items: MapPage['items']) {
+  await Promise.allSettled(items.map(async (item) => {
+    if (!item.preview.startsWith('https://')) return
+    try {
+      const path = await invoke('cache_map_preview', {
+        url: item.preview,
+        proxy: effectiveProxy.value,
+        remoteProxy: settings.remoteProxy,
+        cacheMinutes: Math.min(60, Math.max(1, Number(settings.mapCacheMinutes) || 60)),
+      }) as string
+      item.preview = convertFileSrc(path)
+    } catch {
+      item.preview = remoteProxyUrl(item.preview)
+    }
+  }))
 }
 
 async function loadMaps() {
@@ -54,6 +72,7 @@ async function loadMaps() {
     if (id !== requestId) return
     maps.value = result.items
     hasMore.value = result.hasMore
+    void cachePreviewImages(maps.value)
     void prefetchNeighbors(targetPage)
   } catch (e) {
     if (id !== requestId) return
@@ -105,6 +124,7 @@ async function install(item: MapItem) {
       instanceId: selectedInstanceId.value,
       mapId: item.id,
       proxy: effectiveProxy.value,
+      remoteProxy: settings.remoteProxy,
     })) as string
     installed.value[item.id] = path
   } catch (e) {

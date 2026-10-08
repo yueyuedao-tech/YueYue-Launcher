@@ -230,6 +230,15 @@ onMounted(async () => {
         </div>
         <div class="set-row">
           <div>
+            <div class="label">服务端远程代理</div>
+            <div class="hint" style="font-size: 12px">让中心服务器代为请求地图、Mod 索引、预览图和下载内容；留空则直连</div>
+          </div>
+          <div class="ctrl" style="flex: 1; max-width: 520px">
+            <input v-model="settings.remoteProxy" class="field" style="width: 100%" placeholder="https://your-server.example.com" />
+          </div>
+        </div>
+        <div class="set-row">
+          <div>
             <div class="label">GitHub 加速前缀</div>
           </div>
           <div class="ctrl" style="flex: 1; max-width: 420px">

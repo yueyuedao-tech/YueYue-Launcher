@@ -10,6 +10,7 @@ const BATCH: usize = 15;
 const PAGE: usize = 20;
 const MAX_MAP_BYTES: u64 = 20 * 1024 * 1024;
 const MAP_CACHE_LIMIT: usize = 60;
+const IMAGE_CACHE_LIMIT: usize = 60;
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -70,6 +71,16 @@ fn cache_path(query: &str, version: &str, page: u32) -> PathBuf {
     query_dir(query, version).join(format!("page-{page}.json"))
 }
 
+fn image_cache_dir() -> PathBuf {
+    crate::cmdutil::app_root().join("cache").join("maps").join("images")
+}
+
+fn remote_url(url: &str, remote_proxy: &str) -> String {
+    let base = remote_proxy.trim().trim_end_matches('/');
+    if base.is_empty() { return url.to_string(); }
+    format!("{base}/proxy?url={}", crate::mods::urlencode(url))
+}
+
 fn read_cached(query: &str, version: &str, page: u32, ttl_ms: u64) -> Option<MapPage> {
     let _guard = cache_lock().lock().ok()?;
     let raw = fs::read_to_string(cache_path(query, version, page)).ok()?;
@@ -88,18 +99,21 @@ fn write_cached(query: &str, version: &str, page_number: u32, page: MapPage) {
     if let Ok(data) = serde_json::to_vec_pretty(&MapCacheEntry { fetched_at: now_ms(), page }) {
         if fs::write(&temp, data).is_ok() { let _ = fs::rename(temp, path); }
     }
-    // Keep the cache directory bounded without maintaining a second index file.
-    if let Ok(entries) = fs::read_dir(cache_dir()) {
-        let mut files: Vec<_> = entries.flatten().filter(|e| e.path().is_dir()).collect();
+    // Bound the total number of cached pages, regardless of search query.
+    if let Ok(dirs) = fs::read_dir(cache_dir()) {
+        let mut files: Vec<_> = dirs.flatten().flat_map(|dir| {
+            fs::read_dir(dir.path()).into_iter().flatten().flatten().filter(|e| e.path().extension().and_then(|x| x.to_str()) == Some("json"))
+        }).collect();
         files.sort_by_key(|e| e.metadata().and_then(|m| m.modified()).ok());
         while files.len() > MAP_CACHE_LIMIT {
             let old = files.remove(0);
-            let _ = fs::remove_dir_all(old.path());
+            let _ = fs::remove_file(old.path());
         }
     }
 }
 
-fn get(url: &str, proxy: &str, output: Option<&std::path::Path>) -> Result<Vec<u8>, String> {
+fn get(url: &str, proxy: &str, remote_proxy: &str, output: Option<&std::path::Path>) -> Result<Vec<u8>, String> {
+    let url = remote_url(url, remote_proxy);
     let mut cmd = crate::cmdutil::no_console("curl");
     cmd.args(["-fLsS", "--max-time", "25", "--max-filesize", "20971520"]);
     if !proxy.trim().is_empty() {
@@ -120,7 +134,7 @@ fn encode_query(query: &str) -> String {
 }
 
 #[tauri::command]
-pub async fn search_maps(page: u32, query: String, version: String, proxy: String, cache_minutes: u32) -> Result<MapPage, String> {
+pub async fn search_maps(page: u32, query: String, version: String, proxy: String, remote_proxy: String, cache_minutes: u32) -> Result<MapPage, String> {
     if page > 1000 {
         return Err("页码超出范围".into());
     }
@@ -145,7 +159,7 @@ pub async fn search_maps(page: u32, query: String, version: String, proxy: Strin
             .map(|batch| format!("{API}/list?begin={}&search={}", batch * BATCH, encode_query(search.trim())))
             .collect();
         let batches = std::thread::scope(|scope| {
-            let handles = urls.iter().map(|url| scope.spawn(|| get(url, &proxy, None))).collect::<Vec<_>>();
+            let handles = urls.iter().map(|url| scope.spawn(|| get(url, &proxy, &remote_proxy, None))).collect::<Vec<_>>();
             handles.into_iter().map(|h| h.join().map_err(|_| "地图请求线程异常".to_string())?).collect::<Result<Vec<_>, String>>()
         })?;
         let mut items = Vec::new();
@@ -172,7 +186,7 @@ fn maps_dir(instance_id: &str) -> Result<PathBuf, String> {
 }
 
 #[tauri::command]
-pub async fn install_map(instance_id: String, map_id: u64, proxy: String) -> Result<String, String> {
+pub async fn install_map(instance_id: String, map_id: u64, proxy: String, remote_proxy: String) -> Result<String, String> {
     if map_id == 0 { return Err("地图 ID 无效".into()); }
     let dir = maps_dir(&instance_id)?;
     tauri::async_runtime::spawn_blocking(move || {
@@ -181,7 +195,7 @@ pub async fn install_map(instance_id: String, map_id: u64, proxy: String) -> Res
         if dest.exists() { return Err("该地图已安装到这个游戏".into()); }
         let temp = dir.join(format!(".mindustry-top-{map_id}-{}.tmp", std::process::id()));
         let result = (|| {
-            get(&format!("{API}/{map_id}.msav"), &proxy, Some(&temp))?;
+            get(&format!("{API}/{map_id}.msav"), &proxy, &remote_proxy, Some(&temp))?;
             let meta = fs::metadata(&temp).map_err(|e| e.to_string())?;
             if meta.len() < 8 || meta.len() > MAX_MAP_BYTES {
                 return Err("地图文件大小异常".into());
@@ -196,6 +210,32 @@ pub async fn install_map(instance_id: String, map_id: u64, proxy: String) -> Res
         })();
         if result.is_err() { let _ = fs::remove_file(&temp); }
         result
+    }).await.map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn cache_map_preview(url: String, proxy: String, remote_proxy: String, cache_minutes: u32) -> Result<String, String> {
+    if !url.starts_with("https://") || url.len() > 1000 { return Err("地图预览地址无效".into()); }
+    let ttl_ms = u64::from(cache_minutes.clamp(1, 60)) * 60 * 1000;
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        url.hash(&mut hasher);
+        let path = image_cache_dir().join(format!("{:016x}.img", hasher.finish()));
+        if let Ok(meta) = fs::metadata(&path) {
+            if meta.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| now_ms().saturating_sub(d.as_millis() as u64) <= ttl_ms).unwrap_or(false) {
+                return Ok(path.to_string_lossy().into_owned());
+            }
+        }
+        fs::create_dir_all(image_cache_dir()).map_err(|e| e.to_string())?;
+        let temp = path.with_extension("tmp");
+        get(&url, &proxy, &remote_proxy, Some(&temp))?;
+        fs::rename(&temp, &path).map_err(|e| e.to_string())?;
+        if let Ok(entries) = fs::read_dir(image_cache_dir()) {
+            let mut files: Vec<_> = entries.flatten().collect();
+            files.sort_by_key(|e| e.metadata().and_then(|m| m.modified()).ok());
+            while files.len() > IMAGE_CACHE_LIMIT { let old = files.remove(0); let _ = fs::remove_file(old.path()); }
+        }
+        Ok(path.to_string_lossy().into_owned())
     }).await.map_err(|e| e.to_string())?
 }
 

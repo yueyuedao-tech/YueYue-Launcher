@@ -99,11 +99,13 @@ pub struct ModDownloadInfo {
     pub url: String,
 }
 
-fn http_text(url: &str, proxy: &str) -> Result<String, String> {
+fn http_text_remote(url: &str, proxy: &str, remote_proxy: &str) -> Result<String, String> {
+    let base = remote_proxy.trim().trim_end_matches('/');
+    let request_url = if base.is_empty() { url.to_string() } else { format!("{base}/proxy?url={}", urlencode(url)) };
     let mut cmd = crate::cmdutil::no_console("curl");
     cmd.args(["-fLsS", "--max-time", "30", "-H", "User-Agent: YueYue-Launcher"]);
     if !proxy.trim().is_empty() { cmd.args(["--proxy", proxy.trim()]); }
-    let out = cmd.arg(url).output().map_err(|e| format!("无法运行 curl: {e}"))?;
+    let out = cmd.arg(request_url).output().map_err(|e| format!("无法运行 curl: {e}"))?;
     if !out.status.success() { return Err(format!("GitHub 请求失败: {}", String::from_utf8_lossy(&out.stderr).trim())); }
     String::from_utf8(out.stdout).map_err(|e| format!("GitHub 返回编码错误: {e}"))
 }
@@ -120,12 +122,12 @@ fn catalog_item(m: RepoMod) -> ModCatalogItem {
 }
 
 #[tauri::command]
-pub async fn list_github_mods(query: String, page: u32, proxy: String) -> Result<ModCatalogPage, String> {
+pub async fn list_github_mods(query: String, page: u32, proxy: String, remote_proxy: String) -> Result<ModCatalogPage, String> {
     if page > 1000 { return Err("页码超出范围".into()); }
     let query = query.trim().to_lowercase();
     if query.chars().count() > 100 { return Err("搜索词过长".into()); }
     tauri::async_runtime::spawn_blocking(move || {
-        let raw = http_text(MODS_INDEX, &proxy)?;
+        let raw = http_text_remote(MODS_INDEX, &proxy, &remote_proxy)?;
         let all: Vec<RepoMod> = serde_json::from_str(&raw).map_err(|e| format!("Mod 清单格式错误: {e}"))?;
         let filtered: Vec<ModCatalogItem> = all.into_iter()
             .filter(|m| query.is_empty() || [m.name.as_str(), m.internal_name.as_str(), m.repo.as_str(), m.author.as_str(), m.description.as_str()].iter().any(|s| s.to_lowercase().contains(&query)))
@@ -138,11 +140,11 @@ pub async fn list_github_mods(query: String, page: u32, proxy: String) -> Result
 }
 
 #[tauri::command]
-pub async fn resolve_github_mod(repo: String, proxy: String) -> Result<ModDownloadInfo, String> {
+pub async fn resolve_github_mod(repo: String, proxy: String, remote_proxy: String) -> Result<ModDownloadInfo, String> {
     if !repo.contains('/') || repo.len() > 120 { return Err("仓库地址无效".into()); }
     tauri::async_runtime::spawn_blocking(move || {
         let url = format!("https://api.github.com/repos/{repo}/releases?per_page=5");
-        let raw = http_text(&url, &proxy)?;
+        let raw = http_text_remote(&url, &proxy, &remote_proxy)?;
         let releases: Vec<GithubRelease> = serde_json::from_str(&raw).map_err(|e| format!("Release 列表格式错误: {e}"))?;
         let mut fallback: Option<ModDownloadInfo> = None;
         for release in releases {

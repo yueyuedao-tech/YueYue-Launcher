@@ -30,7 +30,8 @@
  * 部署到任意静态托管时，只要能访问到 index.json 就行（build 产物自带版本快照）。
  */
 import { createServer } from 'node:http'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, unlinkSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -41,6 +42,8 @@ const CACHE_DIR = join(HERE, '.cache')
 const SCHEMA = 2
 const GH_TTL_MS = Number(process.env.YYL_GH_TTL_MS ?? 15 * 60 * 1000)
 const GH_PAGES = 5
+const PROXY_TTL_MS = Number(process.env.YYL_PROXY_TTL_MS ?? 60 * 60 * 1000)
+const PROXY_CACHE_LIMIT = 60
 
 /** 源内容清单：只写事实，标签由 build 阶段统一派生；logo/标语随源一起下发。
  *  id 显式写死并与客户端内置索引（central.rs builtin_items）一致：
@@ -221,6 +224,55 @@ function writeCache(repo, versions) {
   }
 }
 
+function proxyCachePath(target) {
+  const key = createHash('sha256').update(target).digest('hex')
+  return join(CACHE_DIR, `proxy-${key}.bin`)
+}
+
+function readProxyCache(target) {
+  if (PROXY_TTL_MS <= 0) return null
+  try {
+    const path = proxyCachePath(target)
+    const meta = JSON.parse(readFileSync(`${path}.json`, 'utf8'))
+    if (Date.now() - Number(meta.at ?? 0) >= PROXY_TTL_MS) return null
+    return { path, type: meta.type || 'application/octet-stream' }
+  } catch {
+    return null
+  }
+}
+
+function trimProxyCache() {
+  try {
+    const files = readdirSync(CACHE_DIR).filter((name) => name.startsWith('proxy-') && name.endsWith('.json'))
+      .map((name) => join(CACHE_DIR, name))
+      .sort((a, b) => statSync(a).mtimeMs - statSync(b).mtimeMs)
+    while (files.length > PROXY_CACHE_LIMIT) {
+      const meta = files.shift()
+      if (!meta) break
+      unlinkSync(meta)
+      unlinkSync(meta.replace(/\.json$/, '.bin'))
+    }
+  } catch {
+    /* 缓存清理失败不影响代理响应 */
+  }
+}
+
+async function proxyRequest(target) {
+  const cached = readProxyCache(target)
+  if (cached) return { body: readFileSync(cached.path), type: cached.type, cached: true }
+  const response = await fetch(target, { headers: { 'user-agent': 'YYL-Central-Proxy' } })
+  if (!response.ok) throw new Error(`上游请求失败 HTTP ${response.status}`)
+  const body = Buffer.from(await response.arrayBuffer())
+  if (body.length > 50 * 1024 * 1024) throw new Error('上游文件超过 50 MiB 限制')
+  const type = response.headers.get('content-type') || 'application/octet-stream'
+  mkdirSync(CACHE_DIR, { recursive: true })
+  const path = proxyCachePath(target)
+  writeFileSync(path, body)
+  writeFileSync(`${path}.json`, JSON.stringify({ at: Date.now(), type }), 'utf8')
+  trimProxyCache()
+  return { body, type, cached: false }
+}
+
 /** 分页拉全 releases，滤掉服务端产物；返回客户端可下载的资源 */
 async function fetchGhVersions(repo) {
   const cached = readCache(repo)
@@ -375,6 +427,7 @@ async function serve(port) {
   console.log(`YYL 中心化服务器启动中，监听 0.0.0.0:${port}`)
   console.log(`  · 中心化索引  GET /index.json`)
   console.log(`  · 信息服务器  GET /info.md   （每日信息 Markdown，可直接填进设置的「每日信息」链接）`)
+  console.log(`  · 远程代理    GET /proxy?url=... （允许的上游内容按 1 小时缓存，最多 60 项）`)
   console.log(`  · 健康检查    GET /health`)
   console.log('在客户端「设置 → 镜像与网络 → 中心化服务器」填入本服务地址即可')
 
@@ -382,6 +435,22 @@ async function serve(port) {
     const url = (req.url || '/').split('?')[0]
     // 访问日志：便于确认「客户端是开机拉还是进页面才拉」
     console.log(`[${new Date().toISOString()}] ${req.method} ${url} ${req.headers['user-agent'] || ''}`.trim())
+
+    if (url === '/proxy') {
+      const target = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`).searchParams.get('url') || ''
+      let parsed
+      try { parsed = new URL(target) } catch { res.writeHead(400, { ...CORS, 'content-type': 'text/plain; charset=utf-8' }).end('invalid url'); return }
+      const allowed = new Set(['api.mindustry.top', 'api.github.com', 'raw.githubusercontent.com', 'github.com', 'file.mdtbbs.cn'])
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') { res.writeHead(400, { ...CORS, 'content-type': 'text/plain; charset=utf-8' }).end('invalid protocol'); return }
+      if (!allowed.has(parsed.hostname)) { res.writeHead(403, { ...CORS, 'content-type': 'text/plain; charset=utf-8' }).end('upstream host not allowed'); return }
+      proxyRequest(target).then(({ body, type, cached }) => {
+        res.writeHead(200, { ...CORS, 'content-type': type, 'x-yy-cache': cached ? 'hit' : 'miss' })
+        res.end(body)
+      }).catch((e) => {
+        res.writeHead(502, { ...CORS, 'content-type': 'text/plain; charset=utf-8' }).end(String(e.message || e))
+      })
+      return
+    }
 
     // 信息服务器：把每日信息以 Markdown 原文吐出去，
     // 客户端「每日信息」那一行可以直接填 http(s)://<本服务>/info.md

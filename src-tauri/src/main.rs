@@ -130,6 +130,7 @@ fn main() {
             mods::delete_mod,
             maps::search_maps,
             maps::install_map,
+            maps::cache_map_preview,
             downloader::start_download,
             downloader::stop_download,
             downloader::list_downloads,
