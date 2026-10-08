@@ -239,6 +239,20 @@ pub async fn cache_map_preview(url: String, proxy: String, remote_proxy: String,
     }).await.map_err(|e| e.to_string())?
 }
 
+#[tauri::command]
+pub async fn clear_content_cache(kind: String) -> Result<(), String> {
+    let subdir = match kind.as_str() {
+        "maps" => "maps",
+        "mods" => "mods",
+        _ => return Err("未知缓存类型".into()),
+    };
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = crate::cmdutil::app_root().join("cache").join(subdir);
+        if path.exists() { fs::remove_dir_all(path).map_err(|e| e.to_string())?; }
+        Ok(())
+    }).await.map_err(|e| e.to_string())?
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

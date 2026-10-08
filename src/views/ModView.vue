@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
+import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { effectiveProxy, instances, remoteProxyUrl, selectedInstanceId, settings } from '../store'
 import type { ModCatalogItem, ModCatalogPage } from '../types'
 
@@ -15,6 +15,7 @@ const modDownloading = ref<string | null>(null)
 const modDownloadError = ref<Record<string, string>>({})
 const modDownloadNames = ref<Record<string, string>>({})
 const iconErrors = ref<Record<string, boolean>>({})
+const iconSources = ref<Record<string, string>>({})
 
 const currentId = computed(() => selectedInstanceId.value)
 
@@ -32,9 +33,23 @@ async function loadCatalog(reset = false) {
       page: catalogPage.value,
       proxy: effectiveProxy.value,
       remoteProxy: settings.remoteProxy,
+      indexUrl: settings.modIndexEnabled ? settings.modIndexUrl : '',
     })) as ModCatalogPage
     catalog.value = result.items
     catalogTotal.value = result.total
+    void Promise.allSettled(result.items.map(async (item) => {
+      if (!item.iconUrl) return
+      try {
+        const path = await invoke('cache_mod_icon', {
+          url: item.iconUrl,
+          proxy: effectiveProxy.value,
+          remoteProxy: settings.remoteProxy,
+        }) as string
+        iconSources.value[item.repo] = convertFileSrc(path)
+      } catch {
+        iconSources.value[item.repo] = remoteProxyUrl(item.iconUrl)
+      }
+    }))
   } catch (e) {
     catalog.value = []
     catalogTotal.value = 0
@@ -108,7 +123,7 @@ onMounted(loadCatalog)
       <div v-if="catalogLoading" class="empty" style="padding: 20px 0">正在读取 Mod 清单…</div>
       <div v-else class="list" style="margin-top: 8px">
         <div v-for="item in catalog" :key="item.repo" class="mod-card">
-          <img v-if="item.iconUrl && !iconErrors[item.repo]" class="mod-icon" :src="remoteProxyUrl(item.iconUrl)" :alt="item.name" loading="lazy" @error="markIconError(item.repo)" />
+          <img v-if="iconSources[item.repo] && !iconErrors[item.repo]" class="mod-icon" :src="iconSources[item.repo]" :alt="item.name" loading="lazy" @error="markIconError(item.repo)" />
           <div v-else class="mod-icon mod-icon--fallback">🧩</div>
           <div class="row-main">
             <div class="name">{{ item.name || item.internalName }}</div>

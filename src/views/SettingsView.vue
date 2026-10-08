@@ -65,6 +65,8 @@ const targetName = computed(
 )
 const saves = ref<string[]>([])
 const saveError = ref('')
+const cacheBusy = ref('')
+const cacheStatus = ref('')
 /** 「关于」页显示的版本号：开机问 Tauri 要，避免页面里写死后发新版不更新 */
 const appVersion = ref('')
 
@@ -79,6 +81,19 @@ async function refreshSaves() {
   } catch (e) {
     saveError.value = String(e)
     saves.value = []
+  }
+}
+
+async function clearCache(kind: 'maps' | 'mods') {
+  cacheBusy.value = kind
+  cacheStatus.value = ''
+  try {
+    await invoke('clear_content_cache', { kind })
+    cacheStatus.value = `${kind === 'maps' ? '地图' : 'Mod'}缓存已清理`
+  } catch (e) {
+    cacheStatus.value = String(e)
+  } finally {
+    cacheBusy.value = ''
   }
 }
 
@@ -167,14 +182,25 @@ onMounted(async () => {
             <div class="label">地图页缓存</div>
             <div class="hint" style="font-size: 12px">地图列表保存到本地缓存目录，减少重复请求</div>
           </div>
-          <div class="ctrl" style="flex: 1; max-width: 420px">
+          <div class="ctrl" style="flex: 1; max-width: 420px; gap: 8px">
             <select v-model.number="settings.mapCacheMinutes" class="field" style="width: 100%">
               <option :value="15">15 分钟</option>
               <option :value="30">30 分钟</option>
               <option :value="60">1 小时</option>
             </select>
+            <button class="btn-ghost" style="flex: none" :disabled="!!cacheBusy" @click="clearCache('maps')">清理</button>
           </div>
         </div>
+        <div class="set-row">
+          <div>
+            <div class="label">Mod 清单缓存</div>
+            <div class="hint" style="font-size: 12px">索引按地址保存到本地，1 小时后更新</div>
+          </div>
+          <div class="ctrl">
+            <button class="btn-ghost" :disabled="!!cacheBusy" @click="clearCache('mods')">清理</button>
+          </div>
+        </div>
+        <div v-if="cacheStatus" class="set-row"><div class="meta">{{ cacheStatus }}</div></div>
       </div>
 
       <!-- 镜像与网络：代理来源可选，镜像地址由中心服务器下发 -->
@@ -235,6 +261,26 @@ onMounted(async () => {
           </div>
           <div class="ctrl" style="flex: 1; max-width: 520px">
             <input v-model="settings.remoteProxy" class="field" style="width: 100%" placeholder="https://your-server.example.com" />
+          </div>
+        </div>
+        <div class="set-row">
+          <div>
+            <div class="label">自定义 Mod 索引</div>
+            <div class="hint" style="font-size: 12px">关闭时使用内置清单</div>
+          </div>
+          <div class="ctrl" style="flex: 1; max-width: 560px; gap: 10px; flex-wrap: wrap">
+            <label class="switch" style="flex: none">
+              <input v-model="settings.modIndexEnabled" type="checkbox" />
+              <span class="track" />
+              <span class="thumb" />
+            </label>
+            <input
+              v-if="settings.modIndexEnabled"
+              v-model="settings.modIndexUrl"
+              class="field"
+              style="flex: 1; min-width: 200px"
+              placeholder="https://example.com/mods.json"
+            />
           </div>
         </div>
         <div class="set-row">

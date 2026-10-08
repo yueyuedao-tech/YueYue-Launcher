@@ -596,6 +596,9 @@ export interface Settings {
   centralServers: string[]
   /** 可选的中心服务器代理入口，负责转发地图、Mod 索引和下载流量 */
   remoteProxy: string
+  /** 使用自定义 Mod 索引；关闭时走内置 MindustryMods 清单 */
+  modIndexEnabled: boolean
+  modIndexUrl: string
   /** 旧字段（单个地址），只在迁移时读一次 */
   centralServer?: string
   workshopMirror: string
@@ -645,6 +648,8 @@ const defaults: Settings = {
   navPosition: 'top',
   centralServers: [],
   remoteProxy: '',
+  modIndexEnabled: false,
+  modIndexUrl: 'https://raw.githubusercontent.com/Anuken/MindustryMods/master/mods.json',
   workshopMirror: '',
   downloadThreads: 4,
   uiScale: 100,

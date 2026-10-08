@@ -1,9 +1,91 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 const APPID: &str = "1127400";
 const MODS_INDEX: &str = "https://raw.githubusercontent.com/Anuken/MindustryMods/master/mods.json";
+const MOD_CACHE_MS: u64 = 60 * 60 * 1000;
+
+fn cache_dir() -> PathBuf {
+    crate::cmdutil::app_root().join("cache").join("mods")
+}
+
+fn index_cache_path(url: &str) -> PathBuf {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    url.hash(&mut hasher);
+    cache_dir().join("indexes").join(format!("{:016x}.json", hasher.finish()))
+}
+
+fn icon_cache_path(url: &str) -> PathBuf {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    url.hash(&mut hasher);
+    cache_dir().join("icons").join(format!("{:016x}.img", hasher.finish()))
+}
+
+fn fresh_cache(path: &std::path::Path) -> bool {
+    fs::metadata(path).ok()
+        .and_then(|meta| meta.modified().ok())
+        .and_then(|time| SystemTime::now().duration_since(time).ok())
+        .map(|age| age.as_millis() < MOD_CACHE_MS as u128)
+        .unwrap_or(false)
+}
+
+fn read_index(url: &str, proxy: &str, remote_proxy: &str) -> Result<Vec<RepoMod>, String> {
+    let path = index_cache_path(url);
+    if fresh_cache(&path) {
+        if let Ok(raw) = fs::read_to_string(&path) {
+            if let Ok(items) = serde_json::from_str(&raw) { return Ok(items); }
+        }
+    }
+    let routed_proxy = if url == MODS_INDEX { remote_proxy } else { "" };
+    let raw = http_text_remote(url, proxy, routed_proxy)?;
+    let items: Vec<RepoMod> = serde_json::from_str(&raw).map_err(|e| format!("Mod 清单格式错误: {e}"))?;
+    if let Some(parent) = path.parent() {
+        if fs::create_dir_all(parent).is_ok() {
+            if fs::write(&path, raw).is_ok() {
+                if let Ok(entries) = fs::read_dir(parent) {
+                    let mut files: Vec<_> = entries.flatten().collect();
+                    files.sort_by_key(|e| e.metadata().and_then(|m| m.modified()).ok());
+                    while files.len() > 10 { let old = files.remove(0); let _ = fs::remove_file(old.path()); }
+                }
+            }
+        }
+    }
+    Ok(items)
+}
+
+#[tauri::command]
+pub async fn cache_mod_icon(url: String, proxy: String, remote_proxy: String) -> Result<String, String> {
+    if !url.starts_with("https://raw.githubusercontent.com/Anuken/MindustryMods/master/icons/") || url.len() > 500 {
+        return Err("Mod 图标地址无效".into());
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = icon_cache_path(&url);
+        if fresh_cache(&path) { return Ok(path.to_string_lossy().into_owned()); }
+        if let Some(parent) = path.parent() { fs::create_dir_all(parent).map_err(|e| e.to_string())?; }
+        let nonce = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+        let temp = path.with_extension(format!("{nonce}.tmp"));
+        let base = remote_proxy.trim().trim_end_matches('/');
+        let request_url = if base.is_empty() { url.clone() } else { format!("{base}/proxy?url={}", urlencode(&url)) };
+        let mut cmd = crate::cmdutil::no_console("curl");
+        cmd.args(["-fLsS", "--max-time", "30", "--max-filesize", "1048576"]);
+        if !proxy.trim().is_empty() { cmd.args(["--proxy", proxy.trim()]); }
+        let result = cmd.arg("-o").arg(&temp).arg(request_url).output().map_err(|e| e.to_string())?;
+        if !result.status.success() { let _ = fs::remove_file(&temp); return Err("Mod 图标下载失败".into()); }
+        if path.exists() { fs::remove_file(&path).map_err(|e| e.to_string())?; }
+        fs::rename(&temp, &path).map_err(|e| e.to_string())?;
+        if let Some(parent) = path.parent() {
+            if let Ok(entries) = fs::read_dir(parent) {
+                let mut files: Vec<_> = entries.flatten().filter(|e| e.path().extension().and_then(|x| x.to_str()) == Some("img")).collect();
+                files.sort_by_key(|e| e.metadata().and_then(|m| m.modified()).ok());
+                while files.len() > 60 { let old = files.remove(0); let _ = fs::remove_file(old.path()); }
+            }
+        }
+        Ok(path.to_string_lossy().into_owned())
+    }).await.map_err(|e| e.to_string())?
+}
 
 pub fn mods_dir_for(instance_id: &str) -> Result<PathBuf, String> {
     let info = crate::instances::read_instance(instance_id)?;
@@ -122,13 +204,16 @@ fn catalog_item(m: RepoMod) -> ModCatalogItem {
 }
 
 #[tauri::command]
-pub async fn list_github_mods(query: String, page: u32, proxy: String, remote_proxy: String) -> Result<ModCatalogPage, String> {
+pub async fn list_github_mods(query: String, page: u32, proxy: String, remote_proxy: String, index_url: String) -> Result<ModCatalogPage, String> {
     if page > 1000 { return Err("页码超出范围".into()); }
     let query = query.trim().to_lowercase();
     if query.chars().count() > 100 { return Err("搜索词过长".into()); }
+    let index_url = if index_url.trim().is_empty() { MODS_INDEX.to_string() } else { index_url.trim().to_string() };
+    if index_url.len() > 2000 || !(index_url.starts_with("https://") || index_url.starts_with("http://")) {
+        return Err("Mod 索引地址必须是 HTTP 或 HTTPS 链接".into());
+    }
     tauri::async_runtime::spawn_blocking(move || {
-        let raw = http_text_remote(MODS_INDEX, &proxy, &remote_proxy)?;
-        let all: Vec<RepoMod> = serde_json::from_str(&raw).map_err(|e| format!("Mod 清单格式错误: {e}"))?;
+        let all = read_index(&index_url, &proxy, &remote_proxy)?;
         let filtered: Vec<ModCatalogItem> = all.into_iter()
             .filter(|m| query.is_empty() || [m.name.as_str(), m.internal_name.as_str(), m.repo.as_str(), m.author.as_str(), m.description.as_str()].iter().any(|s| s.to_lowercase().contains(&query)))
             .map(catalog_item)
