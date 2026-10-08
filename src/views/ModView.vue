@@ -4,12 +4,9 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { open as openExternal } from '@tauri-apps/plugin-shell'
 import { effectiveProxy, instances, selectedInstanceId, settings } from '../store'
-import type { ModCatalogItem, ModCatalogPage, ModFile, WorkshopItem } from '../types'
+import type { ModCatalogItem, ModCatalogPage, ModFile } from '../types'
 
 const query = ref('')
-const searching = ref(false)
-const searchError = ref('')
-const results = ref<WorkshopItem[]>([])
 
 const mods = ref<ModFile[]>([])
 const modsError = ref('')
@@ -22,6 +19,7 @@ const catalogError = ref('')
 const modDownloading = ref<string | null>(null)
 const modDownloadError = ref<Record<string, string>>({})
 const modDownloadNames = ref<Record<string, string>>({})
+const iconErrors = ref<Record<string, boolean>>({})
 const unlisteners: UnlistenFn[] = []
 
 const currentId = computed(() => selectedInstanceId.value)
@@ -44,22 +42,6 @@ async function refreshMods() {
 
 async function search() {
   void loadCatalog(true)
-  if (!query.value.trim()) return
-  searching.value = true
-  searchError.value = ''
-  try {
-    results.value = (await invoke('search_workshop', {
-      query: query.value.trim(),
-      proxy: effectiveProxy.value,
-      mirror: settings.workshopMirror,
-    })) as WorkshopItem[]
-    if (!results.value.length) searchError.value = '没有结果'
-  } catch (e) {
-    results.value = []
-    searchError.value = String(e)
-  } finally {
-    searching.value = false
-  }
 }
 
 async function loadCatalog(reset = false) {
@@ -144,6 +126,10 @@ function fmtBytes(n: number): string {
   return n + ' B'
 }
 
+function markIconError(repo: string) {
+  iconErrors.value[repo] = true
+}
+
 onMounted(async () => {
   await refreshMods()
   await loadCatalog()
@@ -178,34 +164,18 @@ onBeforeUnmount(() => unlisteners.forEach((stop) => stop()))
 
     <p v-if="!instances.length" class="page-sub">请先在「游戏」页创建一个游戏</p>
 
-    <!-- 搜索区 -->
-    <div v-if="currentId" class="set-group" style="margin-bottom: 16px">
-      <h3>搜索创意工坊（{{ currentName }}）</h3>
-      <div class="set-row">
-        <div class="label">关键词</div>
-        <div class="ctrl" style="flex: 1; max-width: 520px; gap: 8px">
-          <input
-            v-model="query"
-            class="field"
-            style="width: 100%"
-            placeholder="如：music, ui, content"
-            @keydown.enter="search"
-          />
-          <button class="btn-grad" style="font-size: 14px; padding: 9px 22px" :disabled="searching" @click="search">
-            {{ searching ? '搜索中…' : '搜索' }}
-          </button>
-        </div>
-      </div>
-      <p v-if="searchError" style="color: #ff7db0; font-size: 13px; padding: 0 0 10px">{{ searchError }}</p>
-    </div>
-
     <div v-if="currentId" class="set-group" style="margin-bottom: 16px">
       <h3>Anuken/MindustryMods（{{ catalogTotal }}）</h3>
+      <div class="mod-search">
+        <input v-model="query" class="field" placeholder="搜索 Mod 名称、作者或仓库" @keydown.enter="search" />
+        <button class="btn-grad" :disabled="catalogLoading" @click="search">{{ catalogLoading ? '读取中…' : '搜索' }}</button>
+      </div>
       <p v-if="catalogError" class="mod-error">{{ catalogError }}</p>
       <div v-if="catalogLoading" class="empty" style="padding: 20px 0">正在读取 Mod 清单…</div>
       <div v-else class="list" style="margin-top: 8px">
-        <div v-for="item in catalog" :key="item.repo" class="row-card">
-          <div class="row-icon cy">🧩</div>
+        <div v-for="item in catalog" :key="item.repo" class="mod-card">
+          <img v-if="item.iconUrl && !iconErrors[item.repo]" class="mod-icon" :src="item.iconUrl" :alt="item.name" loading="lazy" @error="markIconError(item.repo)" />
+          <div v-else class="mod-icon mod-icon--fallback">🧩</div>
           <div class="row-main">
             <div class="name">{{ item.name || item.internalName }}</div>
             <div class="meta">{{ item.repo }} · v{{ item.version || '未知' }} · 最低游戏 {{ item.minGameVersion || '未知' }} · ★{{ item.stars }}</div>
@@ -226,23 +196,9 @@ onBeforeUnmount(() => unlisteners.forEach((stop) => stop()))
       </div>
     </div>
 
-    <!-- 搜索结果 -->
-    <div v-if="results.length" class="list" style="margin-bottom: 18px">
-      <div v-for="item in results" :key="item.id" class="row-card">
-        <div class="row-icon cy">🧩</div>
-        <div class="row-main">
-          <div class="name">{{ item.title }}</div>
-          <div class="meta">ID {{ item.id }}</div>
-        </div>
-        <div class="row-side">
-          <button class="btn-ghost" @click="openExternal(item.url)">页面</button>
-        </div>
-      </div>
-    </div>
-
     <!-- 当前游戏已装 Mod -->
     <div class="set-group" v-if="currentId">
-      <h3>已安装 Mod（{{ mods.length }}）— {{ currentName }}</h3>
+      <h3>已安装 Mod（{{ mods.length }}）</h3>
       <p v-if="modsError" style="color: #ff7db0; font-size: 13px; padding: 8px 0">{{ modsError }}</p>
       <div v-if="mods.length" class="list" style="margin-top: 8px">
         <div v-for="m in mods" :key="m.name" class="row-card" style="padding: 10px 14px">
@@ -264,6 +220,12 @@ onBeforeUnmount(() => unlisteners.forEach((stop) => stop()))
 </template>
 
 <style scoped>
+.mod-search { display: flex; gap: 10px; margin: 12px 0; }
+.mod-search input { flex: 1; min-width: 0; }
+.mod-search button { min-width: 64px; }
+.mod-card { display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid var(--line); background: var(--card); border-radius: 6px; min-width: 0; }
+.mod-icon { width: 58px; height: 58px; flex: none; object-fit: cover; border-radius: 10px; background: var(--panel); image-rendering: auto; }
+.mod-icon--fallback { display: grid; place-items: center; font-size: 24px; }
 .mod-download { min-width: 64px; padding: 7px 12px; font-size: 12px; }
 .mod-description { color: var(--ink-dim); font-size: 12px; margin-top: 4px; line-height: 1.4; }
 .mod-error { color: #ff8f8f; font-size: 12px; margin-top: 5px; }

@@ -52,6 +52,8 @@ struct RepoMod {
     #[serde(default)]
     has_java: bool,
     #[serde(default)]
+    has_icon: bool,
+    #[serde(default)]
     description: String,
 }
 
@@ -67,6 +69,7 @@ pub struct ModCatalogItem {
     pub version: String,
     pub min_game_version: String,
     pub has_java: bool,
+    pub icon_url: String,
     pub description: String,
 }
 
@@ -106,7 +109,14 @@ fn http_text(url: &str, proxy: &str) -> Result<String, String> {
 }
 
 fn catalog_item(m: RepoMod) -> ModCatalogItem {
-    ModCatalogItem { repo: m.repo, internal_name: m.internal_name, name: m.name, author: m.author, last_updated: m.last_updated, stars: m.stars, version: m.version, min_game_version: m.min_game_version, has_java: m.has_java, description: m.description }
+    let icon_url = if m.has_icon {
+        // MindustryMods stores icons in one shared directory, keyed by owner_repo.
+        let icon_key = m.repo.replace('/', "_");
+        format!("https://raw.githubusercontent.com/Anuken/MindustryMods/master/icons/{icon_key}")
+    } else {
+        String::new()
+    };
+    ModCatalogItem { repo: m.repo, internal_name: m.internal_name, name: m.name, author: m.author, last_updated: m.last_updated, stars: m.stars, version: m.version, min_game_version: m.min_game_version, has_java: m.has_java, icon_url, description: m.description }
 }
 
 #[tauri::command]

@@ -206,6 +206,7 @@ export interface ModCatalogItem {
   version: string
   minGameVersion: string
   hasJava: boolean
+  iconUrl: string
   description: string
 }
 
