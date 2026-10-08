@@ -132,6 +132,7 @@ fn main() {
             maps::search_maps,
             maps::install_map,
             maps::cache_map_preview,
+            maps::remote_proxy_available,
             maps::clear_content_cache,
             downloader::start_download,
             downloader::stop_download,

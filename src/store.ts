@@ -555,6 +555,7 @@ export async function checkLauncherUpdate(current: string): Promise<void> {
 
 // ---------- 设置（localStorage 持久化） ----------
 const SETTINGS_KEY = 'starlight-launcher-settings'
+export const DEFAULT_REMOTE_PROXY = 'https://mindustry.wiki:1200'
 
 export const ACCENT_PAIRS: Record<string, [string, string]> = {
   粉: ['#ff7db0', '#6ee7f9'],
@@ -596,6 +597,7 @@ export interface Settings {
   centralServers: string[]
   /** 可选的中心服务器代理入口，负责转发地图、Mod 索引和下载流量 */
   remoteProxy: string
+  remoteProxyDefaultApplied?: boolean
   /** 使用自定义 Mod 索引；关闭时走内置 MindustryMods 清单 */
   modIndexEnabled: boolean
   modIndexUrl: string
@@ -647,7 +649,8 @@ const defaults: Settings = {
   lastSeenTag: '',
   navPosition: 'top',
   centralServers: [],
-  remoteProxy: '',
+  remoteProxy: DEFAULT_REMOTE_PROXY,
+  remoteProxyDefaultApplied: true,
   modIndexEnabled: false,
   modIndexUrl: 'https://raw.githubusercontent.com/Anuken/MindustryMods/master/mods.json',
   workshopMirror: '',
@@ -670,6 +673,10 @@ function loadSettings(): Settings {
     if (raw) {
       const stored = JSON.parse(raw) as Partial<Settings>
       const parsed = { ...defaults, ...stored } as Settings
+      if (!stored.remoteProxyDefaultApplied) {
+        if (!stored.remoteProxy?.trim()) parsed.remoteProxy = DEFAULT_REMOTE_PROXY
+        parsed.remoteProxyDefaultApplied = true
+      }
       // 旧版设置中的开发者开关已经移除。
       delete (parsed as Settings & { devMode?: boolean }).devMode
       // 一次性迁移：老配置升级后默认改为顶部导航

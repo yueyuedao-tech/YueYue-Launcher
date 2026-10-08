@@ -47,7 +47,7 @@ async function loadCatalog(reset = false) {
         }) as string
         iconSources.value[item.repo] = convertFileSrc(path)
       } catch {
-        iconSources.value[item.repo] = remoteProxyUrl(item.iconUrl)
+        iconSources.value[item.repo] = item.iconUrl
       }
     }))
   } catch (e) {
@@ -74,8 +74,12 @@ async function downloadMod(item: ModCatalogItem) {
     const info = (await invoke('resolve_github_mod', { repo: item.repo, proxy: effectiveProxy.value, remoteProxy: settings.remoteProxy })) as { fileName: string; url: string }
     const dir = (await invoke('mods_dir', { instanceId: currentId.value })) as string
     const fileName = safeFileName(info.fileName, item.repo)
+    const useRemote = settings.remoteProxy.trim() && await invoke<boolean>('remote_proxy_available', {
+      base: settings.remoteProxy,
+      proxy: effectiveProxy.value,
+    })
     await invoke('start_download', {
-      url: remoteProxyUrl(info.url),
+      url: useRemote ? remoteProxyUrl(info.url) : info.url,
       fileName,
       proxy: effectiveProxy.value,
       downloadDir: dir,

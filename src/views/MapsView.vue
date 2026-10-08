@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
-import { effectiveProxy, instances, remoteProxyUrl, selectedInstanceId, settings } from '../store'
+import { effectiveProxy, instances, selectedInstanceId, settings } from '../store'
 import type { MapItem, MapPage } from '../types'
 
 const versions = [
@@ -56,7 +56,7 @@ async function cachePreviewImages(items: MapPage['items']) {
       }) as string
       item.preview = convertFileSrc(path)
     } catch {
-      item.preview = remoteProxyUrl(item.preview)
+      // Browser image loading has no retry hook here; the original URL remains usable.
     }
   }))
 }

@@ -113,9 +113,17 @@ fn write_cached(query: &str, version: &str, page_number: u32, page: MapPage) {
 }
 
 fn get(url: &str, proxy: &str, remote_proxy: &str, output: Option<&std::path::Path>) -> Result<Vec<u8>, String> {
-    let url = remote_url(url, remote_proxy);
+    if !remote_proxy.trim().is_empty() {
+        if let Ok(body) = get_direct(&remote_url(url, remote_proxy), proxy, output, 8) {
+            return Ok(body);
+        }
+    }
+    get_direct(url, proxy, output, 25)
+}
+
+fn get_direct(url: &str, proxy: &str, output: Option<&std::path::Path>, timeout: u32) -> Result<Vec<u8>, String> {
     let mut cmd = crate::cmdutil::no_console("curl");
-    cmd.args(["-fLsS", "--max-time", "25", "--max-filesize", "20971520"]);
+    cmd.args(["-fLsS", "--max-time", &timeout.to_string(), "--max-filesize", "20971520"]);
     if !proxy.trim().is_empty() {
         cmd.args(["--proxy", proxy.trim()]);
     }
@@ -211,6 +219,22 @@ pub async fn install_map(instance_id: String, map_id: u64, proxy: String, remote
         if result.is_err() { let _ = fs::remove_file(&temp); }
         result
     }).await.map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn remote_proxy_available(base: String, proxy: String) -> bool {
+    if !(base.starts_with("https://") || base.starts_with("http://")) { return false; }
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut cmd = crate::cmdutil::no_console("curl");
+        cmd.args(["-fLsS", "--max-time", "4", "-o"]);
+        #[cfg(windows)]
+        cmd.arg("NUL");
+        #[cfg(not(windows))]
+        cmd.arg("/dev/null");
+        if !proxy.trim().is_empty() { cmd.args(["--proxy", proxy.trim()]); }
+        cmd.arg(format!("{}/health", base.trim_end_matches('/')));
+        cmd.status().map(|status| status.success()).unwrap_or(false)
+    }).await.unwrap_or(false)
 }
 
 #[tauri::command]

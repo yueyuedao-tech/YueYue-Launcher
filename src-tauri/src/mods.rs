@@ -70,10 +70,18 @@ pub async fn cache_mod_icon(url: String, proxy: String, remote_proxy: String) ->
         let base = remote_proxy.trim().trim_end_matches('/');
         let request_url = if base.is_empty() { url.clone() } else { format!("{base}/proxy?url={}", urlencode(&url)) };
         let mut cmd = crate::cmdutil::no_console("curl");
-        cmd.args(["-fLsS", "--max-time", "30", "--max-filesize", "1048576"]);
+        cmd.args(["-fLsS", "--max-time", if base.is_empty() { "30" } else { "8" }, "--max-filesize", "1048576"]);
         if !proxy.trim().is_empty() { cmd.args(["--proxy", proxy.trim()]); }
         let result = cmd.arg("-o").arg(&temp).arg(request_url).output().map_err(|e| e.to_string())?;
-        if !result.status.success() { let _ = fs::remove_file(&temp); return Err("Mod 图标下载失败".into()); }
+        if !result.status.success() {
+            let _ = fs::remove_file(&temp);
+            if base.is_empty() { return Err("Mod 图标下载失败".into()); }
+            let mut direct = crate::cmdutil::no_console("curl");
+            direct.args(["-fLsS", "--max-time", "30", "--max-filesize", "1048576"]);
+            if !proxy.trim().is_empty() { direct.args(["--proxy", proxy.trim()]); }
+            let status = direct.arg("-o").arg(&temp).arg(&url).status().map_err(|e| e.to_string())?;
+            if !status.success() { let _ = fs::remove_file(&temp); return Err("Mod 图标下载失败".into()); }
+        }
         if path.exists() { fs::remove_file(&path).map_err(|e| e.to_string())?; }
         fs::rename(&temp, &path).map_err(|e| e.to_string())?;
         if let Some(parent) = path.parent() {
@@ -183,11 +191,18 @@ pub struct ModDownloadInfo {
 
 fn http_text_remote(url: &str, proxy: &str, remote_proxy: &str) -> Result<String, String> {
     let base = remote_proxy.trim().trim_end_matches('/');
-    let request_url = if base.is_empty() { url.to_string() } else { format!("{base}/proxy?url={}", urlencode(url)) };
+    if !base.is_empty() {
+        let request_url = format!("{base}/proxy?url={}", urlencode(url));
+        if let Ok(body) = http_text_request(&request_url, proxy, 8) { return Ok(body); }
+    }
+    http_text_request(url, proxy, 30)
+}
+
+fn http_text_request(url: &str, proxy: &str, timeout: u32) -> Result<String, String> {
     let mut cmd = crate::cmdutil::no_console("curl");
-    cmd.args(["-fLsS", "--max-time", "30", "-H", "User-Agent: YueYue-Launcher"]);
+    cmd.args(["-fLsS", "--max-time", &timeout.to_string(), "-H", "User-Agent: YueYue-Launcher"]);
     if !proxy.trim().is_empty() { cmd.args(["--proxy", proxy.trim()]); }
-    let out = cmd.arg(request_url).output().map_err(|e| format!("无法运行 curl: {e}"))?;
+    let out = cmd.arg(url).output().map_err(|e| format!("无法运行 curl: {e}"))?;
     if !out.status.success() { return Err(format!("GitHub 请求失败: {}", String::from_utf8_lossy(&out.stderr).trim())); }
     String::from_utf8(out.stdout).map_err(|e| format!("GitHub 返回编码错误: {e}"))
 }
