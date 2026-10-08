@@ -1,16 +1,11 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
-import { listen, type UnlistenFn } from '@tauri-apps/api/event'
-import { open as openExternal } from '@tauri-apps/plugin-shell'
 import { effectiveProxy, instances, selectedInstanceId, settings } from '../store'
-import type { ModCatalogItem, ModCatalogPage, ModFile } from '../types'
+import type { ModCatalogItem, ModCatalogPage } from '../types'
 
 const query = ref('')
 
-const mods = ref<ModFile[]>([])
-const modsError = ref('')
-const busy = ref(false)
 const catalog = ref<ModCatalogItem[]>([])
 const catalogPage = ref(0)
 const catalogTotal = ref(0)
@@ -20,25 +15,8 @@ const modDownloading = ref<string | null>(null)
 const modDownloadError = ref<Record<string, string>>({})
 const modDownloadNames = ref<Record<string, string>>({})
 const iconErrors = ref<Record<string, boolean>>({})
-const unlisteners: UnlistenFn[] = []
 
 const currentId = computed(() => selectedInstanceId.value)
-const currentName = computed(
-  () => instances.value.find((i) => i.id === currentId.value)?.name ?? '',
-)
-
-async function refreshMods() {
-  modsError.value = ''
-  if (!currentId.value) {
-    mods.value = []
-    return
-  }
-  try {
-    mods.value = (await invoke('list_mods', { instanceId: currentId.value })) as ModFile[]
-  } catch (e) {
-    modsError.value = String(e)
-  }
-}
 
 async function search() {
   void loadCatalog(true)
@@ -96,50 +74,11 @@ async function downloadMod(item: ModCatalogItem) {
   }
 }
 
-async function openModsFolder() {
-  if (!currentId.value) return
-  try {
-    const dir = (await invoke('mods_dir', { instanceId: currentId.value })) as string
-    await openExternal(dir)
-  } catch (e) {
-    modsError.value = String(e)
-  }
-}
-
-async function removeMod(name: string) {
-  if (!currentId.value) return
-  if (!window.confirm(`删除 Mod「${name}」？`)) return
-  busy.value = true
-  try {
-    await invoke('delete_mod', { instanceId: currentId.value, name })
-    await refreshMods()
-  } catch (e) {
-    modsError.value = String(e)
-  } finally {
-    busy.value = false
-  }
-}
-
-function fmtBytes(n: number): string {
-  if (n >= 1 << 20) return (n / (1 << 20)).toFixed(1) + ' MB'
-  if (n >= 1 << 10) return (n / (1 << 10)).toFixed(0) + ' KB'
-  return n + ' B'
-}
-
 function markIconError(repo: string) {
   iconErrors.value[repo] = true
 }
 
-onMounted(async () => {
-  await refreshMods()
-  await loadCatalog()
-  unlisteners.push(await listen<{ fileName: string }>('download-done', async (event) => {
-    if (Object.values(modDownloadNames.value).includes(event.payload.fileName)) await refreshMods()
-  }))
-})
-// 切换游戏立即刷新列表，避免陈旧列表按新 currentId 误删
-watch(currentId, refreshMods)
-onBeforeUnmount(() => unlisteners.forEach((stop) => stop()))
+onMounted(loadCatalog)
 </script>
 
 <template>
@@ -158,7 +97,7 @@ onBeforeUnmount(() => unlisteners.forEach((stop) => stop()))
           <option v-for="i in instances" :key="i.id" :value="i.id">{{ i.name }}</option>
           <option v-if="!instances.length" value="" disabled>（无游戏）</option>
         </select>
-        <button class="btn-ghost" :disabled="!currentId" @click="refreshMods">刷新列表</button>
+        <button class="btn-ghost" :disabled="catalogLoading" @click="loadCatalog()">刷新列表</button>
       </div>
     </div>
 
@@ -196,26 +135,6 @@ onBeforeUnmount(() => unlisteners.forEach((stop) => stop()))
       </div>
     </div>
 
-    <!-- 当前游戏已装 Mod -->
-    <div class="set-group" v-if="currentId">
-      <h3>已安装 Mod（{{ mods.length }}）</h3>
-      <p v-if="modsError" style="color: #ff7db0; font-size: 13px; padding: 8px 0">{{ modsError }}</p>
-      <div v-if="mods.length" class="list" style="margin-top: 8px">
-        <div v-for="m in mods" :key="m.name" class="row-card" style="padding: 10px 14px">
-          <div class="row-main">
-            <div class="name" style="font-size: 14px; word-break: break-all">{{ m.name }}</div>
-            <div class="meta">{{ fmtBytes(m.size) }} · {{ m.mtime }}</div>
-          </div>
-          <div class="row-side">
-            <button class="btn-ghost" style="color: #ff8f8f" :disabled="busy" @click="removeMod(m.name)">删除</button>
-          </div>
-        </div>
-      </div>
-      <div v-else class="empty" style="padding: 20px 0">该游戏还没有 Mod（可将 .jar 放入其 mods 目录）</div>
-      <div style="padding: 4px 0 12px">
-        <button class="btn-ghost" @click="openModsFolder">打开 Mod 文件夹</button>
-      </div>
-    </div>
   </section>
 </template>
 
