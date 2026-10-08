@@ -1,5 +1,5 @@
 {
-  "version": "0.1.5",
+  "version": "0.1.6",
   "url": "https://github.com/yueyuedao-tech/YueYue-Launcher/releases",
-  "note": "新增地图浏览与安装、Mod 搜索与下载；地图列表支持本地缓存"
+  "note": "远程代理默认连接 mindustry.wiki:1200；代理不可用时自动直连"
 }

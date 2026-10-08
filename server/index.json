@@ -2842,9 +2842,9 @@
   ],
   "infoBar": "**2026-10-03 · 公告** YueYue Launcher (YYL) V1 发布：全新二次元界面，支持 Windows 与 Linux\n**2026-09-28 · 更新** 模拟启动流程上线，日志面板实时显示各阶段状态\n**2026-09-20 · 社区** Mindustry 游戏管理上线：每个客户端独立存档与配置",
   "launcher": {
-    "version": "0.1.5",
+    "version": "0.1.6",
     "url": "https://github.com/yueyuedao-tech/YueYue-Launcher/releases",
-    "note": "新增地图浏览与安装、Mod 搜索与下载；地图列表支持本地缓存"
+    "note": "远程代理默认连接 mindustry.wiki:1200；代理不可用时自动直连"
   },
   "mirrors": {
     "workshop": []
